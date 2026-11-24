@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Baixou ofertas</title>
+<meta name="description" content="Só produtos em promoção, conferidos a cada 15 minutos.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* VOICE everyday store: quick, confident, trustworthy
+   IDEA a supermarket price-drop shelf: big prices, struck-through old price, red tag
+   PICTURE the live catalog itself, product cards drawn as shelf items
+   COLOUR white ground, electric blue header field, red discount tag, store-yellow pill
+   TYPE Archivo 800 display + Inter text
+   LAYOUT blue band with logo + search; chips; filters left, grid right; phone: stacked, filters folded */
+:root{color-scheme:light dark;--bg:light-dark(#ffffff,#0e1018);--ink:light-dark(#14161f,#eef0f6);--mute:light-dark(#5b6072,#a3a8b8);--line:light-dark(#e4e6ee,#262a38);--card:light-dark(#ffffff,#161925);--soft:light-dark(#f4f5f9,#141722);--blue:light-dark(#1f3cff,#1a2fc9);--blue2:light-dark(#0f22b8,#2b44ff);--red:#e3120b;--ok:light-dark(#0b7a3b,#4fd287);--warn:light-dark(#a35b00,#f2b04a);--ml:#ffe600}
+:root[data-theme=light]{color-scheme:light}
+:root[data-theme=dark]{color-scheme:dark}
+*{box-sizing:border-box;min-width:0}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font:16px/1.5 Inter,system-ui,sans-serif;overflow-x:clip}
+a{color:inherit}
+button,input,select{font:inherit;color:inherit}
+.wrap{max-width:1240px;margin:0 auto;padding:0 max(4vw,16px)}
+header{background:var(--blue);color:#fff}
+.top{display:flex;flex-wrap:wrap;align-items:center;gap:14px 28px;padding-block:18px}
+.logo{display:flex;align-items:center;gap:10px;font:800 32px/1 Archivo,sans-serif;letter-spacing:-.03em;text-decoration:none;color:#fff}
+.logo svg{width:34px;height:34px}
+.search{flex:1 1 360px;display:flex;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 0 var(--blue2)}
+.search input{flex:1;border:0;padding:0 16px;height:50px;font-size:16px;color:#14161f;background:#fff;outline:none}
+.search button{border:0;background:var(--ml);color:#14161f;font-weight:700;padding:0 20px;cursor:pointer}
+.search:focus-within{outline:3px solid var(--ml);outline-offset:2px}
+.tagline{font-size:14px;color:#dfe4ff;margin:0}
+.chips{display:flex;gap:8px;overflow-x:auto;padding-block:0 18px;scrollbar-width:none}
+.chip{flex:none;border:1px solid rgba(255,255,255,.35);background:transparent;color:#fff;border-radius:99px;padding:0 14px;height:38px;cursor:pointer;font-size:14px;font-weight:500;white-space:nowrap}
+.chip b{font-weight:600;opacity:.7;margin-left:4px}
+.chip[aria-pressed=true]{background:#fff;color:var(--blue);border-color:#fff}
+.chip:hover{border-color:#fff}
+main{display:grid;grid-template-columns:250px minmax(0,1fr);gap:32px;padding-block:28px 48px}
+aside details{position:sticky;top:16px}
+aside summary{display:none}
+.fbox{display:grid;gap:22px}
+.fbox h3{font:700 15px/1.2 Inter,sans-serif;margin:0 0 10px}
+.opt{display:flex;align-items:center;gap:10px;min-height:36px;cursor:pointer;font-size:15px}
+.opt input{width:18px;height:18px;accent-color:var(--blue);flex:none}
+.opt small{color:var(--mute);font-size:13px}
+.pill{display:inline-block;background:var(--ml);color:#14161f;border-radius:6px;padding:1px 7px;font-size:12px;font-weight:700;white-space:nowrap}
+.price-row{display:flex;align-items:center;gap:8px}
+.price-row input{width:100%;height:44px;border:1px solid var(--line);border-radius:10px;padding:0 12px;font-size:16px;background:var(--card)}
+.price-row input:focus,select:focus{outline:2px solid var(--blue);outline-offset:1px}
+.reset{height:44px;border:1px solid var(--line);background:var(--soft);border-radius:10px;cursor:pointer;font-weight:600;font-size:14px}
+.reset:hover{border-color:var(--mute)}
+.bar{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:12px;margin-bottom:18px}
+.bar h1{font:800 clamp(24px,3vw,32px)/1.05 Archivo,sans-serif;letter-spacing:-.02em;margin:0}
+.bar h1 span{color:var(--mute);font-weight:500;font-size:.6em;letter-spacing:0;margin-left:6px}
+.bar label{font-size:14px;color:var(--mute);display:flex;align-items:center;gap:8px}
+select{height:44px;border:1px solid var(--line);border-radius:10px;padding:0 10px;background:var(--card);font-size:15px;color:var(--ink)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(205px,1fr));gap:16px}
+.card{display:flex;flex-direction:column;background:var(--card);border:1px solid var(--line);border-radius:14px;overflow:hidden;transition:transform .15s,box-shadow .15s}
+.card:hover{transform:translateY(-2px);box-shadow:0 10px 24px -14px rgba(20,22,40,.35)}
+.pic{position:relative;aspect-ratio:4/3;display:grid;place-items:center}
+.pic svg{width:62%;height:auto}
+.off{position:absolute;top:10px;left:10px;background:var(--red);color:#fff;font:800 15px/1 Archivo,sans-serif;padding:6px 8px;border-radius:6px}
+.body{display:flex;flex-direction:column;gap:6px;padding:12px 14px 14px;flex:1}
+.tags{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.full{font-size:12px;font-weight:700;color:var(--ok)}
+.name{font-size:15px;line-height:1.35;margin:2px 0 0;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;min-height:2.7em}
+.was{color:var(--mute);font-size:13px;text-decoration:line-through;white-space:nowrap}
+.now{font:800 24px/1.05 Archivo,sans-serif;letter-spacing:-.02em;white-space:nowrap}
+.parc{font-size:13px;color:var(--mute)}
+.ship{font-size:13px;font-weight:600;color:var(--ok)}
+.seen{font-size:13px;color:var(--mute);display:flex;align-items:center;gap:6px;margin-top:auto;padding-top:6px}
+.seen i{width:8px;height:8px;border-radius:50%;background:var(--ok);flex:none}
+.seen.old i{background:var(--warn)}
+.go{display:flex;justify-content:center;align-items:center;gap:6px;height:44px;margin-top:8px;border-radius:10px;background:var(--blue);color:#fff;text-decoration:none;font-weight:600;font-size:14px}
+.go .sm{display:none}
+.go:hover{background:var(--blue2)}
+.go:focus-visible,.chip:focus-visible,.reset:focus-visible{outline:3px solid var(--ml);outline-offset:2px}
+.empty{grid-column:1/-1;text-align:center;padding:56px 16px;border:1px dashed var(--line);border-radius:14px}
+.empty p{color:var(--mute);margin:6px 0 16px}
+.how{background:var(--soft);border-top:1px solid var(--line)}
+.how .wrap{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:28px;padding-block:40px}
+.how h2{font:800 20px/1.15 Archivo,sans-serif;margin:0 0 6px;letter-spacing:-.01em}
+.how p{margin:0;color:var(--mute);font-size:15px}
+.how .n{display:inline-grid;place-items:center;width:34px;height:34px;border-radius:50%;background:var(--blue);color:#fff;font:800 16px Archivo,sans-serif;margin-bottom:10px}
+footer{border-top:1px solid var(--line);font-size:13px;color:var(--mute)}
+footer .wrap{padding-block:22px;display:flex;flex-wrap:wrap;justify-content:space-between;gap:10px}
+.pic img{width:100%;height:100%;object-fit:contain;padding:12px}
+.pic .ph{display:contents}
+.demo{background:var(--ml);color:#14161f;font-size:14px;font-weight:600}
+.demo .wrap{padding-block:10px}
+footer a{color:var(--ink)}
+@media(max-width:900px){main{grid-template-columns:minmax(0,1fr);gap:16px;padding-top:18px}aside details{position:static;border:1px solid var(--line);border-radius:12px;padding:0 14px}aside summary{display:flex;justify-content:space-between;align-items:center;height:48px;cursor:pointer;font-weight:600;list-style:none}aside summary::-webkit-details-marker{display:none}aside summary::after{content:"+";font-size:22px;color:var(--mute)}aside details[open] summary::after{content:"–"}.fbox{padding-bottom:16px;grid-template-columns:repeat(auto-fit,minmax(200px,1fr))}.how .wrap{grid-template-columns:minmax(0,1fr);gap:20px}}
+@media(max-width:600px){.logo{font-size:26px}.tagline{display:none}.grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.body{padding:10px}.now{font-size:20px}.name{font-size:14px}.search button{padding:0 14px}.go .lg{display:none}.go .sm{display:inline}}
+@media(prefers-reduced-motion:reduce){.card{transition:none}.card:hover{transform:none}}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <div class="top">
+      <a class="logo" href="#" aria-label="Baixou, início">
+        <svg viewBox="0 0 34 34" aria-hidden="true"><rect width="34" height="34" rx="9" fill="#ffe600"/><path d="M17 8v15m-7-7 7 8 7-8" fill="none" stroke="#1f3cff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        baixou
+      </a>
+      <form class="search" id="sf" role="search">
+        <input id="q" type="search" placeholder="Buscar ofertas: fone, air fryer, tênis…" autocomplete="off" aria-label="Buscar ofertas">
+        <button type="submit">Buscar</button>
+      </form>
+      <p class="tagline">Só produtos em promoção, de lojas confiáveis.</p>
+    </div>
+    <nav class="chips" id="chips" aria-label="Categorias"></nav>
+  </div>
+</header>
+<div class="demo" id="demo" hidden><div class="wrap">Modo demonstração: produtos e preços simulados enquanto o robô ainda não está ligado ao Mercado Livre.</div></div>
+
+<div class="wrap">
+  <main>
+    <aside>
+      <details id="fd" open>
+        <summary>Filtros</summary>
+        <div class="fbox">
+          <div>
+            <h3>Desconto</h3>
+            <label class="opt"><input type="radio" name="disc" value="0" checked> Qualquer desconto</label>
+            <label class="opt"><input type="radio" name="disc" value="20"> 20% ou mais</label>
+            <label class="opt"><input type="radio" name="disc" value="30"> 30% ou mais</label>
+            <label class="opt"><input type="radio" name="disc" value="40"> 40% ou mais</label>
+          </div>
+          <div>
+            <h3>Preço</h3>
+            <div class="price-row">
+              <input id="pmin" type="number" inputmode="numeric" min="0" placeholder="Mín. R$" aria-label="Preço mínimo">
+              <input id="pmax" type="number" inputmode="numeric" min="0" placeholder="Máx. R$" aria-label="Preço máximo">
+            </div>
+          </div>
+          <div>
+            <h3>Entrega</h3>
+            <label class="opt"><input id="frete" type="checkbox"> Frete grátis</label>
+            <label class="opt"><input id="full" type="checkbox"> Entrega Full</label>
+          </div>
+          <div>
+            <h3>Loja</h3>
+            <label class="opt"><input type="checkbox" checked disabled> <span class="pill">Mercado Livre</span></label>
+            <label class="opt"><input type="checkbox" disabled> Amazon <small>em breve</small></label>
+            <label class="opt"><input type="checkbox" disabled> Shopee <small>em breve</small></label>
+          </div>
+          <button class="reset" id="reset" type="button">Limpar filtros</button>
+        </div>
+      </details>
+    </aside>
+
+    <section aria-live="polite">
+      <div class="bar">
+        <h1 id="ttl">Ofertas de hoje <span id="cnt"></span></h1>
+        <label for="sort">Ordenar
+          <select id="sort">
+            <option value="disc">Maior desconto</option>
+            <option value="low">Menor preço</option>
+            <option value="high">Maior preço</option>
+            <option value="new">Mais recentes</option>
+          </select>
+        </label>
+      </div>
+      <div class="grid" id="grid"></div>
+    </section>
+  </main>
+</div>
+
+<section class="how" aria-label="Como funciona">
+  <div class="wrap">
+    <div><span class="n">1</span><h2>A gente garimpa</h2><p>Reunimos só produtos que estão com preço abaixo do normal, conferidos várias vezes ao dia.</p></div>
+    <div><span class="n">2</span><h2>Você compra na loja</h2><p>O botão leva direto ao anúncio no Mercado Livre. Pagamento, entrega e garantia são com a loja.</p></div>
+    <div><span class="n">3</span><h2>Sem custo extra</h2><p>Somos afiliados: podemos receber uma comissão quando você compra pelos nossos links, sem mudar o seu preço.</p></div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <span>Baixou · Preços e disponibilidade podem mudar a qualquer momento; vale o preço exibido na loja.</span>
+    <span>Somos afiliados do Mercado Livre. <a href="painel.html">Status do robô</a></span>
+  </div>
+</footer>
+
+<script>
+{
+const PALETA=[['#dfe6ff','#2a3a8f'],['#dcEEF6','#1f5a73'],['#ffe5dc','#a33a1c'],['#fff0c7','#8a5a00'],['#fde3ef','#9b2160'],['#e1f5e6','#1f6b3a'],['#ece4ff','#4b2fa0'],['#ffe6cc','#b04a00'],['#e6e8ee','#2a2f3d']];
+const cor=nome=>{let h=0;for(const c of nome)h=(h*31+c.charCodeAt(0))>>>0;return PALETA[h%PALETA.length]};
+const tag=c=>`<svg viewBox="0 0 120 120" aria-hidden="true"><ellipse cx="60" cy="106" rx="34" ry="4" fill="#000" opacity=".09"/><path d="M30 40l26-22h34v34L64 78z" fill="${c}"/><circle cx="76" cy="32" r="6" fill="#fff"/><path d="M34 74h40v26H34z" fill="${c}" opacity=".45"/></svg>`;
+const brl=v=>Number(v).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
+const norm=s=>String(s).normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase();
+const esc=s=>String(s??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+const seguro=u=>/^https:\/\/([a-z0-9-]+\.)*(mercadolivre\.com\.br|mlstatic\.com)\//i.test(String(u))?u:'';
+const ago=iso=>{const m=Math.max(0,Math.round((Date.now()-new Date(iso))/60000));return m<1?'agora':m<60?`há ${m} min`:m<1440?`há ${Math.round(m/60)} h`:`há ${Math.round(m/1440)} d`};
+const idade=iso=>(Date.now()-new Date(iso))/60000;
+
+let P=[],CATS=[];
+const S={q:'',cat:'',disc:0,min:'',max:'',frete:false,full:false,sort:'disc'};
+const $=id=>document.getElementById(id);
+const grid=$('grid'),cnt=$('cnt'),chips=$('chips'),ttl=$('ttl');
+
+function base(ignoreCat){
+  const q=norm(S.q.trim());
+  return P.filter(p=>(!q||q.split(/\s+/).every(w=>norm(p.titulo+' '+p.categoria).includes(w)))
+    &&(ignoreCat||!S.cat||p.categoria===S.cat)&&p.desconto>=S.disc
+    &&(S.min===''||p.preco>=+S.min)&&(S.max===''||p.preco<=+S.max)
+    &&(!S.frete||p.frete_gratis)&&(!S.full||p.full));
+}
+function drawChips(){
+  const pool=base(true);
+  const n=k=>pool.filter(p=>!k||p.categoria===k).length;
+  chips.innerHTML=[['','Todas']].concat(CATS.map(c=>[c,c])).map(([k,l])=>`<button class="chip" type="button" data-c="${esc(k)}" aria-pressed="${S.cat===k}">${esc(l)}<b>${n(k)}</b></button>`).join('');
+}
+function card(p){
+  const [bg,fg]=cor(p.categoria);
+  const foto=seguro(p.foto);
+  const link=seguro(p.link)||'#';
+  const velho=idade(p.verificado_em)>60;
+  return `<article class="card">
+    <div class="pic" style="background:${foto?'#fff':bg}">${foto?`<img src="${esc(foto)}" alt="" loading="lazy" referrerpolicy="no-referrer">`:tag(fg)}<span class="off">-${p.desconto}%</span></div>
+    <div class="body">
+      <div class="tags"><span class="pill">${esc(p.loja||'Mercado Livre')}</span>${p.full?'<span class="full">⚡ Full</span>':''}</div>
+      <h2 class="name">${esc(p.titulo)}</h2>
+      <span class="was">${brl(p.preco_cheio)}</span>
+      <span class="now">${brl(p.preco)}</span>
+      ${p.parcelas>1?`<span class="parc">em ${p.parcelas}x de ${brl(p.preco/p.parcelas)}${p.sem_juros?' sem juros':''}</span>`:'<span class="parc">à vista</span>'}
+      ${p.frete_gratis?'<span class="ship">Frete grátis</span>':''}
+      <span class="seen${velho?' old':''}"><i></i><span>Verificado <b style="font-weight:500;white-space:nowrap">${ago(p.verificado_em)}</b></span></span>
+      <a class="go" href="${esc(link)}" target="_blank" rel="nofollow sponsored noopener">Ver <span class="lg">no Mercado Livre</span><span class="sm">oferta</span> ↗</a>
+    </div></article>`;
+}
+function render(){
+  const r=base(false);
+  const by={disc:(a,b)=>b.desconto-a.desconto,low:(a,b)=>a.preco-b.preco,high:(a,b)=>b.preco-a.preco,new:(a,b)=>new Date(b.novo_em)-new Date(a.novo_em)}[S.sort];
+  r.sort(by);
+  ttl.firstChild.nodeValue=(S.cat||(S.q.trim()?'Resultados':'Ofertas de hoje'))+' ';
+  cnt.textContent=r.length+(r.length===1?' oferta':' ofertas');
+  grid.innerHTML=r.length?r.map(card).join(''):`<div class="empty"><strong>${P.length?'Nenhuma oferta com esses filtros':'Nenhuma oferta no momento'}</strong><p>${P.length?'Tente outra busca ou afrouxe os filtros de preço e desconto.':'O robô confere as promoções a cada 15 minutos. Volte daqui a pouco.'}</p>${P.length?'<button class="reset" type="button" data-reset>Limpar filtros</button>':''}</div>`;
+  for(const img of grid.querySelectorAll('.pic img'))img.addEventListener('error',()=>{img.replaceWith(Object.assign(document.createElement('span'),{className:'ph',innerHTML:tag('#5b6072')}))},{once:true});
+  drawChips();
+}
+function reset(){
+  Object.assign(S,{q:'',cat:'',disc:0,min:'',max:'',frete:false,full:false});
+  $('q').value='';$('pmin').value='';$('pmax').value='';$('frete').checked=false;$('full').checked=false;
+  document.querySelector('input[name=disc][value="0"]').checked=true;
+  render();
+}
+
+$('sf').addEventListener('submit',e=>{e.preventDefault();S.q=$('q').value;render()});
+$('q').addEventListener('input',e=>{S.q=e.target.value;render()});
+chips.addEventListener('click',e=>{const b=e.target.closest('.chip');if(!b)return;S.cat=b.dataset.c;render()});
+document.querySelectorAll('input[name=disc]').forEach(r=>r.addEventListener('change',e=>{S.disc=+e.target.value;render()}));
+$('pmin').addEventListener('input',e=>{S.min=e.target.value;render()});
+$('pmax').addEventListener('input',e=>{S.max=e.target.value;render()});
+$('frete').addEventListener('change',e=>{S.frete=e.target.checked;render()});
+$('full').addEventListener('change',e=>{S.full=e.target.checked;render()});
+$('sort').addEventListener('change',e=>{S.sort=e.target.value;render()});
+$('reset').addEventListener('click',reset);
+grid.addEventListener('click',e=>{if(e.target.closest('[data-reset]'))reset()});
+if(window.matchMedia('(max-width:900px)').matches)$('fd').open=false;
+
+grid.innerHTML='<div class="empty"><strong>Carregando ofertas…</strong></div>';
+fetch('data/ofertas.json',{cache:'no-store'}).then(r=>{if(!r.ok)throw new Error(r.status);return r.json()}).then(d=>{
+  P=(d.ofertas||[]).filter(p=>p&&p.titulo&&p.preco>0);
+  CATS=[...new Set(P.map(p=>p.categoria))].sort((a,b)=>a.localeCompare(b,'pt-BR'));
+  if(d.modo==='demonstração')$('demo').hidden=false;
+  render();
+}).catch(()=>{grid.innerHTML='<div class="empty"><strong>Não foi possível carregar as ofertas</strong><p>Tente recarregar a página em instantes.</p></div>';cnt.textContent=''});
+}
+</script>
+</body>
+</html>

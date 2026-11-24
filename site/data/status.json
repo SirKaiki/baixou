@@ -1,0 +1,42 @@
+{
+ "gerado_em": "2026-11-24T21:16+00:00",
+ "modo": "demonstração",
+ "duracao_s": 0.0,
+ "afiliado_configurado": false,
+ "freio": false,
+ "contagem": {
+  "candidatos": 31,
+  "publicadas": 26,
+  "quarentena": 1,
+  "reprovadas": 4
+ },
+ "motivos": {
+  "palavra bloqueada: similar": 1,
+  "produto não é novo": 1,
+  "desconto suspeito (88%), pode ser erro de anúncio": 1,
+  "vendedor com reputação baixa": 1,
+  "desconto menor que 15%": 1
+ },
+ "alertas": [],
+ "quarentena": [
+  {
+   "titulo": "Tênis esportivo corrida masculino",
+   "preco": 107.88,
+   "preco_cheio": 899.0,
+   "desconto": 88,
+   "motivo": "desconto suspeito (88%), pode ser erro de anúncio",
+   "link": "https://lista.mercadolivre.com.br/tenis-esportivo-corrida-masculino"
+  }
+ ],
+ "removidas": [],
+ "api": null,
+ "produtos_no_historico": 31,
+ "execucoes": [
+  {
+   "em": "2026-11-24T21:16+00:00",
+   "publicadas": 26,
+   "quarentena": 1,
+   "alertas": 0
+  }
+ ]
+}

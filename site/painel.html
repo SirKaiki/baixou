@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Baixou painel do robô</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{color-scheme:light dark;--bg:light-dark(#ffffff,#0e1018);--ink:light-dark(#14161f,#eef0f6);--mute:light-dark(#5b6072,#a3a8b8);--line:light-dark(#e4e6ee,#262a38);--soft:light-dark(#f4f5f9,#141722);--blue:light-dark(#1f3cff,#1a2fc9);--ok:light-dark(#0b7a3b,#4fd287);--warn:light-dark(#a35b00,#f2b04a);--bad:#e3120b}
+:root[data-theme=light]{color-scheme:light}
+:root[data-theme=dark]{color-scheme:dark}
+*{box-sizing:border-box;min-width:0}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 Inter,system-ui,sans-serif;overflow-x:clip}
+.wrap{max-width:1100px;margin:0 auto;padding:0 max(4vw,16px)}
+header{background:var(--blue);color:#fff}
+header .wrap{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:10px;padding-block:16px}
+header a{color:#fff;font:800 24px/1 Archivo,sans-serif;text-decoration:none;letter-spacing:-.02em}
+header span{font-size:14px;color:#dfe4ff}
+.hero{padding-block:28px 8px;display:grid;gap:18px}
+.state{display:flex;align-items:center;gap:14px}
+.dot{width:18px;height:18px;border-radius:50%;flex:none;background:var(--ok)}
+.state.warn .dot{background:var(--warn)}
+.state.bad .dot{background:var(--bad)}
+h1{font:800 clamp(28px,4vw,40px)/1.05 Archivo,sans-serif;letter-spacing:-.02em;margin:0}
+.sub{color:var(--mute);margin:4px 0 0;font-size:15px}
+.nums{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+.num{border:1px solid var(--line);border-radius:12px;padding:14px 16px}
+.num b{display:block;font:800 34px/1 Archivo,sans-serif;font-variant-numeric:tabular-nums}
+.num span{font-size:14px;color:var(--mute)}
+section{padding-block:18px}
+h2{font:800 20px/1.2 Archivo,sans-serif;margin:0 0 12px}
+.alerts{display:grid;gap:8px;margin:0;padding:0;list-style:none}
+.alerts li{border-left:4px solid var(--warn);background:var(--soft);padding:10px 14px;border-radius:0}
+.alerts li.bad{border-left-color:var(--bad)}
+.bars{display:grid;gap:8px}
+.bar{display:grid;grid-template-columns:minmax(0,1fr) 3em;gap:10px;align-items:center;font-size:14px}
+.bar .t{position:relative;padding:6px 10px;border-radius:6px;overflow:hidden;background:var(--soft)}
+.bar .t i{position:absolute;inset:0 auto 0 0;background:color-mix(in srgb,var(--blue) 18%,transparent)}
+.bar .t span{position:relative}
+.bar b{text-align:right;font-variant-numeric:tabular-nums}
+.scroll{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+th{color:var(--mute);font-weight:500}
+td.n{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+a{color:var(--blue)}
+.empty{color:var(--mute);font-size:15px;margin:0}
+.runs{display:flex;align-items:flex-end;gap:3px;height:70px}
+.runs i{flex:1;max-width:22px;background:var(--blue);border-radius:2px 2px 0 0;min-height:2px}
+.runs i.a{background:var(--warn)}
+footer{color:var(--mute);font-size:13px;border-top:1px solid var(--line);margin-top:20px}
+footer .wrap{padding-block:18px}
+@media(max-width:600px){table{font-size:13px}th,td{padding:6px 4px}}
+</style>
+</head>
+<body>
+<header><div class="wrap"><a href="./">baixou</a><span>Painel do robô</span></div></header>
+<main class="wrap">
+  <div class="hero">
+    <div class="state" id="state"><span class="dot"></span><div><h1 id="titulo">Carregando…</h1><p class="sub" id="sub"></p></div></div>
+    <div class="nums" id="nums"></div>
+  </div>
+  <section><h2>Alertas</h2><ul class="alerts" id="alertas"></ul></section>
+  <section><h2>Últimas execuções</h2><div class="runs" id="runs" aria-label="Ofertas publicadas por execução"></div><p class="sub" id="runs-leg"></p></section>
+  <section><h2>O que o guardião barrou</h2><div class="bars" id="motivos"></div></section>
+  <section><h2>Quarentena</h2><p class="sub" style="margin:0 0 10px">Ofertas suspeitas que ficaram fora do site. Não precisa fazer nada; está aqui só para você conferir se quiser.</p><div class="scroll" id="quarentena"></div></section>
+  <section><h2>Saíram do site nesta rodada</h2><div class="scroll" id="removidas"></div></section>
+</main>
+<footer><div class="wrap">Atualizado automaticamente a cada execução do robô (cerca de 15 em 15 minutos).</div></footer>
+<script>
+{
+const $=id=>document.getElementById(id);
+const esc=s=>String(s??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+const brl=v=>v==null?'–':Number(v).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
+const hora=iso=>new Date(iso).toLocaleString('pt-BR',{dateStyle:'short',timeStyle:'short'});
+const minutos=iso=>Math.round((Date.now()-new Date(iso))/60000);
+const seguro=u=>/^https:\/\/([a-z0-9-]+\.)*mercadolivre\.com\.br\//i.test(String(u))?u:'';
+
+fetch('data/status.json',{cache:'no-store'}).then(r=>r.json()).then(s=>{
+  const atraso=minutos(s.gerado_em);
+  const st=$('state');
+  let t='Tudo certo',cls='';
+  if(s.freio){t='Freio acionado';cls='bad'}
+  else if(atraso>60){t='Robô parado há '+(atraso<1440?Math.round(atraso/60)+' h':Math.round(atraso/1440)+' d');cls='bad'}
+  else if(s.alertas.length){t='Funcionando, com avisos';cls='warn'}
+  st.className='state '+cls;$('titulo').textContent=t;
+  $('sub').textContent=`Última execução: ${hora(s.gerado_em)} · modo ${s.modo}${s.afiliado_configurado?'':' · código de afiliado não configurado'}`;
+  const c=s.contagem;
+  $('nums').innerHTML=[['publicadas','no site agora'],['quarentena','em quarentena'],['reprovadas','reprovadas'],['candidatos','analisadas']].map(([k,l])=>`<div class="num"><b>${Number(c[k])||0}</b><span>${l}</span></div>`).join('');
+  $('alertas').innerHTML=s.alertas.length?s.alertas.map(a=>`<li class="${a.startsWith('FREIO')?'bad':''}">${esc(a)}</li>`).join(''):'<li style="border-left-color:var(--ok)">Nenhum alerta nesta execução.</li>';
+  const ex=[...s.execucoes].reverse(),mx=Math.max(1,...ex.map(e=>e.publicadas));
+  $('runs').innerHTML=ex.map(e=>`<i class="${e.alertas?'a':''}" style="height:${Math.max(3,e.publicadas/mx*100)}%" title="${esc(hora(e.em))}: ${Number(e.publicadas)} ofertas"></i>`).join('');
+  $('runs-leg').textContent=`${ex.length} execuções recentes; barras em amarelo tiveram avisos.`;
+  const m=Object.entries(s.motivos),mm=Math.max(1,...m.map(x=>x[1]));
+  $('motivos').innerHTML=m.length?m.map(([k,v])=>`<div class="bar"><div class="t"><i style="width:${v/mm*100}%"></i><span>${esc(k)}</span></div><b>${Number(v)}</b></div>`).join(''):'<p class="empty">Nada foi barrado nesta execução.</p>';
+  $('quarentena').innerHTML=s.quarentena.length?`<table><thead><tr><th>Produto</th><th>Motivo</th><th style="text-align:right">Preço</th><th style="text-align:right">Desc.</th></tr></thead><tbody>${s.quarentena.map(q=>{const l=seguro(q.link);return `<tr><td>${l?`<a href="${esc(l)}" target="_blank" rel="noopener">${esc(q.titulo)}</a>`:esc(q.titulo)}</td><td>${esc(q.motivo)}</td><td class="n">${brl(q.preco)}</td><td class="n">${Number(q.desconto)}%</td></tr>`}).join('')}</tbody></table>`:'<p class="empty">Quarentena vazia.</p>';
+  $('removidas').innerHTML=s.removidas.length?`<table><thead><tr><th>Produto</th><th>Motivo</th></tr></thead><tbody>${s.removidas.map(r=>`<tr><td>${esc(r.titulo)}</td><td>${esc(r.motivo)}</td></tr>`).join('')}</tbody></table>`:'<p class="empty">Nenhuma oferta saiu nesta rodada.</p>';
+}).catch(()=>{$('titulo').textContent='Painel indisponível';$('sub').textContent='O robô ainda não rodou ou o arquivo de status não foi encontrado.';$('state').className='state bad'});
+}
+</script>
+</body>
+</html>
