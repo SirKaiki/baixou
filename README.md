@@ -25,6 +25,17 @@ Sem as chaves do Mercado Livre, o robô roda em **modo demonstração**, com pro
 
 Os valores de afiliado aparecem em qualquer link gerado no painel de afiliados do Mercado Livre (parâmetros `matt_word` e `matt_tool`). Sem eles, nenhuma oferta é publicada no modo real, para não divulgar link que não paga comissão.
 
+## Contador anônimo (quem viu também viu, mais procurados)
+
+O site registra, sem identificar ninguém, quais ofertas cada visita abriu e quais levou para a loja. Isso alimenta "Quem viu este também viu", "Mais procurados hoje" e o selo "Em alta". O contador roda na Cloudflare (plano gratuito):
+
+1. Crie uma conta gratuita em cloudflare.com e abra **Workers & Pages** uma vez para escolher o subdomínio `workers.dev`.
+2. Em *My Profile → API Tokens*, crie um token com o modelo **Edit Cloudflare Workers** e acrescente a permissão **D1: Edit**.
+3. No GitHub, salve em **Secrets**: `CLOUDFLARE_API_TOKEN` (o token) e `CLOUDFLARE_ACCOUNT_ID` (o ID da conta, que aparece na página inicial da Cloudflare).
+4. Em *Actions → Contador anônimo*, clique em **Run workflow**. Ele cria o banco, publica o contador e liga o site a ele.
+
+Sem essas chaves, o site funciona normalmente com "Parecidos com este". Detalhes para o visitante em `privacidade.html`.
+
 ## Ajustar as regras
 
 Edite o `config.json` direto no GitHub (ícone de lápis):
@@ -37,5 +48,6 @@ Edite o `config.json` direto no GitHub (ícone de lápis):
 ## Pastas
 
 - `robo/`: o robô (`robo.py`), o guardião (`guardiao.py`), o cliente da API (`ml.py`), o modo demonstração e os testes.
+- `worker/`: o contador anônimo (Cloudflare Worker + banco D1) e seus testes.
 - `site/`: a loja (`index.html`, `app.css`, `app.js`) e o painel (`painel.html`); `site/data/` é gerado pelo robô (`ofertas.json`, `precos.json` para o gráfico de histórico, `status.json`).
 - `dados/historico.json`: histórico de preços usado para detectar desconto falso.

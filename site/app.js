@@ -1,7 +1,7 @@
 {
 /* =========================================================
    Baixou: loja de ofertas (página única, roteada por ?parâmetros)
-   ?p=ID  produto · ?cat=Nome  categoria · ?q=texto  busca · ?ver=...  vitrines
+   ?p=ID produto · ?cat= categoria · ?marca= marca · ?q= busca · ?max= preço · ?ver= vitrines
    ========================================================= */
 
 /* ---------- utilidades ---------- */
@@ -9,16 +9,19 @@ const $ = id => document.getElementById(id);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const norm = s => String(s ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 const brl = v => Number(v).toLocaleString('pt-BR', {style:'currency', currency:'BRL'});
+const brl0 = v => 'R$ ' + Math.round(Number(v)).toLocaleString('pt-BR');
 const seguro = u => /^https:\/\/([a-z0-9-]+\.)*(mercadolivre\.com\.br|mlstatic\.com)\//i.test(String(u)) ? String(u) : '';
 const minutos = iso => (Date.now() - new Date(iso)) / 60000;
 const ago = iso => { const m = Math.max(0, Math.round(minutos(iso))); return m < 1 ? 'agora' : m < 60 ? `há ${m} min` : m < 1440 ? `há ${Math.round(m/60)} h` : `há ${Math.round(m/1440)} d`; };
-const dm = d => { const [y, m, dd] = String(d).split('-'); return `${dd}/${m}`; };
+const dm = d => { const [, m, dd] = String(d).split('-'); return `${dd}/${m}`; };
 const reduz = matchMedia('(prefers-reduced-motion: reduce)').matches;
-const qs = o => { const u = new URLSearchParams(); for (const [k, v] of Object.entries(o)) if (v) u.set(k, v); const s = u.toString(); return s ? '?' + s : './'; };
+const qs = o => { const u = new URLSearchParams(); for (const [k, v] of Object.entries(o)) if (v !== '' && v != null && v !== false) u.set(k, v); const s = u.toString(); return s ? '?' + s : './'; };
 const guardar = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} };
 const ler = (k, d) => { try { return JSON.parse(localStorage.getItem(k)) ?? d; } catch (e) { return d; } };
+const porDesc = (a, b) => b.desconto - a.desconto;
+const porNovo = (a, b) => new Date(b.novo_em) - new Date(a.novo_em) || b.desconto - a.desconto;
 
-/* ---------- ícones por categoria ---------- */
+/* ---------- ícones ---------- */
 const IC = {
   phone: f => `<rect x="40" y="16" width="40" height="86" rx="9" fill="${f}"/><rect x="44" y="24" width="32" height="66" rx="3" fill="#fff" opacity=".92"/><circle cx="60" cy="96" r="2.5" fill="#fff"/>`,
   laptop: f => `<rect x="26" y="26" width="68" height="48" rx="5" fill="${f}"/><rect x="31" y="31" width="58" height="38" rx="2" fill="#fff"/><path d="M14 78h92l-7 12H21z" fill="${f}"/>`,
@@ -36,23 +39,30 @@ const IC = {
   tag: f => `<path d="M30 40l26-22h34v34L64 78z" fill="${f}"/><circle cx="76" cy="32" r="6" fill="#fff"/><path d="M34 74h40v26H34z" fill="${f}" opacity=".45"/>`
 };
 const ESTILOS = [
-  [/celular|smartphone|telefon/, 'phone', '#dfe6ff', '#2a3a8f'],
-  [/informatica|computador|notebook/, 'laptop', '#dcEEF6', '#1f5a73'],
-  [/eletronic|audio|som/, 'head', '#ffe5dc', '#a33a1c'],
-  [/eletrodom/, 'fryer', '#fff0c7', '#8a5a00'],
-  [/casa|decora|cozinha/, 'pot', '#ffeedd', '#9a4a12'],
-  [/beleza|perfum|cuidado/, 'perf', '#fde3ef', '#9b2160'],
-  [/esporte|fitness/, 'dumb', '#e1f5e6', '#1f6b3a'],
-  [/moda|calcad|roupa/, 'shoe', '#f1e6dc', '#6b4026'],
-  [/game|console/, 'pad', '#ece4ff', '#4b2fa0'],
-  [/ferrament/, 'drill', '#ffe6cc', '#b04a00'],
-  [/brinquedo|hobb/, 'blocks', '#ffe1e1', '#b3261e'],
-  [/bebe|infantil/, 'baby', '#e2f3fb', '#1b6a8f'],
-  [/tv|video/, 'tv', '#e6e8ee', '#2a2f3d'],
+  [/celular|smartphone|telefon/, 'phone', '#dfe6ff', '#1f3cff'],
+  [/informatica|computador|notebook/, 'laptop', '#d6f0f7', '#0d5b78'],
+  [/eletronic|audio|som/, 'head', '#ffe1d6', '#c4100a'],
+  [/eletrodom/, 'fryer', '#fff3b0', '#7a5600'],
+  [/casa|decora|cozinha/, 'pot', '#ffe9d6', '#a34a0c'],
+  [/beleza|perfum|cuidado/, 'perf', '#ffdced', '#b5125b'],
+  [/esporte|fitness/, 'dumb', '#d9f5e2', '#0b6b3a'],
+  [/moda|calcad|roupa/, 'shoe', '#efe4d8', '#5b3417'],
+  [/game|console/, 'pad', '#e8e0ff', '#4b2fa0'],
+  [/ferrament/, 'drill', '#ffe5c7', '#b04a00'],
+  [/brinquedo|hobb/, 'blocks', '#ffdede', '#b3261e'],
+  [/bebe|infantil/, 'baby', '#dcf0fa', '#1b6a8f'],
+  [/tv|video/, 'tv', '#e4e6ee', '#20242f'],
 ];
-const estilo = cat => { const n = norm(cat); for (const [re, ic, bg, fg] of ESTILOS) if (re.test(n)) return {ic, bg, fg}; return {ic:'tag', bg:'#eceef4', fg:'#3a3f52'}; };
+const estilo = cat => { const n = norm(cat); for (const [re, ic, bg, fg] of ESTILOS) if (re.test(n)) return {ic, bg, fg}; return {ic:'tag', bg:'#eceef4', fg:'#2b2f3d'}; };
 const icone = (cat, cor) => { const e = estilo(cat); return `<svg viewBox="0 0 120 120" aria-hidden="true">${IC[e.ic](cor || e.fg)}</svg>`; };
-const ICON_SHARE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/></svg>';
+const SVG_HEART = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s-7.5-4.6-9.5-9.2C1 8.3 3.2 4.5 7 4.5c2 0 3.6 1.1 5 3 1.4-1.9 3-3 5-3 3.8 0 6 3.8 4.5 7.3C19.5 16.4 12 21 12 21z"/></svg>';
+const SVG_SHARE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/></svg>';
+const PERK = {
+  clock: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>',
+  chart: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3v18h18"/><path d="M7 14l4-4 3 3 5-6"/></svg>',
+  shield: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M8.5 12l2.5 2.5 4.5-5"/></svg>',
+  truck: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M2 6h12v10H2zM14 10h4l4 4v2h-8z"/><circle cx="6" cy="18" r="2"/><circle cx="18" cy="18" r="2"/></svg>',
+};
 
 /* ---------- tema ---------- */
 const temaBtns = [...document.querySelectorAll('.theme button')];
@@ -67,63 +77,84 @@ aplicarTema(tema);
 temaBtns.forEach(b => b.addEventListener('click', () => aplicarTema(b.dataset.t)));
 
 /* ---------- dados ---------- */
-let P = [], byId = new Map(), CATS = [], precosP = null;
+let P = [], byId = new Map(), CATS = [], MARCAS = [], REL = {quem_viu:{}, populares:[]}, POP = new Map(), precosP = null;
 const vistos = () => ler('baixou-vistos', []).map(id => byId.get(String(id))).filter(Boolean);
 function marcarVisto(id) { const v = ler('baixou-vistos', []).filter(x => x !== id); v.unshift(id); guardar('baixou-vistos', v.slice(0, 16)); }
 const precos = () => precosP ??= fetch('data/precos.json', {cache:'no-store'}).then(r => r.ok ? r.json() : {}).catch(() => ({}));
 
+/* ---------- favoritos ---------- */
+const favs = () => new Set(ler('baixou-favs', []));
+function contarFavs() { const n = [...favs()].filter(id => byId.has(id)).length; $('favn').textContent = n; $('favn').hidden = !n; }
+function alternarFav(id) {
+  const f = favs(); const on = !f.has(id); on ? f.add(id) : f.delete(id); guardar('baixou-favs', [...f]);
+  document.querySelectorAll(`[data-fav="${CSS.escape(id)}"]`).forEach(b => { b.setAttribute('aria-pressed', String(on)); b.setAttribute('aria-label', on ? 'Remover dos favoritos' : 'Salvar nos favoritos'); });
+  contarFavs(); toast(on ? 'Salvo nos favoritos' : 'Removido dos favoritos');
+}
+
+/* ---------- contador anônimo (só se estiver publicado) ---------- */
+let CONTADOR = '';
+const sessao = (() => { try { let s = sessionStorage.getItem('baixou-s'); if (!s) { s = Array.from(crypto.getRandomValues(new Uint8Array(16)), b => (b % 36).toString(36)).join(''); sessionStorage.setItem('baixou-s', s); } return s; } catch (e) { return ''; } })();
+function evento(tipo, id) {
+  if (!CONTADOR || !sessao || navigator.doNotTrack === '1' || !/^[A-Z0-9]{3,24}$/.test(id)) return;
+  const corpo = new Blob([JSON.stringify({s:sessao, e:[{p:id, t:tipo}]})], {type:'text/plain'});
+  try { navigator.sendBeacon(CONTADOR + '/e', corpo); } catch (e) {}
+}
+
 /* ---------- componentes ---------- */
-function card(p) {
-  const e = estilo(p.categoria), foto = seguro(p.foto);
+function card(p, opts = {}) {
+  const e = estilo(p.categoria), foto = seguro(p.foto), fav = favs().has(p.id);
   const novo = p.novo_em && minutos(p.novo_em) < 180;
-  return `<a class="card" href="?p=${encodeURIComponent(p.id)}" data-nav>
+  const pop = POP.get(p.id);
+  const selo = p.menor_30d ? '<span class="flag low">Menor preço 30d</span>' : pop && pop.c >= 5 ? '<span class="flag hot">Em alta</span>' : novo ? '<span class="flag new">Novo</span>' : '';
+  return `<article class="card">
+    <button class="heart" type="button" data-fav="${esc(p.id)}" aria-pressed="${fav}" aria-label="${fav ? 'Remover dos favoritos' : 'Salvar nos favoritos'}">${SVG_HEART}</button>
+    <a href="?p=${encodeURIComponent(p.id)}" data-nav>
     <div class="pic" style="${foto ? '' : `background:${e.bg}`}">${foto ? `<img src="${esc(foto)}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer">` : `<span class="ph">${icone(p.categoria)}</span>`}
-      <span class="badges"><span class="off">-${p.desconto}%</span>${p.menor_30d ? '<span class="flag low">Menor preço em 30 dias</span>' : novo ? '<span class="flag new">Novo</span>' : ''}</span></div>
+      <span class="badges"><span class="off">-${p.desconto}%</span>${selo}</span></div>
     <div class="body">
+      ${p.marca ? `<span class="brandn">${esc(p.marca)}</span>` : ''}
       <h3 class="name">${esc(p.titulo)}</h3>
       ${p.preco_cheio ? `<span class="was">${brl(p.preco_cheio)}</span>` : ''}
       <span class="now">${brl(p.preco)}</span>
       ${p.parcelas > 1 ? `<span class="parc">em ${p.parcelas}x de ${brl(p.preco / p.parcelas)}${p.sem_juros ? ' sem juros' : ''}</span>` : '<span class="parc">à vista</span>'}
-      <span class="meta">${p.frete_gratis ? '<span class="ship">Frete grátis</span>' : ''}${p.full ? '<span class="full">⚡ Full</span>' : ''}</span>
-    </div></a>`;
+      <span class="meta">${p.frete_gratis ? '<span class="ship">Frete grátis</span>' : ''}${p.full ? '<span class="full">⚡ Full</span>' : ''}${opts.pop && pop && pop.c ? `<span class="pop">${pop.c} ${pop.c === 1 ? 'pessoa foi' : 'pessoas foram'} à loja hoje</span>` : ''}</span>
+    </div></a></article>`;
 }
 function fallbackImgs(root) {
-  for (const img of root.querySelectorAll('img')) img.addEventListener('error', () => {
-    const c = img.closest('.card'); const p = c && byId.get(new URLSearchParams(c.getAttribute('href')).get('p'));
-    img.outerHTML = `<span class="ph">${icone(p ? p.categoria : '', '#8b90a1')}</span>`;
+  for (const img of root.querySelectorAll('.pic img, .plate img')) img.addEventListener('error', () => {
+    const a = img.closest('a'); const id = a && new URLSearchParams((a.getAttribute('href') || '').replace(/^.*\?/, '')).get('p');
+    const p = byId.get(id);
+    img.outerHTML = img.closest('.plate') ? icone(p ? p.categoria : '') : `<span class="ph">${icone(p ? p.categoria : '', '#8b90a1')}</span>`;
   }, {once:true});
 }
-function rail(id, titulo, itens, link, linkTxt = 'Ver todas') {
+function rail(id, titulo, itens, link, linkTxt = 'Ver todas', sub = '', opts = {}) {
   if (!itens.length) return '';
-  return `<section class="sec wrap" aria-labelledby="${id}-t"><div class="sec-head"><h2 id="${id}-t">${esc(titulo)}</h2><div class="arrows">${link ? `<a href="${esc(link)}" data-nav>${linkTxt} ›</a>` : ''}<button type="button" data-prev="${id}" aria-label="Anteriores">‹</button><button type="button" data-next="${id}" aria-label="Próximos">›</button></div></div>
-    <div class="rail" id="${id}" tabindex="0">${itens.map(card).join('')}</div></section>`;
+  return `<section class="sec wrap" aria-labelledby="${id}-t"><div class="sec-head"><h2 id="${id}-t">${esc(titulo)}${sub ? `<span class="sub">${esc(sub)}</span>` : ''}</h2><div class="arrows">${link ? `<a href="${esc(link)}" data-nav>${esc(linkTxt)}</a>` : ''}<button type="button" data-prev="${id}" aria-label="Anteriores">‹</button><button type="button" data-next="${id}" aria-label="Próximos">›</button></div></div>
+    <div class="rail" id="${id}" tabindex="0">${itens.map(p => card(p, opts)).join('')}</div></section>`;
 }
 function plates(itens) {
-  return `<div class="plates" aria-hidden="true">${itens.slice(0, 3).map(p => { const f = seguro(p.foto); return `<span class="plate">${f ? `<img src="${esc(f)}" alt="" referrerpolicy="no-referrer">` : icone(p.categoria)}<span class="pt">${brl(p.preco)}</span></span>`; }).join('')}</div>`;
+  return `<div class="plates" aria-hidden="true">${itens.slice(0, 3).map(p => { const f = seguro(p.foto); return `<span class="plate">${f ? `<img src="${esc(f)}" alt="" referrerpolicy="no-referrer">` : icone(p.categoria)}<span class="tagp">${brl0(p.preco)}</span></span>`; }).join('')}</div>`;
 }
-function slide(c) {
-  return `<a class="slide ${c.cls}" href="${esc(c.href)}" data-nav data-cls="${c.cls}">
-    <div><span class="kick">${esc(c.kick)}</span><h2>${esc(c.titulo)}</h2><p>${esc(c.sub)}</p><span class="cta">${esc(c.cta || 'Ver ofertas')} →</span></div>${plates(c.itens)}</a>`;
-}
+const slide = c => `<a class="slide ${c.cls}" href="${esc(c.href)}" data-nav data-cls="${c.cls}"><div class="in">
+    <div><span class="kick">${esc(c.kick)}</span><h2>${c.titulo}</h2><p>${esc(c.sub)}</p><span class="cta">${esc(c.cta || 'Ver ofertas')} →</span></div>${plates(c.itens)}</div></a>`;
 
-/* ---------- campanhas (montadas a partir das ofertas do momento) ---------- */
+/* ---------- campanhas montadas a partir das ofertas do momento ---------- */
 function campanhas() {
-  const porDesc = (a, b) => b.desconto - a.desconto;
   const cs = {};
   const menor = P.filter(p => p.menor_30d).sort(porDesc);
-  if (menor.length >= 3) cs.menor = {cls:'s-green', kick:'Comparamos com o histórico', titulo:'Menor preço em 30 dias', sub:`${menor.length} produtos no preço mais baixo do mês. Hora de comprar.`, href:'?ver=menor', itens:menor};
-  const novas = [...P].sort((a, b) => new Date(b.novo_em) - new Date(a.novo_em) || b.desconto - a.desconto);
-  if (novas.length >= 3) cs.novas = {cls:'s-blue', kick:'Atualizado agora', titulo:'Acabou de baixar', sub:'As promoções que entraram no site nas últimas horas, conferidas pelo robô.', href:'?ver=novas', itens:novas};
+  if (menor.length >= 3) cs.menor = {cls:'s-green', kick:'Comparado com o histórico', titulo:'Menor preço <em>em 30 dias</em>', sub:`${menor.length} produtos no preço mais baixo do mês. Hora de comprar.`, href:'?ver=menor', itens:menor};
+  const novas = [...P].sort(porNovo);
+  if (novas.length >= 3) cs.novas = {cls:'s-blue', kick:'Atualizado agora', titulo:'Acabou <em>de baixar</em>', sub:'As promoções que entraram no site nas últimas horas, conferidas pelo robô.', href:'?ver=novas', itens:novas};
   const rank = CATS.filter(c => c.n >= 3).map(c => ({...c, max: Math.max(...P.filter(p => p.categoria === c.nome).map(p => p.desconto))})).sort((a, b) => b.max - a.max);
-  rank.slice(0, 2).forEach((c, i) => { cs['cat' + i] = {cls: i ? 's-ink' : 's-mag', kick: c.nome, titulo:`Até ${c.max}% OFF em ${c.nome}`, sub:`${c.n} ofertas selecionadas em ${c.nome.toLowerCase()}.`, href: qs({cat:c.nome}), itens: P.filter(p => p.categoria === c.nome).sort(porDesc)}; });
+  rank.slice(0, 2).forEach((c, i) => { cs['cat' + i] = {cls: i ? 's-black' : 's-red', kick: c.nome, titulo:`Até <em>${c.max}% off</em> em ${esc(c.nome)}`, sub:`${c.n} ofertas selecionadas em ${c.nome.toLowerCase()}.`, href: qs({cat:c.nome}), itens: P.filter(p => p.categoria === c.nome).sort(porDesc)}; });
   const full = P.filter(p => p.full && p.frete_gratis).sort(porDesc);
-  if (full.length >= 3) cs.full = {cls:'s-ink', kick:'Chega rápido', titulo:'Frete grátis e entrega Full', sub:'Produtos que saem do estoque do Mercado Livre, com envio expresso.', href:'?ver=full', itens:full};
+  if (full.length >= 3) cs.full = {cls:'s-black', kick:'Chega rápido', titulo:'Frete grátis <em>+ Full</em>', sub:'Produtos que saem do estoque do Mercado Livre, com envio expresso.', href:'?ver=full', itens:full};
   const ate = P.filter(p => p.preco <= 100).sort(porDesc);
-  if (ate.length >= 3) cs.ate100 = {cls:'s-yel', kick:'Cabe no bolso', titulo:'Tudo até R$ 100', sub:'Ofertas boas que não pesam no orçamento.', href:'?ver=ate100', itens:ate};
+  if (ate.length >= 3) cs.ate100 = {cls:'s-yel', kick:'Cabe no bolso', titulo:'Tudo até <em>R$ 100</em>', sub:'Ofertas boas que não pesam no orçamento.', href:qs({max:100}), itens:ate};
   return cs;
 }
 
-/* ---------- timers dos carrosséis ---------- */
+/* ---------- carrosséis automáticos ---------- */
 let timers = [];
 const limparTimers = () => { timers.forEach(clearInterval); timers = []; };
 function autoplay(el, passo, ms) {
@@ -139,7 +170,7 @@ function heroInit() {
   const slides = [...t.children], dots = [...document.querySelectorAll('.dot')], hero = t.parentElement;
   const atual = () => Math.round(t.scrollLeft / t.clientWidth);
   const ir = i => t.scrollTo({left: ((i + slides.length) % slides.length) * t.clientWidth, behavior: reduz ? 'auto' : 'smooth'});
-  const marcar = () => { const i = atual(); dots.forEach((d, k) => d.setAttribute('aria-current', String(k === i))); hero.classList.toggle('s-yel-on', slides[i]?.dataset.cls === 's-yel'); };
+  const marcar = () => { const i = atual(); dots.forEach((d, k) => d.setAttribute('aria-current', String(k === i))); };
   let raf; t.addEventListener('scroll', () => { cancelAnimationFrame(raf); raf = requestAnimationFrame(marcar); }, {passive:true});
   dots.forEach((d, k) => d.addEventListener('click', () => ir(k)));
   hero.querySelector('.l')?.addEventListener('click', () => ir(atual() - 1));
@@ -159,50 +190,60 @@ function railAuto(id) {
 /* ---------- página inicial ---------- */
 function viewHome() {
   document.title = 'Baixou: só o que está em promoção de verdade';
+  if (!P.length) { $('view').innerHTML = `<div class="wrap" style="padding-block:60px"><div class="empty"><strong>Nenhuma oferta no momento</strong><p>O robô confere as promoções a cada 15 minutos. Volte daqui a pouco.</p></div></div>`; return; }
   const cs = campanhas();
-  const heroC = ['menor', 'novas', 'cat0', 'full'].map(k => cs[k]).filter(Boolean);
-  const duoC = ['ate100', 'cat1'].map(k => cs[k]).filter(Boolean);
-  const porDesc = [...P].sort((a, b) => b.desconto - a.desconto);
-  const novas = cs.novas ? cs.novas.itens.slice(0, 14) : [];
+  const heroC = ['menor', 'novas', 'cat0', 'full', 'ate100'].map(k => cs[k]).filter(Boolean).slice(0, 4);
+  const novas = [...P].sort(porNovo).slice(0, 14);
   const vis = vistos();
-  const topCats = [...CATS].sort((a, b) => b.n - a.n).slice(0, 3);
+  const populares = REL.populares.map(x => byId.get(x.id)).filter(Boolean);
+  const nFrete = P.filter(p => p.frete_gratis).length;
+  const faixas = [50, 100, 200, 500].map(m => ({m, n: P.filter(p => p.preco <= m).length})).filter(f => f.n);
+  const topCats = [...CATS].sort((a, b) => b.n - a.n).filter(c => c.n >= 5).slice(0, 3);
   let h = '';
-  if (heroC.length) h += `<div class="wrap"><div class="hero"><div class="hero-track" id="ht">${heroC.map(slide).join('')}</div>
-    ${heroC.length > 1 ? `<button class="hero-arrow l" type="button" aria-label="Banner anterior">‹</button><button class="hero-arrow r" type="button" aria-label="Próximo banner">›</button><div class="hero-ctl">${heroC.map((c, i) => `<button class="dot" type="button" aria-label="Banner ${i + 1}: ${esc(c.titulo)}"><i></i></button>`).join('')}</div>` : ''}</div></div>`;
-  h += `<section class="sec wrap" aria-labelledby="cats-t"><div class="sec-head"><h2 id="cats-t">Compre por categoria</h2></div><div class="cats">${CATS.map(c => { const e = estilo(c.nome); return `<a class="cat" href="${esc(qs({cat:c.nome}))}" data-nav><span class="ci" style="background:${e.bg}">${icone(c.nome)}</span>${esc(c.nome)}<small>${c.n} ${c.n === 1 ? 'oferta' : 'ofertas'}</small></a>`; }).join('')}</div></section>`;
-  h += rail('r-novas', 'Acabou de baixar', novas, '?ver=novas');
-  if (vis.length) h += rail('r-vistos', 'Vistos recentemente', vis.slice(0, 12), '', '');
-  if (cs.menor) h += rail('r-menor', 'Menor preço em 30 dias', cs.menor.itens.slice(0, 14), '?ver=menor');
-  if (duoC.length) h += `<div class="wrap"><div class="duo" style="${duoC.length === 1 ? 'grid-template-columns:minmax(0,1fr)' : ''}">${duoC.map(slide).join('')}</div></div>`;
-  topCats.filter(c => c.n >= 5).forEach((c, i) => { h += rail('r-cat' + i, `Destaques em ${c.nome}`, P.filter(p => p.categoria === c.nome).sort((a, b) => b.desconto - a.desconto).slice(0, 14), qs({cat:c.nome})); });
-  h += rail('r-desc', 'Maiores descontos', porDesc.slice(0, 14), '?ver=descontos');
-  h += `<section class="sec wrap" aria-labelledby="all-t"><div class="sec-head"><h2 id="all-t">Todas as ofertas</h2><a href="?ver=todas" data-nav>Ver as ${P.length} ofertas ›</a></div><div class="grid">${[...P].sort((a, b) => new Date(b.novo_em) - new Date(a.novo_em)).slice(0, 12).map(card).join('')}</div>
+  h += `<div class="hero"><div class="hero-track" id="ht">${heroC.map(slide).join('')}</div>
+    ${heroC.length > 1 ? `<button class="hero-arrow l" type="button" aria-label="Banner anterior">‹</button><button class="hero-arrow r" type="button" aria-label="Próximo banner">›</button><div class="hero-ctl">${heroC.map((c, i) => `<button class="dot" type="button" aria-label="Banner ${i + 1}"><i></i></button>`).join('')}</div>` : ''}</div>`;
+  h += `<div class="perks"><div class="wrap">
+    <div class="perk">${PERK.clock}<span><b>A cada 15 min</b>preços conferidos pelo robô</span></div>
+    <div class="perk">${PERK.chart}<span><b>Desconto real</b>comparado com o histórico</span></div>
+    <div class="perk">${PERK.shield}<span><b>Compra segura</b>direto no Mercado Livre</span></div>
+    <div class="perk">${PERK.truck}<span><b>Frete grátis</b>em ${nFrete} ${nFrete === 1 ? 'oferta' : 'ofertas'}</span></div></div></div>`;
+  h += rail('r-novas', 'Acabou de baixar', novas, '?ver=novas', 'Ver todas', 'Entraram no site agora há pouco');
+  if (populares.length >= 6) h += rail('r-pop', 'Mais procurados hoje', populares.slice(0, 14), '', '', 'O que mais gente levou para a loja nas últimas 24 horas', {pop:true});
+  if (faixas.length >= 2) h += `<section class="sec wrap" aria-labelledby="preco-t"><div class="sec-head"><h2 id="preco-t">Escolha por preço</h2></div><div class="prices">${faixas.map(f => `<a class="ptile" href="${qs({max:f.m})}" data-nav><span>Até</span><b>R$ ${f.m}</b><small>${f.n} ofertas</small></a>`).join('')}</div></section>`;
+  h += `<section class="sec wrap" aria-labelledby="cats-t"><div class="sec-head"><h2 id="cats-t">Compre por categoria</h2></div><div class="tiles">${CATS.map(c => { const e = estilo(c.nome); return `<a class="tile" href="${esc(qs({cat:c.nome}))}" data-nav style="background:${e.bg}">${icone(c.nome)}<b>${esc(c.nome)}</b><small>${c.n} ${c.n === 1 ? 'oferta' : 'ofertas'}</small></a>`; }).join('')}</div></section>`;
+  if (vis.length) h += rail('r-vistos', 'Vistos recentemente', vis.slice(0, 12), '', '', 'Continue de onde parou');
+  if (cs.menor) h += rail('r-menor', 'Menor preço em 30 dias', cs.menor.itens.slice(0, 14), '?ver=menor', 'Ver todas', 'O preço mais baixo que registramos no mês');
+  topCats.forEach((c, i) => { h += rail('r-cat' + i, `Destaques em ${c.nome}`, P.filter(p => p.categoria === c.nome).sort(porDesc).slice(0, 14), qs({cat:c.nome})); });
+  if (MARCAS.length >= 4) h += `<section class="sec wrap" aria-labelledby="marcas-t"><div class="sec-head"><h2 id="marcas-t">Compre por marca</h2></div><div class="brands">${MARCAS.slice(0, 18).map(m => `<a class="brand" href="${esc(qs({marca:m.nome}))}" data-nav>${esc(m.nome)} <small>${m.n}</small></a>`).join('')}</div></section>`;
+  h += rail('r-desc', 'Maiores descontos', [...P].sort(porDesc).slice(0, 14), '?ver=descontos');
+  h += `<section class="sec wrap" aria-labelledby="all-t"><div class="sec-head"><h2 id="all-t">Todas as ofertas</h2><div class="arrows"><a href="?ver=todas" data-nav>Ver as ${P.length}</a></div></div><div class="grid">${[...P].sort(porNovo).slice(0, 10).map(p => card(p)).join('')}</div>
     <div class="more"><a class="btn2" href="?ver=todas" data-nav>Ver todas as ofertas</a></div></section>`;
-  if (!P.length) h = `<div class="wrap" style="padding-block:60px"><div class="empty"><strong>Nenhuma oferta no momento</strong><p>O robô confere as promoções a cada 15 minutos. Volte daqui a pouco.</p></div></div>`;
   $('view').innerHTML = h;
   heroInit(); railAuto('r-novas');
 }
 
-/* ---------- listagem (categoria, busca, vitrines) ---------- */
+/* ---------- listagem ---------- */
 const VITRINES = {
   todas: {t:'Todas as ofertas', d:'Tudo o que está em promoção agora.'},
   novas: {t:'Acabou de baixar', d:'As ofertas mais recentes primeiro.', sort:'new'},
   descontos: {t:'Maiores descontos', d:'Ordenado pelo maior desconto.', sort:'disc'},
   menor: {t:'Menor preço em 30 dias', d:'Produtos no preço mais baixo que registramos no último mês.', low:true},
-  full: {t:'Frete grátis e entrega Full', d:'Saem do estoque do Mercado Livre, com envio expresso.', full:true, frete:true},
-  ate100: {t:'Tudo até R$ 100', d:'Ofertas que cabem no bolso.', max:'100'},
+  full: {t:'Frete grátis + Full', d:'Saem do estoque do Mercado Livre, com envio expresso.', full:true, frete:true},
+  favoritos: {t:'Meus favoritos', d:'Salvos neste aparelho. Toque no coração de qualquer oferta para guardar aqui.', fav:true},
 };
 const PAGE = 24;
 let L = null;
 function viewLista(ps) {
-  const ver = VITRINES[ps.get('ver')] ? ps.get('ver') : (ps.get('cat') || ps.get('q') ? '' : 'todas');
+  const max = /^\d+$/.test(ps.get('max') || '') ? ps.get('max') : '';
+  let ver = VITRINES[ps.get('ver')] ? ps.get('ver') : '';
+  if (!ver && !ps.get('cat') && !ps.get('q') && !ps.get('marca') && !max) ver = 'todas';
   const v = VITRINES[ver] || {};
-  L = {cat: ps.get('cat') || '', q: ps.get('q') || '', ver, disc:0, min:'', max:v.max || '', frete:!!v.frete, full:!!v.full, low:!!v.low, sort:v.sort || (ps.get('q') ? 'disc' : 'new'), shown:PAGE};
+  L = {cat: ps.get('cat') || '', marca: ps.get('marca') || '', q: ps.get('q') || '', ver, fav: !!v.fav, disc:0, min:'', max, frete:!!v.frete, full:!!v.full, low:!!v.low, sort:v.sort || (ps.get('q') ? 'disc' : 'new'), shown:PAGE};
   if (L.cat && !CATS.some(c => c.nome === L.cat)) L.cat = '';
-  const titulo = L.q ? `Resultados para “${L.q}”` : L.cat || v.t;
-  const desc = L.q ? '' : L.cat ? `Ofertas selecionadas em ${L.cat.toLowerCase()}.` : v.d;
-  document.title = `${L.q ? 'Busca: ' + L.q : L.cat || v.t} | Baixou`;
-  $('view').innerHTML = `<div class="lhead"><div class="wrap"><div class="crumbs"><a href="./" data-nav>Início</a> › ${esc(titulo)}</div><h1>${esc(titulo)}</h1>${desc ? `<p>${esc(desc)}</p>` : ''}</div></div>
+  const titulo = L.q ? `“${L.q}”` : L.cat || L.marca || (max && !ver ? `Tudo até R$ ${max}` : v.t);
+  const desc = L.q ? 'Resultados da busca' : L.cat ? `Ofertas selecionadas em ${L.cat.toLowerCase()}.` : L.marca ? `Ofertas da marca ${L.marca}.` : (max && !ver ? 'Ofertas que cabem no bolso.' : v.d);
+  document.title = `${L.q ? 'Busca: ' + L.q : titulo} | Baixou`;
+  $('view').innerHTML = `<div class="lhead"><div class="wrap"><div class="crumbs"><a href="./" data-nav>Início</a> › ${esc(L.q ? 'Busca' : titulo)}</div><h1>${esc(titulo)}</h1>${desc ? `<p>${esc(desc)}</p>` : ''}</div></div>
   <div class="wrap lmain">
     <aside><details id="fd" open><summary>Filtros</summary><div class="fbox">
       ${L.cat ? '' : `<div><h3>Categoria</h3><select id="fcat" aria-label="Categoria"><option value="">Todas</option>${CATS.map(c => `<option value="${esc(c.nome)}">${esc(c.nome)} (${c.n})</option>`).join('')}</select></div>`}
@@ -240,18 +281,20 @@ function viewLista(ps) {
   listar();
 }
 function filtrados() {
-  const q = norm(L.q.trim());
-  return P.filter(p => (!q || q.split(/\s+/).every(w => norm(p.titulo + ' ' + p.categoria).includes(w)))
-    && (!L.cat || p.categoria === L.cat) && p.desconto >= L.disc
+  const q = norm(L.q.trim()), fv = favs();
+  return P.filter(p => (!q || q.split(/\s+/).every(w => norm(p.titulo + ' ' + p.categoria + ' ' + (p.marca || '')).includes(w)))
+    && (!L.cat || p.categoria === L.cat) && (!L.marca || p.marca === L.marca) && (!L.fav || fv.has(p.id)) && p.desconto >= L.disc
     && (L.min === '' || p.preco >= +L.min) && (L.max === '' || p.preco <= +L.max)
     && (!L.frete || p.frete_gratis) && (!L.full || p.full) && (!L.low || p.menor_30d));
 }
 function listar(reset = true) {
   if (reset) L.shown = PAGE;
-  const by = {disc:(a, b) => b.desconto - a.desconto, low:(a, b) => a.preco - b.preco, high:(a, b) => b.preco - a.preco, new:(a, b) => new Date(b.novo_em) - new Date(a.novo_em)}[L.sort];
+  const by = {disc:porDesc, low:(a, b) => a.preco - b.preco, high:(a, b) => b.preco - a.preco, new:porNovo}[L.sort];
   const r = filtrados().sort(by), vis = r.slice(0, L.shown);
   $('cnt').textContent = r.length + (r.length === 1 ? ' oferta' : ' ofertas');
-  $('grid').innerHTML = vis.length ? vis.map(card).join('') : `<div class="empty"><strong>Nenhuma oferta com esses filtros</strong><p>Tente outra busca ou afrouxe os filtros.</p><a class="btn2" href="?ver=todas" data-nav>Ver todas as ofertas</a></div>`;
+  $('grid').innerHTML = vis.length ? vis.map(p => card(p)).join('') : L.fav
+    ? `<div class="empty"><strong>Nenhum favorito ainda</strong><p>Toque no coração de uma oferta para salvá-la aqui.</p><a class="btn2" href="./" data-nav>Ver ofertas</a></div>`
+    : `<div class="empty"><strong>Nenhuma oferta com esses filtros</strong><p>Tente outra busca ou afrouxe os filtros.</p><a class="btn2" href="?ver=todas" data-nav>Ver todas as ofertas</a></div>`;
   fallbackImgs($('grid'));
   $('more').hidden = r.length <= L.shown;
   $('moret').textContent = `Mostrando ${vis.length} de ${r.length}`;
@@ -267,59 +310,74 @@ function listar(reset = true) {
 }
 
 /* ---------- produto ---------- */
-function parecidos(p) {
+function parecidos(p, excluir) {
   const palavras = new Set(norm(p.titulo).split(/[^a-z0-9]+/).filter(w => w.length >= 3));
-  return P.filter(x => x.id !== p.id).map(x => {
+  return P.filter(x => x.id !== p.id && !excluir.has(x.id)).map(x => {
     const comuns = norm(x.titulo).split(/[^a-z0-9]+/).filter(w => palavras.has(w)).length;
     const preco = 1 - Math.min(1, Math.abs(Math.log(x.preco / p.preco)));
     return {x, s: (x.categoria === p.categoria ? 3 : 0) + comuns * 1.5 + preco + x.desconto / 100};
   }).sort((a, b) => b.s - a.s).slice(0, 14).map(o => o.x);
 }
+let obsBuy = null;
 function viewProduto(id) {
   const p = byId.get(id);
   if (!p) {
     document.title = 'Oferta encerrada | Baixou';
-    $('view').innerHTML = `<div class="wrap" style="padding-block:40px"><div class="empty"><strong>Esta oferta acabou ou saiu do site</strong><p>O robô tira do ar o que encareceu ou esgotou. Veja o que está valendo agora:</p><a class="btn2" href="./" data-nav>Ir para a página inicial</a></div></div>${rail('r-desc', 'Maiores descontos agora', [...P].sort((a, b) => b.desconto - a.desconto).slice(0, 14), '?ver=descontos')}`;
-    fallbackImgs($('view')); return;
+    $('view').innerHTML = `<div class="wrap" style="padding-block:40px"><div class="empty"><strong>Esta oferta acabou</strong><p>O robô tira do ar o que encareceu ou esgotou. Veja o que está valendo agora:</p><a class="btn2" href="./" data-nav>Ir para a página inicial</a></div></div>${rail('r-desc', 'Maiores descontos agora', [...P].sort(porDesc).slice(0, 14), '?ver=descontos')}`;
+    return;
   }
-  marcarVisto(p.id);
+  marcarVisto(p.id); evento('v', p.id);
   document.title = `${p.titulo} por ${brl(p.preco)} | Baixou`;
   const fotos = [...new Set([...(p.fotos || []), p.foto].map(seguro).filter(Boolean))].slice(0, 5);
   const link = seguro(p.link) || '#';
-  const e = estilo(p.categoria);
+  const e = estilo(p.categoria), fav = favs().has(p.id), pop = POP.get(p.id);
   const economia = p.preco_cheio ? p.preco_cheio - p.preco : 0;
+  const quemViu = (REL.quem_viu[p.id] || []).map(i => byId.get(i)).filter(Boolean);
+  const usados = new Set(quemViu.map(x => x.id));
+  const daMarca = p.marca ? P.filter(x => x.marca === p.marca && x.id !== p.id).sort(porDesc) : [];
   const vis = vistos().filter(x => x.id !== p.id);
-  $('view').innerHTML = `<div class="wrap"><div class="crumbs" style="padding-top:18px"><a href="./" data-nav>Início</a> › <a href="${esc(qs({cat:p.categoria}))}" data-nav>${esc(p.categoria)}</a></div>
+  $('view').innerHTML = `<div class="wrap"><div class="crumbs" style="padding-top:18px"><a href="./" data-nav>Início</a> › <a href="${esc(qs({cat:p.categoria}))}" data-nav>${esc(p.categoria)}</a>${p.marca ? ` › <a href="${esc(qs({marca:p.marca}))}" data-nav>${esc(p.marca)}</a>` : ''}</div>
   <div class="pmain">
     <div class="gal${fotos.length > 1 ? '' : ' one'}">
-      <div class="big" style="${fotos.length ? '' : `background:${e.bg}`}">${fotos.length ? `<img id="bigimg" src="${esc(fotos[0])}" alt="${esc(p.titulo)}" referrerpolicy="no-referrer">` : `<span class="ph">${icone(p.categoria)}</span>`}</div>
+      <div class="big" style="${fotos.length ? '' : `background:${e.bg}`}">${fotos.length ? `<img id="bigimg" src="${esc(fotos[0])}" alt="${esc(p.titulo)}" referrerpolicy="no-referrer">` : `<span class="ph">${icone(p.categoria)}</span>`}
+        <span class="badges"><span class="off">-${p.desconto}%</span>${p.menor_30d ? '<span class="flag low">Menor preço 30d</span>' : ''}</span>
+        <button class="heart" type="button" data-fav="${esc(p.id)}" aria-pressed="${fav}" aria-label="${fav ? 'Remover dos favoritos' : 'Salvar nos favoritos'}">${SVG_HEART}</button></div>
       ${fotos.length > 1 ? `<div class="thumbs">${fotos.map((f, i) => `<button type="button" data-img="${esc(f)}" aria-label="Foto ${i + 1}" aria-current="${i === 0}"><img src="${esc(f)}" alt="" loading="lazy" referrerpolicy="no-referrer"></button>`).join('')}</div>` : ''}
     </div>
     <div class="info">
-      <div class="tags"><span class="pill">${esc(p.loja || 'Mercado Livre')}</span>${p.menor_30d ? '<span class="flag low">Menor preço em 30 dias</span>' : ''}${p.full ? '<span class="full" style="font-size:13px">⚡ Entrega Full</span>' : ''}</div>
+      <div class="tags"><span class="pill">${esc(p.loja || 'Mercado Livre')}</span>${p.full ? '<span class="full">⚡ Entrega Full</span>' : ''}</div>
+      ${p.marca ? `<span class="brandn">${esc(p.marca)}</span>` : ''}
       <h1>${esc(p.titulo)}</h1>
       <div class="pbox">
         ${p.preco_cheio ? `<span class="was">${brl(p.preco_cheio)}</span>` : ''}
         <div class="row"><span class="now">${brl(p.preco)}</span><span class="off">-${p.desconto}%</span></div>
-        ${economia > 0 ? `<span style="color:var(--ok);font-weight:600">Você economiza ${brl(economia)}</span>` : ''}
+        ${economia > 0 ? `<span class="save">Você economiza ${brl(economia)}</span>` : ''}
         ${p.parcelas > 1 ? `<span class="parc" style="font-size:15px">em ${p.parcelas}x de ${brl(p.preco / p.parcelas)}${p.sem_juros ? ' sem juros' : ''}</span>` : ''}
         ${p.frete_gratis ? '<span class="ship">Frete grátis</span>' : ''}
-        <a class="buy" href="${esc(link)}" target="_blank" rel="nofollow sponsored noopener">Comprar no Mercado Livre ↗</a>
-        <button class="share" type="button" data-share="${esc(p.id)}">${ICON_SHARE} Compartilhar oferta</button>
+        <a class="buy" id="buy" href="${esc(link)}" target="_blank" rel="nofollow sponsored noopener" data-buy="${esc(p.id)}">Comprar no Mercado Livre ↗</a>
+        <button class="share" type="button" data-share="${esc(p.id)}">${SVG_SHARE} Compartilhar oferta</button>
         <p class="note">Preço verificado ${ago(p.verificado_em)}. Você conclui a compra no Mercado Livre; preço e estoque podem mudar.</p>
       </div>
+      ${pop && pop.c >= 3 ? `<div class="proof"><b>${pop.c}</b> pessoas foram à loja por esta oferta nas últimas 24 horas</div>` : ''}
       <ul class="trust"><li>Vendedor com boa reputação no Mercado Livre</li><li>Produto novo, com desconto conferido pelo nosso robô</li><li>Pagamento, entrega e garantia direto com a loja</li></ul>
     </div>
   </div>
   <section class="hist" aria-labelledby="hist-t"><h2 class="h2" id="hist-t">Histórico de preço</h2><div class="fig" id="fig"></div><div class="stats" id="stats"></div></section></div>
-  ${rail('r-par', 'Parecidos com este', parecidos(p), qs({cat:p.categoria}), 'Ver categoria')}
-  ${vis.length ? rail('r-vistos', 'Vistos recentemente', vis.slice(0, 12), '', '') : ''}`;
-  fallbackImgs($('view'));
-  $('bigimg')?.addEventListener('error', function () { const box = this.parentElement; box.style.background = e.bg; box.innerHTML = `<span class="ph">${icone(p.categoria)}</span>`; }, {once:true});
+  ${quemViu.length >= 4 ? rail('r-qv', 'Quem viu este também viu', quemViu, '', '', 'Baseado no que outros visitantes abriram no Baixou') : ''}
+  ${rail('r-par', 'Parecidos com este', parecidos(p, usados), qs({cat:p.categoria}), 'Ver categoria')}
+  ${daMarca.length >= 3 ? rail('r-marca', `Mais de ${p.marca}`, daMarca.slice(0, 14), qs({marca:p.marca}), 'Ver marca') : ''}
+  ${vis.length ? rail('r-vistos', 'Vistos recentemente', vis.slice(0, 12)) : ''}`;
+  $('bigimg')?.addEventListener('error', function () { const box = this.parentElement; box.style.background = e.bg; this.outerHTML = `<span class="ph">${icone(p.categoria)}</span>`; }, {once:true});
   document.querySelectorAll('[data-img]').forEach(b => b.addEventListener('click', () => {
     const big = $('bigimg'); if (big) big.src = b.dataset.img;
     document.querySelectorAll('[data-img]').forEach(x => x.setAttribute('aria-current', String(x === b)));
   }));
+  // barra de compra fixa quando o botão principal sai da tela
+  const bar = $('buybar');
+  bar.innerHTML = `<div class="p"><b>${brl(p.preco)}</b><small>-${p.desconto}% · ${p.frete_gratis ? 'frete grátis' : 'Mercado Livre'}</small></div><a href="${esc(link)}" target="_blank" rel="nofollow sponsored noopener" data-buy="${esc(p.id)}">Comprar ↗</a>`;
+  const btn = $('buy');
+  obsBuy = () => { const on = btn.getBoundingClientRect().bottom < 0; bar.classList.toggle('on', on); bar.setAttribute('aria-hidden', String(!on)); document.body.classList.toggle('has-buybar', on); };
+  addEventListener('scroll', obsBuy, {passive:true});
   precos().then(todos => grafico(p, todos[p.id] || []));
 }
 function grafico(p, pts) {
@@ -328,7 +386,7 @@ function grafico(p, pts) {
   const serie = pts.map(([d, v]) => [d, Number(v)]);
   if (!serie.length || serie[serie.length - 1][0] !== hoje) serie.push([hoje, p.preco]);
   const vals = serie.map(s => s[1]), menor = Math.min(...vals), maior = Math.max(...vals);
-  stats.innerHTML = `<div><span>Hoje</span><b>${brl(p.preco)}</b></div><div class="hl"><span>Menor preço registrado</span><b>${brl(menor)}</b></div><div><span>Maior preço registrado</span><b>${brl(maior)}</b></div>`;
+  stats.innerHTML = `<div><span>Hoje</span><b>${brl(p.preco)}</b></div><div class="hl"><span>Menor registrado</span><b>${brl(menor)}</b></div><div><span>Maior registrado</span><b>${brl(maior)}</b></div>`;
   if (serie.length < 2) { fig.style.height = 'auto'; fig.innerHTML = `<p class="note" style="font-size:15px">Começamos a acompanhar este preço em ${dm(serie[0][0])}. O gráfico aparece assim que tivermos mais dias de histórico.</p>`; return; }
   fig.innerHTML = '<svg role="img" aria-label="Gráfico do histórico de preço"></svg>';
   const s = fig.firstChild;
@@ -337,14 +395,14 @@ function grafico(p, pts) {
     const lo = menor === maior ? menor * .9 : menor - (maior - menor) * .15, hi = menor === maior ? maior * 1.1 : maior + (maior - menor) * .15;
     const x = i => ml + i / (serie.length - 1) * (W - ml - mr), y = v => mt + (hi - v) / (hi - lo) * (H - mt - mb);
     const linha = serie.map((d, i) => `${i ? 'L' : 'M'}${x(i).toFixed(1)},${y(d[1]).toFixed(1)}`).join('');
-    const ultimo = serie.length - 1;
-    s.innerHTML = `<path d="${linha}L${x(ultimo)},${H - mb}L${x(0)},${H - mb}Z" fill="var(--blue)" opacity=".1"/>
+    const u = serie.length - 1;
+    s.innerHTML = `<path d="${linha}L${x(u)},${H - mb}L${x(0)},${H - mb}Z" fill="var(--blue)" opacity=".12"/>
       <line x1="${ml}" x2="${W - mr}" y1="${y(menor)}" y2="${y(menor)}" stroke="#0b7a3b" stroke-dasharray="4 4"/>
       <text x="${W - mr + 8}" y="${y(menor) + 4}">menor ${brl(menor).replace('R$', '').trim()}</text>
       <path d="${linha}" fill="none" stroke="var(--blue)" stroke-width="2.5" stroke-linejoin="round"/>
-      <circle cx="${x(ultimo)}" cy="${y(serie[ultimo][1])}" r="5" fill="var(--blue)" stroke="var(--card)" stroke-width="2"/>
-      ${Math.abs(y(serie[ultimo][1]) - y(menor)) > 16 ? `<text x="${W - mr + 8}" y="${y(serie[ultimo][1]) + 4}" style="fill:var(--ink);font-weight:600">hoje</text>` : ''}
-      <text x="${ml}" y="${H - 8}">${dm(serie[0][0])}</text><text x="${W - mr}" y="${H - 8}" text-anchor="end">${dm(serie[ultimo][0])}</text>`;
+      <circle cx="${x(u)}" cy="${y(serie[u][1])}" r="5" fill="var(--blue)" stroke="var(--card)" stroke-width="2"/>
+      ${Math.abs(y(serie[u][1]) - y(menor)) > 16 ? `<text x="${W - mr + 8}" y="${y(serie[u][1]) + 4}" style="fill:var(--ink);font-weight:600">hoje</text>` : ''}
+      <text x="${ml}" y="${H - 8}">${dm(serie[0][0])}</text><text x="${W - mr}" y="${H - 8}" text-anchor="end">${dm(serie[u][0])}</text>`;
   };
   new ResizeObserver(draw).observe(s);
 }
@@ -352,20 +410,24 @@ function grafico(p, pts) {
 /* ---------- roteador ---------- */
 function rota() {
   limparTimers(); fecharSugg();
+  if (obsBuy) { removeEventListener('scroll', obsBuy); obsBuy = null; }
+  $('buybar').classList.remove('on'); document.body.classList.remove('has-buybar');
   const ps = new URLSearchParams(location.search);
   const id = ps.get('p') || ps.get('oferta');
   if (ps.get('oferta')) history.replaceState(null, '', qs({p:id}));
   if (id) viewProduto(id);
-  else if (ps.get('cat') || ps.get('q') || ps.get('ver')) viewLista(ps);
+  else if (ps.get('cat') || ps.get('q') || ps.get('ver') || ps.get('marca') || ps.get('max')) viewLista(ps);
   else viewHome();
   $('q').value = ps.get('q') || '';
-  const atual = id ? null : ps.get('cat') ? 'cat:' + ps.get('cat') : ps.get('ver') ? 'ver:' + ps.get('ver') : ps.get('q') ? null : 'home';
+  const atual = id ? null : ps.get('cat') ? 'cat:' + ps.get('cat') : ps.get('ver') ? 'ver:' + ps.get('ver') : ps.toString() ? null : 'home';
   document.querySelectorAll('#nav a').forEach(a => { if (a.dataset.k === atual) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current'); });
   fallbackImgs($('view'));
 }
 function ir(url) { history.pushState(null, '', url); rota(); scrollTo(0, 0); $('view').focus({preventScroll:true}); }
 addEventListener('popstate', rota);
 document.addEventListener('click', e => {
+  const fv = e.target.closest('[data-fav]'); if (fv) { e.preventDefault(); alternarFav(fv.dataset.fav); return; }
+  const by = e.target.closest('[data-buy]'); if (by) evento('c', by.dataset.buy);
   const a = e.target.closest('a[data-nav]');
   if (a && !e.metaKey && !e.ctrlKey && !e.shiftKey && e.button === 0) { e.preventDefault(); ir(a.getAttribute('href')); return; }
   const pv = e.target.closest('[data-prev]'), nx = e.target.closest('[data-next]');
@@ -377,13 +439,15 @@ document.addEventListener('click', e => {
 const sugg = $('sugg'); let sel = -1;
 function fecharSugg() { sugg.hidden = true; sel = -1; }
 $('q').addEventListener('input', () => {
-  const q = norm($('q').value.trim()); sel = -1;
+  const bruto = $('q').value.trim(), q = norm(bruto); sel = -1;
   if (q.length < 2) return fecharSugg();
   const ws = q.split(/\s+/);
   const cats = CATS.filter(c => norm(c.nome).includes(q)).slice(0, 3);
-  const prods = P.filter(p => ws.every(w => norm(p.titulo + ' ' + p.categoria).includes(w))).sort((a, b) => b.desconto - a.desconto).slice(0, 6);
-  if (!cats.length && !prods.length) { sugg.innerHTML = `<a href="${esc(qs({q:$('q').value.trim()}))}" data-nav role="option">Buscar “${esc($('q').value.trim())}”</a>`; sugg.hidden = false; return; }
+  const marcas = MARCAS.filter(m => norm(m.nome).includes(q)).slice(0, 2);
+  const prods = P.filter(p => ws.every(w => norm(p.titulo + ' ' + p.categoria + ' ' + (p.marca || '')).includes(w))).sort(porDesc).slice(0, 6);
+  if (!cats.length && !marcas.length && !prods.length) { sugg.innerHTML = `<a href="${esc(qs({q:bruto}))}" data-nav role="option">Buscar “${esc(bruto)}”</a>`; sugg.hidden = false; return; }
   sugg.innerHTML = cats.map(c => `<a href="${esc(qs({cat:c.nome}))}" data-nav role="option"><span class="th" style="background:${estilo(c.nome).bg}">${icone(c.nome)}</span><span class="cat">${esc(c.nome)}<small>${c.n} ofertas na categoria</small></span></a>`).join('')
+    + marcas.map(m => `<a href="${esc(qs({marca:m.nome}))}" data-nav role="option"><span class="th" style="font:800 italic 14px var(--disp)">${esc(m.nome.slice(0, 3).toUpperCase())}</span><span class="cat">${esc(m.nome)}<small>${m.n} ofertas da marca</small></span></a>`).join('')
     + prods.map(p => { const f = seguro(p.foto); return `<a href="?p=${encodeURIComponent(p.id)}" data-nav role="option"><span class="th">${f ? `<img src="${esc(f)}" alt="" referrerpolicy="no-referrer">` : icone(p.categoria)}</span><span>${esc(p.titulo)}<small>${brl(p.preco)} · -${p.desconto}%</small></span></a>`; }).join('');
   sugg.hidden = false;
 });
@@ -396,8 +460,8 @@ $('q').addEventListener('keydown', e => {
 document.addEventListener('click', e => { if (!e.target.closest('.sbox')) fecharSugg(); });
 $('sf').addEventListener('submit', e => { e.preventDefault(); const q = $('q').value.trim(); if (q) ir(qs({q})); $('q').blur(); });
 
-/* ---------- compartilhar, aviso, topo ---------- */
-function toast(m) { const t = $('toast'); t.textContent = m; t.classList.add('on'); clearTimeout(toast.h); toast.h = setTimeout(() => t.classList.remove('on'), 2200); }
+/* ---------- compartilhar, avisos, topo ---------- */
+function toast(m) { const t = $('toast'); t.textContent = m; t.classList.add('on'); clearTimeout(toast.h); toast.h = setTimeout(() => t.classList.remove('on'), 2000); }
 async function compartilhar(id) {
   const p = byId.get(id); if (!p) return;
   const url = location.origin + location.pathname + '?p=' + encodeURIComponent(id);
@@ -406,20 +470,28 @@ async function compartilhar(id) {
   try { await navigator.clipboard.writeText(texto + ' ' + url); toast('Link da oferta copiado'); }
   catch (e) { window.open('https://wa.me/?text=' + encodeURIComponent(texto + ' ' + url), '_blank', 'noopener'); }
 }
-const AVISOS = ['Preços conferidos <b>a cada 15 minutos</b>', 'Só <b>desconto de verdade</b>, comparado com o histórico', 'Compra segura <b>direto no Mercado Livre</b>'];
-if (!reduz) { let k = 0; setInterval(() => { if (!document.hidden) $('ann').innerHTML = AVISOS[k = (k + 1) % AVISOS.length]; }, 4500); }
+const AVISOS = ['Preços conferidos a cada 15 minutos', 'Só desconto de verdade, comparado com o histórico', 'Compra segura direto no Mercado Livre'];
+if (!reduz) { let k = 0; setInterval(() => { if (!document.hidden) $('ann').textContent = AVISOS[k = (k + 1) % AVISOS.length]; }, 4500); }
 $('up').addEventListener('click', () => scrollTo({top:0, behavior:'smooth'}));
 addEventListener('scroll', () => $('up').classList.toggle('on', scrollY > 900), {passive:true});
 
 /* ---------- carregar ---------- */
 $('view').innerHTML = `<div class="wrap" style="padding-block:24px"><div class="grid">${Array.from({length:8}, () => '<div class="sk" aria-hidden="true"></div>').join('')}</div></div>`;
-fetch('data/ofertas.json', {cache:'no-store'}).then(r => { if (!r.ok) throw new Error(r.status); return r.json(); }).then(d => {
+const opcional = u => fetch(u, {cache:'no-store'}).then(r => r.ok ? r.json() : null).catch(() => null);
+Promise.all([
+  fetch('data/ofertas.json', {cache:'no-store'}).then(r => { if (!r.ok) throw new Error(r.status); return r.json(); }),
+  opcional('data/relacionados.json'), opcional('data/contador.json'),
+]).then(([d, rel, cont]) => {
   P = (d.ofertas || []).filter(p => p && p.titulo && p.preco > 0).map(p => ({...p, id:String(p.id), desconto:Number(p.desconto) || 0, parcelas:Number(p.parcelas) || 0}));
   byId = new Map(P.map(p => [p.id, p]));
-  const cont = {}; P.forEach(p => cont[p.categoria] = (cont[p.categoria] || 0) + 1);
-  CATS = Object.entries(cont).map(([nome, n]) => ({nome, n})).sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
-  $('nav').innerHTML = `<a href="./" data-nav data-k="home">Destaques</a><a href="?ver=menor" data-nav data-k="ver:menor">Menor preço</a>` + CATS.map(c => `<a href="${esc(qs({cat:c.nome}))}" data-nav data-k="cat:${esc(c.nome)}">${esc(c.nome)}</a>`).join('');
+  if (rel && typeof rel === 'object') { REL = {quem_viu: rel.quem_viu || {}, populares: Array.isArray(rel.populares) ? rel.populares : []}; POP = new Map(REL.populares.map(x => [String(x.id), x])); }
+  if (cont && /^https:\/\/[a-z0-9.-]+\.workers\.dev$/i.test(String(cont.url || ''))) CONTADOR = cont.url;
+  const cont1 = {}, cont2 = {};
+  P.forEach(p => { cont1[p.categoria] = (cont1[p.categoria] || 0) + 1; if (p.marca) cont2[p.marca] = (cont2[p.marca] || 0) + 1; });
+  CATS = Object.entries(cont1).map(([nome, n]) => ({nome, n})).sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
+  MARCAS = Object.entries(cont2).map(([nome, n]) => ({nome, n})).sort((a, b) => b.n - a.n || a.nome.localeCompare(b.nome, 'pt-BR'));
+  $('nav').innerHTML = `<a href="./" data-nav data-k="home">Destaques</a><a class="hot" href="?ver=menor" data-nav data-k="ver:menor">Menor preço</a><a href="?ver=novas" data-nav data-k="ver:novas">Acabou de baixar</a>` + CATS.map(c => `<a href="${esc(qs({cat:c.nome}))}" data-nav data-k="cat:${esc(c.nome)}">${esc(c.nome)}</a>`).join('');
   if (d.modo === 'demonstração') $('demo').hidden = false;
-  rota();
+  contarFavs(); rota();
 }).catch(() => { $('view').innerHTML = '<div class="wrap" style="padding-block:40px"><div class="empty"><strong>Não foi possível carregar as ofertas</strong><p>Tente recarregar a página em instantes.</p></div></div>'; });
 }

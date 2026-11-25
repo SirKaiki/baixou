@@ -44,6 +44,7 @@ jobs:
           ML_REFRESH_TOKEN: ${{ secrets.ML_REFRESH_TOKEN }}
           ML_MATT_WORD: ${{ vars.ML_MATT_WORD }}
           ML_MATT_TOOL: ${{ vars.ML_MATT_TOOL }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: python robo/robo.py
 
       - name: Salvar os dados no repositório

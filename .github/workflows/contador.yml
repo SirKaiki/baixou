@@ -1,0 +1,55 @@
+name: Contador anônimo
+
+# Publica o contador de visitas na Cloudflare. Só roda quando as chaves da Cloudflare existem.
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ["worker/**", ".github/workflows/contador.yml"]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: robo
+  cancel-in-progress: false
+
+jobs:
+  contador:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Testes do contador
+        run: node --test worker/contador.test.mjs
+
+      - name: Verificar chaves da Cloudflare
+        id: chaves
+        env:
+          TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CONTA: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          if [ -n "$TOKEN" ] && [ -n "$CONTA" ]; then echo "ok=1" >> "$GITHUB_OUTPUT"; else echo "Chaves da Cloudflare ainda não configuradas: nada a publicar."; fi
+
+      - name: Publicar o contador
+        if: steps.chaves.outputs.ok == '1'
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: ./worker/implantar.sh
+
+      - name: Salvar o endereço do contador
+        if: steps.chaves.outputs.ok == '1'
+        run: |
+          git config user.name "baixou-robo"
+          git config user.email "baixou-robo@users.noreply.github.com"
+          git add site/data/contador.json
+          if ! git diff --cached --quiet; then
+            git commit -q -m "contador: endereço publicado"
+            git pull -q --rebase origin main && git push -q
+          fi

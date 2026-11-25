@@ -1,0 +1,12 @@
+name = "baixou-contador"
+main = "contador.js"
+compatibility_date = "2025-01-01"
+workers_dev = true
+
+[vars]
+ORIGENS = "https://sirkaiki.github.io"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "baixou_eventos"
+database_id = "__DB_ID__"

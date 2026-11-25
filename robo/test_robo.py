@@ -87,6 +87,16 @@ class TestGuardiao(unittest.TestCase):
         self.assertEqual(len(hist["X"]), 1)
 
 
+class TestRelacionados(unittest.TestCase):
+    def test_monta_so_com_ofertas_no_ar(self):
+        export = {"visitas_24h": 9, "pares": [{"a": "A", "b": "B", "peso": 5}, {"a": "A", "b": "X", "peso": 9}, {"a": "A", "b": "C", "peso": 2}],
+                  "populares": [{"produto": "X", "v": 9, "c": 9}, {"produto": "B", "v": 3, "c": 1}]}
+        r = robo.montar_relacionados(export, {"A", "B", "C"})
+        self.assertEqual(r["quem_viu"]["A"], ["B", "C"])
+        self.assertEqual(r["populares"], [{"id": "B", "v": 3, "c": 1}])
+        self.assertEqual(r["visitas_24h"], 9)
+
+
 class FakeCliente:
     """Imita a API do Mercado Livre."""
     falhar_tudo = False
@@ -108,7 +118,8 @@ class FakeCliente:
                  "permalink": f"https://produto.mercadolivre.com.br/MLB-{n}-caixa"} for n in range(30)]
 
     def itens(self, ids):
-        return [{"id": i, "pictures": [{"secure_url": f"https://http2.mlstatic.com/D_{i}_{k}-O.jpg"} for k in range(6)]} for i in ids]
+        return [{"id": i, "attributes": [{"id": "BRAND", "value_name": "JBL"}],
+                 "pictures": [{"secure_url": f"https://http2.mlstatic.com/D_{i}_{k}-O.jpg"} for k in range(6)]} for i in ids]
 
     def reputacao(self, vid):
         return "5_green"
@@ -147,6 +158,7 @@ class TestRoboReal(unittest.TestCase):
         self.assertTrue(all("matt_word=cesar" in o["link"] and o["foto"].startswith("https://") for o in ofertas))
         self.assertTrue(ofertas[0]["full"] and ofertas[0]["frete_gratis"])
         self.assertEqual(len(ofertas[0]["fotos"]), 4)
+        self.assertEqual(ofertas[0]["marca"], "JBL")
         precos = self.ler("precos.json")
         self.assertEqual(set(precos), {o["id"] for o in ofertas})
 

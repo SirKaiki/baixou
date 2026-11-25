@@ -69,8 +69,14 @@ def gerar(agora: datetime) -> list[dict]:
     return itens
 
 
+MARCAS = ["Samsung", "Motorola", "Amazfit", "Lenovo", "LG", "Kingston", "JBL", "TCL", "Mondial", "Nespresso",
+          "Tramontina", "Natura", "Taiff", "La Roche-Posay", "Olympikus", "Adidas", "Dream Fitness", "Xbox",
+          "PlayStation", "Bosch", "Lego", "Burigotto"]
+
+
 def _item(n, titulo, cat, cheio, preco, frete, full, parc, rep, condicao, rnd) -> dict:
     return {
+        "marca": next((m for m in MARCAS if m.lower() in titulo.lower()), None),
         "id": f"DEMO{n:04d}",
         "titulo": titulo,
         "categoria": cat,
