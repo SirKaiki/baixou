@@ -494,3 +494,6 @@ header .hs-box::after,.mega .hs-box::after,.drawer .hs-box::after{background:lin
 .bub.foto img.mult{mix-blend-mode:multiply}
 @media(max-width:720px){.tile.tsolid{flex:0 0 40%}.tile.tsolid b{font-size:15px}.tile .ttx{padding:0 10px 11px}}
 @media(prefers-reduced-motion:reduce){.tile .tph img,.tile.tsolid small i{transition:none}}
+.tile .tph:has(img.cut){overflow:visible}
+.tile .tph img.cut{object-fit:contain;padding:12% 14% 6%;-webkit-mask-image:none;mask-image:none;filter:drop-shadow(0 10px 9px rgba(0,0,0,.16))}
+.bub img.cut{object-fit:contain;padding:14%;mix-blend-mode:normal}
