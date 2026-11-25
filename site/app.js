@@ -691,6 +691,14 @@ function atualizarSetas(el) {
   box.querySelector('.r').hidden = !sobra || el.scrollLeft + el.clientWidth >= el.scrollWidth - 4;
 }
 addEventListener('resize', () => document.querySelectorAll('[data-hs]').forEach(atualizarSetas), {passive:true});
+// Rodinha do mouse rola para o lado nas faixas curtas (menu e cartões), sem prender a página nas pontas
+document.addEventListener('wheel', e => {
+  const el = e.target.closest && e.target.closest('.nav, .mcards, .dcards');
+  if (!el || Math.abs(e.deltaX) > Math.abs(e.deltaY) || el.scrollWidth <= el.clientWidth + 2) return;
+  const fim = el.scrollWidth - el.clientWidth;
+  if ((e.deltaY > 0 && el.scrollLeft >= fim - 1) || (e.deltaY < 0 && el.scrollLeft <= 1)) return;
+  el.scrollLeft += e.deltaY; e.preventDefault();
+}, {passive:false});
 
 /* ---------- roteador ---------- */
 function rota() {

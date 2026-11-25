@@ -147,7 +147,8 @@ header{background:var(--head);color:#fff;position:relative;z-index:20}
 .tagp{position:absolute;bottom:12%;left:50%;transform:translateX(-50%);background:var(--red);color:#fff;font:700 16px/1 var(--disp);padding:6px 9px;border-radius:4px;white-space:nowrap}
 .s-black{background:#1b1c20}.s-blue{background:#1f3cff}.s-red{background:#c8102e}.s-green{background:#0b6b3a}.s-yel{background:var(--ml);color:#16171b}
 .s-yel h2 em{color:var(--blue)}.s-yel .kick{background:rgba(20,22,31,.08)}.s-yel .cta{background:#16171b;color:#fff}
-.hero-ctl{position:absolute;left:0;right:0;bottom:14px;display:flex;justify-content:center;gap:4px;z-index:2}
+.hero-ctl{position:absolute;left:0;right:0;bottom:14px;display:flex;justify-content:center;gap:4px;z-index:2;pointer-events:none}
+.hero-ctl .dot{pointer-events:auto}
 .dot{width:26px;height:24px;border:0;background:transparent;cursor:pointer;display:grid;place-items:center;padding:0}
 .dot i{width:8px;height:8px;border-radius:99px;background:rgba(255,255,255,.5);transition:width .2s,background .2s}
 .dot[aria-current=true] i{width:24px;background:#fff}
@@ -449,3 +450,16 @@ header .hs-btn,.mega .hs-btn,.drawer .hs-btn{background:#2a2a2e;color:#fff;borde
 .hs-box:has(> .rail) .hs-btn{top:38%;width:46px;height:46px;font-size:24px;background:rgba(255,255,255,.97);color:#16171b;border-color:#e2e3e8;box-shadow:0 10px 24px -10px rgba(0,0,0,.4);transition:transform .15s,opacity .15s}
 .hs-box:has(> .rail) .hs-btn:hover{transform:translateY(-50%) scale(1.08)}
 .hs-box:has(> .rail) .hs-btn.l{left:-16px}.hs-box:has(> .rail) .hs-btn.r{right:-16px}
+
+/* setas semitransparentes que ficam nítidas ao passar o mouse */
+.hs-btn{opacity:.55;transition:opacity .15s,transform .15s,background .15s}
+.hs-box:hover .hs-btn{opacity:.85}
+.hs-btn:hover,.hs-btn:focus-visible{opacity:1}
+header .hs-btn,.mega .hs-btn,.drawer .hs-btn{background:rgba(255,255,255,.16);border-color:rgba(255,255,255,.28);color:#fff;backdrop-filter:blur(4px)}
+header .hs-btn:hover,.mega .hs-btn:hover{background:rgba(255,255,255,.32)}
+.mega .hs-btn{width:42px;height:42px;top:calc(50% - 9px)}
+.mega .hs-btn.l{left:-4px}.mega .hs-btn.r{right:-4px}
+.hs-box:has(> .rail) .hs-btn{background:rgba(255,255,255,.82)}
+.hs-box:has(> .rail) .hs-btn:hover{background:#fff}
+.hero-arrow{opacity:.8;transition:opacity .15s}.hero:hover .hero-arrow,.hero-arrow:focus-visible{opacity:1}
+body.has-buybar{padding-bottom:76px}

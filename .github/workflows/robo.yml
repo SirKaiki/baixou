@@ -60,6 +60,9 @@ jobs:
 
       - uses: actions/configure-pages@v5
 
+      - name: Forçar o navegador a baixar a versão nova do site
+        run: sed -i "s/app\.css\"/app.css?v=${GITHUB_SHA::7}\"/; s/app\.js\"/app.js?v=${GITHUB_SHA::7}\"/" site/index.html && grep -o 'app\.[a-z]*?v=[0-9a-f]*' site/index.html
+
       - uses: actions/upload-pages-artifact@v3
         with:
           path: site
