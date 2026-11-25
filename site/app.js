@@ -54,6 +54,14 @@ const ESTILOS = [
   [/tv|video/, 'tv', '#e4e6ee', '#20242f'],
 ];
 const estilo = cat => { const n = norm(cat); for (const [re, ic, bg, fg] of ESTILOS) if (re.test(n)) return {ic, bg, fg}; return {ic:'tag', bg:'#eceef4', fg:'#2b2f3d'}; };
+// Foto de vitrine por categoria (Unsplash, licença livre). Fica fixa para a página ter cara de loja mesmo sem ofertas com foto.
+const CAT_FOTO = {
+  'Bebês': '1559135141-2bea6465fccf', 'Beleza': '1522335789203-aabd1fc54bc9', 'Brinquedos': '1596461404969-9ae70f2830c1',
+  'Casa e decoração': '1618220179428-22790b461013', 'Celulares': '1605236453806-6ff36851218e', 'Eletrodomésticos': '1585515320310-259814833e62',
+  'Eletrônicos': '1505740420928-5e560c06d30e', 'Esportes e fitness': '1784894645353-81486c66a687', 'Ferramentas': '1572981779307-38b8cabb2407',
+  'Games': '1774103249154-32adc0bf71a7', 'Informática': '1496181133206-80ce9b88a853', 'Moda e calçados': '1600185365483-26d7a4cc7519'
+};
+const catFoto = (cat, w = 480) => CAT_FOTO[cat] ? `https://images.unsplash.com/photo-${CAT_FOTO[cat]}?w=${w}&q=70&auto=format&fit=crop` : '';
 const icone = (cat, cor) => { const e = estilo(cat); return `<svg viewBox="0 0 120 120" aria-hidden="true">${IC[e.ic](cor || e.fg)}</svg>`; };
 const SVG_HEART = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s-7.5-4.6-9.5-9.2C1 8.3 3.2 4.5 7 4.5c2 0 3.6 1.1 5 3 1.4-1.9 3-3 5-3 3.8 0 6 3.8 4.5 7.3C19.5 16.4 12 21 12 21z"/></svg>';
 const SVG_SHARE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/></svg>';
@@ -213,7 +221,7 @@ function viewHome() {
   h += rail('r-novas', 'Acabou de baixar', novas, '?ver=novas', 'Ver todas', 'Entraram no site agora há pouco');
   if (populares.length >= 6) h += rail('r-pop', 'Mais procurados hoje', unicos(populares), '', '', 'O que mais gente levou para a loja nas últimas 24 horas', {pop:true});
   if (faixas.length >= 2) h += `<section class="sec wrap" aria-labelledby="preco-t"><div class="sec-head"><h2 id="preco-t">Escolha por preço</h2></div><div class="prices">${faixas.map(f => `<a class="ptile" href="${qs({max:f.m})}" data-nav><span>Até</span><b>R$ ${f.m}</b><small>${f.n} ofertas</small></a>`).join('')}</div></section>`;
-  h += `<section class="sec wrap" aria-labelledby="cats-t"><div class="sec-head"><h2 id="cats-t">Compre por categoria</h2></div><div class="tiles">${CATS.map(c => { const e = estilo(c.nome); return `<a class="tile" href="${esc(qs({cat:c.nome}))}" data-nav style="background:${e.bg}">${bolha(c.nome)}<b>${esc(c.nome)}</b><small>${c.n} ${c.n === 1 ? 'oferta' : 'ofertas'}</small></a>`; }).join('')}</div></section>`;
+  h += `<section class="sec wrap" aria-labelledby="cats-t"><div class="sec-head"><h2 id="cats-t">Compre por categoria</h2></div><div class="tiles">${CATS.map(tile).join('')}</div></section>`;
   if (vis.length) h += rail('r-vistos', 'Vistos recentemente', vis.slice(0, 12), '', '', 'Continue de onde parou');
   if (cs.menor) h += rail('r-menor', 'Menor preço em 30 dias', unicos(cs.menor.itens), '?ver=menor', 'Ver todas', 'O preço mais baixo que registramos no mês');
   topCats.forEach((c, i) => { h += rail('r-cat' + i, `Destaques em ${c.nome}`, unicos(P.filter(p => p.categoria === c.nome).sort(porDesc)), qs({cat:c.nome})); });
@@ -555,7 +563,15 @@ function grafico(p, pts) {
 const subsDe = cat => { const m = new Map(); P.forEach(p => { if (p.categoria === cat && p.subcategoria) m.set(p.subcategoria, (m.get(p.subcategoria) || 0) + 1); }); return [...m].sort((a, b) => b[1] - a[1]); };
 const marcasDe = cat => { const m = new Map(); P.forEach(p => { if (p.categoria === cat && p.marca) m.set(p.marca, (m.get(p.marca) || 0) + 1); }); return [...m].sort((a, b) => b[1] - a[1]); };
 const topDe = cat => P.filter(p => p.categoria === cat).sort(porDesc);
-function bolha(cat) { const t = topDe(cat).find(p => seguro(p.foto)); return `<span class="bub">${t ? `<img src="${esc(seguro(t.foto))}" alt="" loading="lazy" referrerpolicy="no-referrer">` : icone(cat)}</span>`; }
+function bolha(cat) {
+  const f = catFoto(cat, 200); if (f) return `<span class="bub foto"><img src="${esc(f)}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.parentNode.classList.remove('foto');this.remove()"></span>`;
+  const t = topDe(cat).find(p => seguro(p.foto)); return `<span class="bub">${t ? `<img src="${esc(seguro(t.foto))}" alt="" loading="lazy" referrerpolicy="no-referrer">` : icone(cat)}</span>`;
+}
+function tile(c) {
+  const f = catFoto(c.nome), t = topDe(c.nome).find(p => seguro(p.foto)), src = f || (t ? seguro(t.foto) : ''), qtd = `${c.n} ${c.n === 1 ? 'oferta' : 'ofertas'}`;
+  if (!src) { const e = estilo(c.nome); return `<a class="tile" href="${esc(qs({cat:c.nome}))}" data-nav style="background:${e.bg}">${bolha(c.nome)}<b>${esc(c.nome)}</b><small>${qtd}</small></a>`; }
+  return `<a class="tile tfoto" href="${esc(qs({cat:c.nome}))}" data-nav><span class="tbg" style="background-image:url('${esc(src)}')" aria-hidden="true"></span><span class="tph"><img src="${esc(src)}" alt="" loading="lazy" referrerpolicy="no-referrer"></span><span class="ttx"><b>${esc(c.nome)}</b><small>${qtd} <i aria-hidden="true">→</i></small></span></a>`;
+}
 const ICON_MENU = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg>';
 const ICON_X = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>';
 function montarMenus() {
