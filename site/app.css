@@ -498,3 +498,6 @@ header .hs-box::after,.mega .hs-box::after,.drawer .hs-box::after{background:lin
 .tile .tph:has(img.cut){overflow:visible}
 .tile .tph img.cut{object-fit:contain;padding:12% 14% 6%;-webkit-mask-image:none;mask-image:none;filter:drop-shadow(0 10px 9px rgba(0,0,0,.16))}
 .bub img.cut{object-fit:contain;padding:14%;mix-blend-mode:normal}
+.bub.foto{position:relative}
+.bub.foto img.pos{position:absolute;max-width:none;height:auto;object-fit:initial;padding:0;-webkit-mask-image:linear-gradient(90deg,transparent,#000 9%,#000 91%,transparent),linear-gradient(transparent,#000 9%,#000 91%,transparent);-webkit-mask-composite:source-in;mask-image:linear-gradient(90deg,transparent,#000 9%,#000 91%,transparent),linear-gradient(transparent,#000 9%,#000 91%,transparent);mask-composite:intersect}
+.bub.foto img.pos[data-mult]{mix-blend-mode:multiply}

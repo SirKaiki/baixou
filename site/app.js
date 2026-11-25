@@ -58,20 +58,21 @@ const estilo = cat => { const n = norm(cat); for (const [re, ic, bg, fg] of ESTI
 // bg = cor do fundo da própria foto, para o cartão continuar a foto sem emenda.
 // mult = foto com fundo branco: o branco some ("multiply") e assume a cor do cartão.
 const CAT_FOTO = {
-  'Bebês':              { id: '1622290319146-7b63df48a635', bg: '#ddd0af' },
-  'Beleza':             { id: '1630573133526-8d090e0269af', bg: '#dcd0dd' },
-  'Brinquedos':         { id: '1582845512747-e42001c95638', bg: '#cfe4f4', mult: 1.07 },
-  'Casa e decoração':   { id: '1642582652474-d5cff4857c40', bg: '#dde7d4', mult: 1.05 },
+  'Bebês':              { id: '1622290319146-7b63df48a635', bg: '#ddd0af', pos: [0.519, 0.372, 0.544] },
+  'Beleza':             { id: '1630573133526-8d090e0269af', bg: '#dcd0dd', pos: [0.528, 0.325, 0.55] },
+  'Brinquedos':         { id: '1582845512747-e42001c95638', bg: '#cfe4f4', pos: [0.503, 0.362, 0.406], mult: 1.07 },
+  'Casa e decoração':   { id: '1642582652474-d5cff4857c40', bg: '#dde7d4', pos: [0.506, 0.4, 0.637], mult: 1.05 },
   'Celulares':          { src: 'img/cat/celulares.webp', bg: '#ffd8c9' },
   'Eletrodomésticos':   { src: 'img/cat/eletrodomesticos.webp', bg: '#d6cff4' },
-  'Eletrônicos':        { id: '1505740420928-5e560c06d30e', bg: '#f0ba0c' },
-  'Esportes e fitness': { id: '1784894645353-81486c66a687', bg: '#9fc2d2' },
-  'Ferramentas':        { id: '1572981779307-38b8cabb2407', bg: '#ececea', mult: 1 },
-  'Games':              { id: '1774103249154-32adc0bf71a7', bg: '#f29905' },
+  'Eletrônicos':        { id: '1505740420928-5e560c06d30e', bg: '#f0ba0c', pos: [0.669, 0.416, 0.606] },
+  'Esportes e fitness': { id: '1784894645353-81486c66a687', bg: '#9fc2d2', pos: [0.497, 0.422, 0.581] },
+  'Ferramentas':        { id: '1572981779307-38b8cabb2407', bg: '#ececea', pos: [0.428, 0.375, 0.613], mult: 1 },
+  'Games':              { id: '1774103249154-32adc0bf71a7', bg: '#f29905', pos: [0.516, 0.4, 0.731] },
   'Informática':        { src: 'img/cat/informatica.webp', bg: '#cdeee1' },
-  'Moda e calçados':    { id: '1600185365483-26d7a4cc7519', bg: '#cdcec8' }
+  'Moda e calçados':    { id: '1600185365483-26d7a4cc7519', bg: '#cdcec8', pos: [0.475, 0.359, 0.438] }
 };
 // src = recorte próprio (fundo transparente) guardado no site, centralizado sobre a cor do cartão
+// pos = centro do item (x, y) e tamanho, em frações da largura da foto 4:3; usado para centralizar nas bolinhas
 // fill = foto em pé: mostra o item inteiro e completa as laterais com a cor do fundo
 const catFoto = (cat, w = 480, h = Math.round(w * .75)) => { const f = CAT_FOTO[cat]; if (f && f.src) return f.src; return f ? `https://images.unsplash.com/photo-${f.id}?w=${w}&h=${h}&q=72&auto=format&${f.fill ? `fit=fill&fill=solid&fill-color=${f.bg.slice(1)}` : 'fit=crop'}` : ''; };
 const fotoImg = (cat, w, h) => { const f = CAT_FOTO[cat], m = f && f.mult; return `<img src="${esc(catFoto(cat, w, h))}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer"${f && f.src ? ' class="cut"' : m ? ` class="mult" style="filter:brightness(${m})"` : ''} onerror="this.remove()">`; };
@@ -577,7 +578,12 @@ const subsDe = cat => { const m = new Map(); P.forEach(p => { if (p.categoria ==
 const marcasDe = cat => { const m = new Map(); P.forEach(p => { if (p.categoria === cat && p.marca) m.set(p.marca, (m.get(p.marca) || 0) + 1); }); return [...m].sort((a, b) => b[1] - a[1]); };
 const topDe = cat => P.filter(p => p.categoria === cat).sort(porDesc);
 function bolha(cat) {
-  if (CAT_FOTO[cat]) return `<span class="bub foto" style="background:${CAT_FOTO[cat].bg}">${fotoImg(cat, 200, 200)}</span>`;
+  const f = CAT_FOTO[cat];
+  if (f && f.pos) { // item centralizado e ocupando ~62% da bolinha, sem cortar
+    const [cx, cy, t] = f.pos, w = .62 / t, pc = v => (v * 100).toFixed(1) + '%';
+    return `<span class="bub foto" style="background:${f.bg}"><img class="pos" src="${esc(catFoto(cat, 480))}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" style="width:${pc(w)};left:${pc(.5 - cx * w)};top:${pc(.5 - cy * w)}${f.mult ? `;filter:brightness(${f.mult})` : ''}"${f.mult ? ' data-mult' : ''} onerror="this.remove()"></span>`;
+  }
+  if (f) return `<span class="bub foto" style="background:${f.bg}">${fotoImg(cat, 200, 200)}</span>`;
   const t = topDe(cat).find(p => seguro(p.foto)); return `<span class="bub">${t ? `<img src="${esc(seguro(t.foto))}" alt="" loading="lazy" referrerpolicy="no-referrer">` : icone(cat)}</span>`;
 }
 function tile(c) {
