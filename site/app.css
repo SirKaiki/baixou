@@ -172,11 +172,12 @@ header{background:var(--head);color:#fff;position:relative;z-index:20}
 .arrows a:hover{text-decoration:underline}
 .arrows button{width:40px;height:40px;border-radius:50%;border:1px solid var(--line);background:var(--card);cursor:pointer;font-size:18px}
 .arrows button:hover{border-color:var(--ink)}
-.prices{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr));gap:12px}
-.ptile{position:relative;display:flex;flex-direction:column;justify-content:center;min-height:112px;padding:16px 20px;border-radius:8px;background:var(--soft);border:1px solid var(--line);text-decoration:none;transition:border-color .15s,transform .15s}
+.prices{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}@media(max-width:720px){.prices{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}}
+.ptile{position:relative;display:flex;flex-direction:column;justify-content:center;min-height:96px;padding:14px 18px;border-radius:10px;background:var(--soft);border:1px solid var(--line);text-decoration:none;transition:border-color .15s,transform .15s}
 .ptile:hover{border-color:var(--ink);transform:translateY(-2px)}
 .ptile span{font:600 15px/1 Inter,sans-serif;color:var(--mute)}
-.ptile b{font:800 clamp(28px,3vw,38px)/1 var(--disp)}
+.ptile b{font:800 clamp(24px,2.4vw,32px)/1.05 var(--disp)}
+.ptile:hover{background:color-mix(in srgb,var(--ml) 18%,var(--soft))}
 .ptile small{font-size:13px;color:var(--mute);margin-top:4px}
 .ptile::after{content:"→";position:absolute;right:18px;top:50%;transform:translateY(-50%);font:700 22px var(--disp);transition:transform .15s}
 .ptile:hover::after{transform:translate(4px,-50%)}
@@ -556,3 +557,14 @@ header .hs-box::after,.mega .hs-box::after,.drawer .hs-box::after{background:lin
 .dhead .flogo svg{width:28px;height:28px}
 /* Selo de loja no celular: só o selo, sem "vendido em" quebrando linha */
 @media(max-width:560px){.vend{font-size:0;gap:0}.vend .loja{font-size:12px}}
+
+/* Canais de ofertas */
+.canais{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px 16px;border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin-top:12px;font-size:14px}
+.canais span{display:flex;flex-direction:column;color:var(--mute)}.canais b{color:var(--ink)}
+.canais>div{display:flex;gap:8px}
+.canal{display:inline-flex;align-items:center;gap:7px;height:40px;padding:0 14px;border-radius:999px;font:700 14px Inter,sans-serif;text-decoration:none;color:#fff}
+.canal svg{width:18px;height:18px}
+.canal.tg{background:#229ed9}.canal.wa{background:#1f9e55}
+footer .fcanais .canais{border-color:#2c2e35;margin:0}footer .fcanais .canais b{color:#fff}
+footer .fcanais{grid-column:1/-1;order:9}
+footer .fcanais .canais b{display:block;margin:0;font:700 16px var(--disp)}

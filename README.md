@@ -36,6 +36,18 @@ O site registra, sem identificar ninguém, quais ofertas cada visita abriu e qua
 
 Sem essas chaves, o site funciona normalmente com "Parecidos com este". Detalhes para o visitante em `privacidade.html`.
 
+## Canal de ofertas no Telegram (opcional)
+
+O robô publica sozinho, no seu canal, as ofertas que acabaram de entrar no site (no máximo 4 por rodada, sem repetir, só em modo real). Cada post leva o selo "Link de afiliado".
+
+1. No Telegram, crie um **canal público** (ex.: `@baixouofertas`).
+2. Fale com o **@BotFather**, envie `/newbot` e guarde o token que ele mostrar.
+3. Adicione o bot ao canal como **administrador** (com permissão de publicar).
+4. No GitHub: Settings → Secrets and variables → Actions:
+   - Secrets: `TELEGRAM_BOT_TOKEN` (o token) e `TELEGRAM_CHAT_ID` (o @ do canal).
+   - Variables: `TELEGRAM_CANAL_URL` = `https://t.me/seucanal` (faz o botão aparecer no site).
+5. Canal do WhatsApp: crie pelo app e coloque o link em `WHATSAPP_CANAL_URL` (Variables). O WhatsApp não permite publicação automática, então lá os posts são manuais.
+
 ## Ajustar as regras
 
 Edite o `config.json` direto no GitHub (ícone de lápis):

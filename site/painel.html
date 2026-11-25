@@ -9,9 +9,9 @@
 <script>try{var t=localStorage.getItem('baixou-tema');if(t==='claro')document.documentElement.dataset.theme='light';if(t==='escuro')document.documentElement.dataset.theme='dark'}catch(e){}</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
-:root{color-scheme:light dark;--bg:light-dark(#ffffff,#0e1018);--ink:light-dark(#14161f,#eef0f6);--mute:light-dark(#5b6072,#a3a8b8);--line:light-dark(#e4e6ee,#262a38);--soft:light-dark(#f4f5f9,#141722);--blue:light-dark(#1f3cff,#2a46ff);--head:#0a0a0c;--ok:light-dark(#0b7a3b,#4fd287);--warn:light-dark(#a35b00,#f2b04a);--bad:#e3120b}
+:root{color-scheme:light dark;--bg:light-dark(#ffffff,#0e1018);--ink:light-dark(#14161f,#eef0f6);--mute:light-dark(#5b6072,#a3a8b8);--line:light-dark(#e4e6ee,#262a38);--soft:light-dark(#f4f5f9,#141722);--blue:light-dark(#16171b,#ffd000);--ml:#ffd000;--head:#0a0a0c;--ok:light-dark(#0b7a3b,#4fd287);--warn:light-dark(#a35b00,#f2b04a);--bad:#e3120b}
 :root[data-theme=light]{color-scheme:light}
 :root[data-theme=dark]{color-scheme:dark}
 *{box-sizing:border-box;min-width:0}
@@ -19,28 +19,28 @@ body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 Inter,system-u
 .wrap{max-width:1100px;margin:0 auto;padding:0 max(4vw,16px)}
 header{background:var(--head);color:#fff}
 header .wrap{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:10px;padding-block:16px}
-header a{color:#fff;font:800 24px/1 Archivo,sans-serif;text-decoration:none;letter-spacing:-.02em}
-header span{font-size:14px;color:#dfe4ff}
+header a{display:inline-flex;align-items:center;gap:9px;color:#fff;font:800 26px/1 Barlow,sans-serif;text-decoration:none;letter-spacing:-.015em}
+header span{font-size:14px;color:#c9ccd6}
 .hero{padding-block:28px 8px;display:grid;gap:18px}
 .state{display:flex;align-items:center;gap:14px}
 .dot{width:18px;height:18px;border-radius:50%;flex:none;background:var(--ok)}
 .state.warn .dot{background:var(--warn)}
 .state.bad .dot{background:var(--bad)}
-h1{font:800 clamp(28px,4vw,40px)/1.05 Archivo,sans-serif;letter-spacing:-.02em;margin:0}
+h1{font:800 clamp(28px,4vw,40px)/1.05 Barlow,sans-serif;letter-spacing:-.02em;margin:0}
 .sub{color:var(--mute);margin:4px 0 0;font-size:15px}
 .nums{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
 .num{border:1px solid var(--line);border-radius:12px;padding:14px 16px}
-.num b{display:block;font:800 34px/1 Archivo,sans-serif;font-variant-numeric:tabular-nums}
+.num b{display:block;font:800 34px/1 Barlow,sans-serif;font-variant-numeric:tabular-nums}
 .num span{font-size:14px;color:var(--mute)}
 section{padding-block:18px}
-h2{font:800 20px/1.2 Archivo,sans-serif;margin:0 0 12px}
+h2{font:800 20px/1.2 Barlow,sans-serif;margin:0 0 12px}
 .alerts{display:grid;gap:8px;margin:0;padding:0;list-style:none}
 .alerts li{border-left:4px solid var(--warn);background:var(--soft);padding:10px 14px;border-radius:0}
 .alerts li.bad{border-left-color:var(--bad)}
 .bars{display:grid;gap:8px}
 .bar{display:grid;grid-template-columns:minmax(0,1fr) 3em;gap:10px;align-items:center;font-size:14px}
 .bar .t{position:relative;padding:6px 10px;border-radius:6px;overflow:hidden;background:var(--soft)}
-.bar .t i{position:absolute;inset:0 auto 0 0;background:color-mix(in srgb,var(--blue) 18%,transparent)}
+.bar .t i{position:absolute;inset:0 auto 0 0;background:color-mix(in srgb,var(--ml) 45%,transparent)}
 .bar .t span{position:relative}
 .bar b{text-align:right;font-variant-numeric:tabular-nums}
 .scroll{overflow-x:auto}
@@ -51,7 +51,7 @@ td.n{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
 a{color:var(--blue)}
 .empty{color:var(--mute);font-size:15px;margin:0}
 .runs{display:flex;align-items:flex-end;gap:3px;height:70px}
-.runs i{flex:1;max-width:22px;background:var(--blue);border-radius:2px 2px 0 0;min-height:2px}
+.runs i{flex:1;max-width:22px;background:var(--ml);border-radius:2px 2px 0 0;min-height:2px}
 .runs i.a{background:var(--warn)}
 footer{color:var(--mute);font-size:13px;border-top:1px solid var(--line);margin-top:20px}
 footer .wrap{padding-block:18px}
@@ -59,7 +59,7 @@ footer .wrap{padding-block:18px}
 </style>
 </head>
 <body>
-<header><div class="wrap"><a href="./">baixou</a><span>Painel do robô</span></div></header>
+<header><div class="wrap"><a href="./"><svg viewBox="0 0 24 24" aria-hidden="true" width="30" height="30"><rect x=".5" y=".5" width="23" height="23" rx="6" fill="#ffd000"/><path d="M11.00 1.00 L16.60 1.00 L13.08 7.40 L17.88 7.40 L14.47 13.60 L18.00 13.60 L12.00 23.00 L6.00 13.60 L8.87 13.60 L10.52 10.60 L5.72 10.60Z" transform="translate(12 12) scale(.8) translate(-12 -12)" fill="#111"/></svg>baixou</a><span>Painel do robô</span></div></header>
 <main class="wrap">
   <div class="hero">
     <div class="state" id="state"><span class="dot"></span><div><h1 id="titulo">Carregando…</h1><p class="sub" id="sub"></p></div></div>

@@ -8,16 +8,16 @@
 <script>try{var t=localStorage.getItem('baixou-tema');if(t==='claro')document.documentElement.dataset.theme='light';if(t==='escuro')document.documentElement.dataset.theme='dark'}catch(e){}</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@1,800&family=Inter:wght@400;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@800&family=Inter:wght@400;600&display=swap" rel="stylesheet">
 <style>
 :root{color-scheme:light dark;--bg:light-dark(#fff,#0b0c10);--ink:light-dark(#111216,#f1f2f6);--mute:light-dark(#5d6170,#9ea3b3);--line:light-dark(#e6e7ec,#23262f)}
 :root[data-theme=light]{color-scheme:light}:root[data-theme=dark]{color-scheme:dark}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--ink);font:17px/1.65 Inter,system-ui,sans-serif}
 header{background:#0a0a0c;padding:16px max(4vw,16px)}
-header a{color:#fff;text-decoration:none;font:800 italic 30px/1 "Barlow Condensed",sans-serif;text-transform:uppercase}
+header a{display:inline-flex;align-items:center;gap:9px;color:#fff;text-decoration:none;font:800 28px/1 Barlow,sans-serif;letter-spacing:-.015em}
 main{max-width:720px;margin:0 auto;padding:36px max(4vw,16px) 60px}
-h1{font:800 italic clamp(40px,6vw,56px)/.95 "Barlow Condensed",sans-serif;text-transform:uppercase;margin:0 0 18px}
+h1{font:800 clamp(32px,4.4vw,44px)/1.05 Barlow,sans-serif;letter-spacing:-.015em;margin:0 0 18px}
 h2{font-size:19px;margin:28px 0 6px}
 p,li{color:var(--ink)}
 .lead{font-size:19px}
@@ -26,7 +26,7 @@ a{color:inherit}
 </style>
 </head>
 <body>
-<header><a href="./">Baixou</a></header>
+<header><a href="./"><svg viewBox="0 0 24 24" aria-hidden="true" width="30" height="30"><rect x=".5" y=".5" width="23" height="23" rx="6" fill="#ffd000"/><path d="M11.00 1.00 L16.60 1.00 L13.08 7.40 L17.88 7.40 L14.47 13.60 L18.00 13.60 L12.00 23.00 L6.00 13.60 L8.87 13.60 L10.52 10.60 L5.72 10.60Z" transform="translate(12 12) scale(.8) translate(-12 -12)" fill="#111"/></svg>baixou</a></header>
 <main>
 <h1>Privacidade</h1>
 <p class="lead">O Baixou não pede cadastro, não coleta nome, e-mail, telefone nem endereço, e não usa cookies de rastreamento.</p>

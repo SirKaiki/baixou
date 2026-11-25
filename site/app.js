@@ -143,6 +143,15 @@ function avisos() {
   el.querySelector('a').addEventListener('click', () => { guardar('baixou-avisos-fechados', [...fechados, k].slice(-60)); if (k.startsWith('volta:')) guardar('baixou-voltar', ler('baixou-voltar', []).filter(x => x !== k.slice(6))); setTimeout(avisos, 0); });
 }
 
+/* ---------- canais de ofertas (aparecem só quando os links estão configurados no robô) ---------- */
+const CANAIS = {};
+function canaisHTML() {
+  const b = [];
+  if (CANAIS.telegram) b.push(`<a class="canal tg" href="${esc(CANAIS.telegram)}" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 4L3 11l5 2 2 6 3-4 5 4 3-15z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>Telegram</a>`);
+  if (CANAIS.whatsapp) b.push(`<a class="canal wa" href="${esc(CANAIS.whatsapp)}" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20l1.3-3.9A8 8 0 1112 20a8 8 0 01-3.9-1z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>WhatsApp</a>`);
+  return b.length ? `<div class="canais"><span><b>Receba as ofertas na hora</b>O robô avisa no canal assim que algo baixa.</span><div>${b.join('')}</div></div>` : '';
+}
+
 /* ---------- dados estruturados (Google) da página de produto ---------- */
 function ld(obj) { let el = document.getElementById('ld'); if (!obj) { el?.remove(); return; } if (!el) { el = document.createElement('script'); el.type = 'application/ld+json'; el.id = 'ld'; document.head.appendChild(el); } el.textContent = JSON.stringify(obj); }
 
@@ -268,7 +277,12 @@ function viewHome() {
   const vis = vistos();
   const populares = REL.populares.map(x => byId.get(x.id)).filter(Boolean);
   const nFrete = P.filter(p => p.frete_gratis).length;
-  const faixas = [50, 100, 200, 500].map(m => ({m, n: P.filter(p => p.preco <= m).length})).filter(f => f.n);
+  // Faixas de preço: até 4 blocos, só os que mudam a contagem, e "acima de" para os mais caros
+  const faixas = []; let antes = 0;
+  for (const m of [50, 100, 200, 300, 500, 1000]) { const n = P.filter(p => p.preco <= m).length; if (n > antes && n < P.length) { faixas.push({m, n, href: qs({max:m}), r: 'Até', v: `R$ ${m}`}); antes = n; } }
+  while (faixas.length > 3) faixas.splice(faixas.length === 4 ? 1 : 0, 1);
+  const topo = faixas.length ? faixas[faixas.length - 1].m : 0, acima = P.filter(p => p.preco > topo).length;
+  if (topo && acima) faixas.push({n: acima, href: qs({min:topo}), r: 'Acima de', v: `R$ ${topo}`});
   const topCats = [...CATS].sort((a, b) => b.n - a.n).filter(c => c.n >= 5).slice(0, 3);
   let h = '';
   h += `<div class="hero"><div class="hero-track" id="ht">${heroC.map(slide).join('')}</div>
@@ -280,7 +294,7 @@ function viewHome() {
     <div class="perk">${PERK.truck}<span><b>Frete grátis</b>em ${nFrete} ${nFrete === 1 ? 'oferta' : 'ofertas'}</span></div></div></div>`;
   h += rail('r-novas', 'Acabou de baixar', novas, '?ver=novas', 'Ver todas', 'Entraram no site agora há pouco');
   if (populares.length >= 6) h += rail('r-pop', 'Mais procurados hoje', unicos(populares), '', '', 'O que mais gente levou para a loja nas últimas 24 horas', {pop:true});
-  if (faixas.length >= 2) h += `<section class="sec wrap" aria-labelledby="preco-t"><div class="sec-head"><h2 id="preco-t">Escolha por preço</h2></div><div class="prices">${faixas.map(f => `<a class="ptile" href="${qs({max:f.m})}" data-nav><span>Até</span><b>R$ ${f.m}</b><small>${f.n} ofertas</small></a>`).join('')}</div></section>`;
+  if (faixas.length >= 2) h += `<section class="sec wrap" aria-labelledby="preco-t"><div class="sec-head"><h2 id="preco-t">Escolha por preço</h2></div><div class="prices">${faixas.map(f => `<a class="ptile" href="${esc(f.href)}" data-nav><span>${f.r}</span><b>${f.v}</b><small>${f.n} ${f.n === 1 ? 'oferta' : 'ofertas'}</small></a>`).join('')}</div></section>`;
   h += `<section class="sec wrap" aria-labelledby="cats-t"><div class="sec-head"><h2 id="cats-t">Compre por categoria</h2></div><div class="tiles">${CATS.map(tile).join('')}</div></section>`;
   if (vis.length) h += rail('r-vistos', 'Vistos recentemente', vis.slice(0, 12), '', '', 'Continue de onde parou');
   if (cs.menor) h += rail('r-menor', 'Menor preço em 30 dias', unicos(cs.menor.itens), '?ver=menor', 'Ver todas', 'O preço mais baixo que registramos no mês');
@@ -584,6 +598,7 @@ function viewProduto(id) {
       </div>
       ${pop && pop.c >= 3 ? `<div class="proof"><b>${pop.c}</b> pessoas foram à loja por esta oferta nas últimas 24 horas</div>` : ''}
       <ul class="trust"><li>Vendedor com boa reputação no Mercado Livre</li><li>Produto novo, com desconto conferido pelo nosso robô</li><li>Pagamento, entrega e garantia direto com a loja</li></ul>
+      ${canaisHTML()}
     </div>
   </div>
   <section class="hist" aria-labelledby="hist-t"><h2 class="h2" id="hist-t">Histórico de preço</h2><div class="fig" id="fig"></div><div class="stats" id="stats"></div></section></div>
@@ -901,8 +916,10 @@ $('view').innerHTML = `<div class="wrap" style="padding-block:24px"><div class="
 const opcional = u => fetch(u, {cache:'no-store'}).then(r => r.ok ? r.json() : null).catch(() => null);
 Promise.all([
   fetch('data/ofertas.json', {cache:'no-store'}).then(r => { if (!r.ok) throw new Error(r.status); return r.json(); }),
-  opcional('data/relacionados.json'), opcional('data/contador.json'),
-]).then(([d, rel, cont]) => {
+  opcional('data/relacionados.json'), opcional('data/contador.json'), opcional('data/canais.json'),
+]).then(([d, rel, cont, can]) => {
+  if (can && typeof can === 'object') { if (/^https:\/\/t\.me\/[\w+\/-]{3,80}$/.test(can.telegram || '')) CANAIS.telegram = can.telegram; if (/^https:\/\/(www\.)?whatsapp\.com\/channel\/\w{10,60}$/.test(can.whatsapp || '')) CANAIS.whatsapp = can.whatsapp; }
+  const fc = $('fcanais'); if (fc && (CANAIS.telegram || CANAIS.whatsapp)) { fc.innerHTML = canaisHTML(); fc.hidden = false; }
   P = (d.ofertas || []).filter(p => p && p.titulo && p.preco > 0).map(p => ({...p, id:String(p.id), desconto:Number(p.desconto) || 0, parcelas:Number(p.parcelas) || 0}));
   byId = new Map(P.map(p => [p.id, p]));
   if (rel && typeof rel === 'object') { REL = {quem_viu: rel.quem_viu || {}, populares: Array.isArray(rel.populares) ? rel.populares : []}; POP = new Map(REL.populares.map(x => [String(x.id), x])); }

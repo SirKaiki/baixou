@@ -110,6 +110,35 @@ class TestEncerradas(unittest.TestCase):
         self.assertEqual(r["ofertas"][0]["preco"], 99.9)
 
 
+class TestTelegram(unittest.TestCase):
+    def setUp(self):
+        import telegram
+        self.t = telegram
+        self.ofertas = [{"id": f"MLB{i}", "titulo": f"Produto {i}", "preco": 100.0, "preco_cheio": 150.0, "desconto": 10 + i} for i in range(8)]
+
+    def test_primeira_vez_publica_so_as_3_melhores(self):
+        esc, est = self.t.escolher(self.ofertas, {}, AGORA)
+        self.assertEqual([o["id"] for o in esc], ["MLB7", "MLB6", "MLB5"])
+        self.assertEqual(len(est["publicados"]), 5)  # as outras contam como vistas
+
+    def test_nao_repete_e_respeita_limite(self):
+        visto = AGORA.isoformat(timespec="minutes")
+        est = {"publicados": {"MLB7": visto, "MLB6": visto}}
+        esc, _ = self.t.escolher(self.ofertas, est, AGORA)
+        self.assertEqual([o["id"] for o in esc], ["MLB5", "MLB4", "MLB3", "MLB2"])
+
+    def test_texto_identifica_afiliado_e_escapa_html(self):
+        msg = self.t.texto({"id": "MLB1", "titulo": "Fone <JBL>", "preco": 99.9, "preco_cheio": 150.0, "desconto": 33}, "https://x.github.io/baixou")
+        self.assertIn("Fone &lt;JBL&gt;", msg)
+        self.assertIn("Link de afiliado", msg)
+        self.assertIn("https://x.github.io/baixou/o/MLB1.html", msg)
+
+    def test_links_dos_canais_validados(self):
+        with tempfile.TemporaryDirectory() as d, mock.patch.object(self.t, "ARQ_CANAIS", Path(d) / "canais.json"), \
+                mock.patch.dict(os.environ, {"TELEGRAM_CANAL_URL": "https://t.me/baixouofertas", "WHATSAPP_CANAL_URL": "javascript:alert(1)"}):
+            self.assertEqual(self.t.gravar_canais(), {"telegram": "https://t.me/baixouofertas"})
+
+
 class FakeCliente:
     """Imita a API do Mercado Livre."""
     falhar_tudo = False

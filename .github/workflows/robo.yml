@@ -46,6 +46,15 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: python robo/robo.py
 
+      - name: Canal de ofertas no Telegram (só liga com os segredos)
+        continue-on-error: true
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          TELEGRAM_CANAL_URL: ${{ vars.TELEGRAM_CANAL_URL }}
+          WHATSAPP_CANAL_URL: ${{ vars.WHATSAPP_CANAL_URL }}
+        run: python robo/telegram.py
+
       - name: Salvar os dados no repositório
         run: |
           git config user.name "baixou-robo"
