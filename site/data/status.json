@@ -1,5 +1,5 @@
 {
- "gerado_em": "2026-11-25T17:52+00:00",
+ "gerado_em": "2026-11-25T17:56+00:00",
  "modo": "demonstração",
  "duracao_s": 0.0,
  "afiliado_configurado": false,
@@ -32,6 +32,12 @@
  "api": null,
  "produtos_no_historico": 31,
  "execucoes": [
+  {
+   "em": "2026-11-25T17:56+00:00",
+   "publicadas": 26,
+   "quarentena": 1,
+   "alertas": 0
+  },
   {
    "em": "2026-11-25T17:52+00:00",
    "publicadas": 26,
@@ -202,12 +208,6 @@
   },
   {
    "em": "2026-11-24T21:17+00:00",
-   "publicadas": 26,
-   "quarentena": 1,
-   "alertas": 0
-  },
-  {
-   "em": "2026-11-24T21:16+00:00",
    "publicadas": 26,
    "quarentena": 1,
    "alertas": 0
