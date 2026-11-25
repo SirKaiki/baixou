@@ -492,59 +492,81 @@ function grafico(p, pts) {
   new ResizeObserver(draw).observe(s);
 }
 
-/* ---------- menu de categorias (mega menu no computador, gaveta no celular) ---------- */
+/* ---------- menu de categorias (painel no computador, gaveta no celular) ---------- */
 const subsDe = cat => { const m = new Map(); P.forEach(p => { if (p.categoria === cat && p.subcategoria) m.set(p.subcategoria, (m.get(p.subcategoria) || 0) + 1); }); return [...m].sort((a, b) => b[1] - a[1]); };
 const marcasDe = cat => { const m = new Map(); P.forEach(p => { if (p.categoria === cat && p.marca) m.set(p.marca, (m.get(p.marca) || 0) + 1); }); return [...m].sort((a, b) => b[1] - a[1]); };
+const topDe = cat => P.filter(p => p.categoria === cat).sort(porDesc);
+function bolha(cat) { const t = topDe(cat).find(p => seguro(p.foto)); return `<span class="bub">${t ? `<img src="${esc(seguro(t.foto))}" alt="" loading="lazy" referrerpolicy="no-referrer">` : icone(cat)}</span>`; }
+const ICON_MENU = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg>';
+const ICON_X = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>';
 function montarMenus() {
-  const ICON_GRID = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>';
-  $('nav').innerHTML = `<a class="all" href="?ver=todas" data-nav data-mega="*" aria-haspopup="true">${ICON_GRID} Categorias</a><a class="hot" href="?ver=menor" data-nav data-k="ver:menor">Menor preço</a><a href="?ver=novas" data-nav data-k="ver:novas">Acabou de baixar</a>`
-    + [...CATS].sort((x, y) => y.n - x.n).slice(0, 5).map(c => `<a href="${esc(qs({cat:c.nome}))}" data-nav data-k="cat:${esc(c.nome)}" data-mega="${esc(c.nome)}" aria-haspopup="true">${esc(c.nome)}</a>`).join('');
+  const top5 = [...CATS].sort((x, y) => y.n - x.n).slice(0, 4);
+  $('nav').innerHTML = `<button class="all" type="button" id="allBtn" aria-expanded="false" aria-controls="mega"><i class="i-menu">${ICON_MENU}</i><i class="i-x">${ICON_X}</i><span>Todas as categorias</span></button><a class="hot" href="?ver=menor" data-nav data-k="ver:menor">Menor preço</a><a href="?ver=novas" data-nav data-k="ver:novas">Acabou de baixar</a>`
+    + top5.map(c => `<a href="${esc(qs({cat:c.nome}))}" data-nav data-k="cat:${esc(c.nome)}" data-mega="${esc(c.nome)}">${esc(c.nome)}</a>`).join('');
+  $('allBtn').addEventListener('click', () => megaAtual ? fecharMega(true) : abrirMega(top5[0]?.nome || CATS[0]?.nome));
   $('drawer').innerHTML = `<div class="dhead"><b>Baixou</b><button type="button" data-dclose aria-label="Fechar menu">×</button></div>
+    <div class="dcards">${[...CATS].sort((x, y) => y.n - x.n).map(c => `<a class="mcard" href="${esc(qs({cat:c.nome}))}" data-nav>${bolha(c.nome)}${esc(c.nome)}</a>`).join('')}</div>
     <nav class="dlinks"><a href="./" data-nav>Destaques</a><a class="hot" href="?ver=menor" data-nav>Menor preço em 30 dias</a><a href="?ver=novas" data-nav>Acabou de baixar</a><a href="?ver=favoritos" data-nav>Meus favoritos</a><a href="?ver=todas" data-nav>Todas as ofertas</a></nav>
-    ${CATS.map((c, i) => { const subs = subsDe(c.nome); return `<div class="dcat"><button type="button" aria-expanded="false" aria-controls="dsub${i}"><span>${icone(c.nome)}${esc(c.nome)}</span><i aria-hidden="true">+</i></button>
-      <div class="dsub" id="dsub${i}" hidden><a class="all" href="${esc(qs({cat:c.nome}))}" data-nav>Ver tudo em ${esc(c.nome)} <small>${c.n}</small></a>${subs.map(([s, n]) => `<a href="${esc(qs({cat:c.nome, sub:s}))}" data-nav>${esc(s)} <small>${n}</small></a>`).join('')}</div></div>`; }).join('')}`;
+    ${CATS.map((c, i) => { const subs = subsDe(c.nome); return `<div class="dcat"><button type="button" aria-expanded="false" aria-controls="dsub${i}"><span>${esc(c.nome)}</span><i aria-hidden="true">+</i></button>
+      <div class="dsub" id="dsub${i}" hidden>${subs.map(([s, n]) => `<a href="${esc(qs({cat:c.nome, sub:s}))}" data-nav>${esc(s)} <small>${n}</small></a>`).join('')}<a class="all" href="${esc(qs({cat:c.nome}))}" data-nav>Ver tudo de ${esc(c.nome)} <small>${c.n}</small></a></div></div>`; }).join('')}`;
+  falhasDeFoto($('drawer'));
 }
+const falhasDeFoto = root => root.querySelectorAll('.bub img, .mbanner img').forEach(i => i.addEventListener('error', () => { i.outerHTML = icone(''); }, {once:true}));
 let megaAtual = null, megaT = 0;
-function megaHTML(alvo) {
-  if (alvo === '*') return `<div class="wrap"><div class="mhead"><h3>Todas as categorias</h3><a href="?ver=todas" data-nav>Ver todas as ofertas</a></div>
-    <div class="mall mcol">${CATS.map(c => { const e = estilo(c.nome); return `<a href="${esc(qs({cat:c.nome}))}" data-nav style="background:${e.bg};color:#0a0a0c">${icone(c.nome)}<span>${esc(c.nome)}<small>${c.n} ${c.n === 1 ? 'oferta' : 'ofertas'}</small></span></a>`; }).join('')}</div></div>`;
-  const c = CATS.find(x => x.nome === alvo); if (!c) return '';
-  const subs = subsDe(c.nome).slice(0, 10), marcas = marcasDe(c.nome).slice(0, 10);
-  const top = P.filter(p => p.categoria === c.nome).sort(porDesc).slice(0, 3);
-  return `<div class="wrap"><div class="mhead"><h3>${esc(c.nome)}</h3><a href="${esc(qs({cat:c.nome}))}" data-nav>Ver tudo (${c.n})</a></div><div class="mgrid">
-    <div class="mcol"><h4>Tipos de produto</h4><ul class="mlist">${subs.length ? subs.map(([s, n]) => `<li><a href="${esc(qs({cat:c.nome, sub:s}))}" data-nav>${esc(s)} <small>${n}</small></a></li>`).join('') : `<li><a href="${esc(qs({cat:c.nome}))}" data-nav>Todas as ofertas <small>${c.n}</small></a></li>`}</ul></div>
-    <div class="mcol"><h4>Marcas</h4><ul class="mlist">${marcas.length ? marcas.map(([m, n]) => `<li><a href="${esc(qs({cat:c.nome, marca:m}))}" data-nav>${esc(m)} <small>${n}</small></a></li>`).join('') : '<li><small>Sem marca informada</small></li>'}</ul></div>
-    <div class="mcol"><h4>Maiores descontos agora</h4><div class="mdeals">${top.map(p => { const f = seguro(p.foto); return `<a class="mdeal" href="?p=${encodeURIComponent(p.id)}" data-nav><span class="mp">${f ? `<img src="${esc(f)}" alt="" loading="lazy" referrerpolicy="no-referrer">` : icone(p.categoria)}<span class="off">-${p.desconto}%</span></span><span class="t">${esc(p.titulo)}</span><b>${brl(p.preco)}</b></a>`; }).join('')}</div></div>
-  </div></div>`;
+function colunas(cat) {
+  const c = CATS.find(x => x.nome === cat); if (!c) return '';
+  const subs = subsDe(cat).slice(0, 8), marcas = marcasDe(cat).slice(0, 9), itens = P.filter(p => p.categoria === cat);
+  const faixas = [50, 100, 200, 500].map(m => [m, itens.filter(p => p.preco <= m).length]).filter(([, n]) => n);
+  const top = topDe(cat)[0], f = top && seguro(top.foto);
+  const nMenor = itens.filter(p => p.menor_30d).length, nFull = itens.filter(p => p.full && p.frete_gratis).length;
+  return `<div class="mcols">
+    <div class="mcol"><h4>${esc(cat)}</h4><ul class="mlist">${subs.map(([s]) => `<li><a href="${esc(qs({cat, sub:s}))}" data-nav>${esc(s)}</a></li>`).join('')}<li><a class="vt" href="${esc(qs({cat}))}" data-nav>Ver tudo de ${esc(cat)}</a></li></ul></div>
+    <div class="mcol"><h4>Marcas</h4><ul class="mlist">${marcas.length ? marcas.map(([m]) => `<li><a href="${esc(qs({cat, marca:m}))}" data-nav>${esc(m)}</a></li>`).join('') : '<li><a href="' + esc(qs({cat})) + '" data-nav>Todas as marcas</a></li>'}</ul></div>
+    <div class="mcol"><h4>Por preço</h4><ul class="mlist">${faixas.map(([m]) => `<li><a href="${esc(qs({cat, max:m}))}" data-nav>Até R$ ${m}</a></li>`).join('')}<li><a href="${esc(qs({cat, ordem:'low'}))}" data-nav>Menor preço primeiro</a></li></ul></div>
+    <div class="mcol"><h4>Ofertas</h4><ul class="mlist">${nMenor ? `<li><a href="${esc(qs({cat, menor:1}))}" data-nav>Menor preço em 30 dias</a></li>` : ''}${nFull ? `<li><a href="${esc(qs({cat, full:1, frete:1}))}" data-nav>Frete grátis + Full</a></li>` : ''}<li><a href="${esc(qs({cat, desc:30}))}" data-nav>30% ou mais de desconto</a></li><li><a href="${esc(qs({cat, ordem:'disc'}))}" data-nav>Maiores descontos</a></li></ul></div>
+    ${top ? `<a class="mbanner ${['s-green', 's-blue', 's-red', 's-black'][CATS.indexOf(c) % 4]}" href="${esc(qs({cat, ordem:'disc'}))}" data-nav><span class="bimg"><span>${f ? `<img src="${esc(f)}" alt="" referrerpolicy="no-referrer">` : icone(cat)}</span></span><b>Até ${Math.max(...itens.map(p => p.desconto))}% off</b><small>em ${esc(cat.toLowerCase())}</small><i>aproveite</i></a>` : ''}
+  </div>`;
 }
-function abrirMega(alvo) {
+function abrirMega(cat) {
   clearTimeout(megaT);
-  if (megaAtual === alvo) return;
-  megaAtual = alvo;
-  const m = $('mega'); m.innerHTML = megaHTML(alvo); m.hidden = false;
-  m.querySelectorAll('img').forEach(i => i.addEventListener('error', () => { i.outerHTML = icone(''); }, {once:true}));
-  document.querySelectorAll('#nav [data-mega]').forEach(a => { a.classList.toggle('open', a.dataset.mega === alvo); a.setAttribute('aria-expanded', String(a.dataset.mega === alvo)); });
+  const m = $('mega');
+  if (!megaAtual) {
+    m.innerHTML = `<div class="wrap"><div class="mcards" role="list">${CATS.map(c => `<a class="mcard" role="listitem" href="${esc(qs({cat:c.nome}))}" data-nav data-sel="${esc(c.nome)}">${bolha(c.nome)}${esc(c.nome)}</a>`).join('')}</div><div id="mcols"></div></div>`;
+    m.hidden = false; falhasDeFoto(m);
+  }
+  if (megaAtual !== cat) {
+    megaAtual = cat;
+    $('mcols').innerHTML = colunas(cat); falhasDeFoto($('mcols'));
+    m.querySelectorAll('.mcard').forEach(a => a.setAttribute('aria-current', String(a.dataset.sel === cat)));
+  }
+  $('allBtn').setAttribute('aria-expanded', 'true');
+  document.querySelectorAll('#nav [data-mega]').forEach(a => a.classList.toggle('open', a.dataset.mega === cat));
 }
 function fecharMega(ja) {
   clearTimeout(megaT);
-  const f = () => { megaAtual = null; $('mega').hidden = true; document.querySelectorAll('#nav [data-mega]').forEach(a => { a.classList.remove('open'); a.setAttribute('aria-expanded', 'false'); }); };
-  ja ? f() : (megaT = setTimeout(f, 180));
+  const f = () => { megaAtual = null; $('mega').hidden = true; $('mega').innerHTML = '';
+    $('allBtn')?.setAttribute('aria-expanded', 'false');
+    document.querySelectorAll('#nav [data-mega]').forEach(a => a.classList.remove('open')); };
+  ja ? f() : (megaT = setTimeout(f, 220));
 }
 const desktop = matchMedia('(min-width: 901px)');
-$('nav').addEventListener('pointerover', e => { if (!desktop.matches || e.pointerType === 'touch') return; const a = e.target.closest('[data-mega]'); clearTimeout(megaT); if (a) megaT = setTimeout(() => abrirMega(a.dataset.mega), megaAtual ? 60 : 140); });
+$('nav').addEventListener('pointerover', e => { if (!desktop.matches || e.pointerType === 'touch') return; const a = e.target.closest('[data-mega]'); clearTimeout(megaT); if (a) megaT = setTimeout(() => abrirMega(a.dataset.mega), megaAtual ? 60 : 160); });
 $('nav').addEventListener('focusin', e => { const a = e.target.closest('[data-mega]'); if (a && desktop.matches) abrirMega(a.dataset.mega); });
-document.querySelector('header').addEventListener('pointerleave', () => fecharMega());
-$('mega').addEventListener('pointerenter', () => clearTimeout(megaT));
-document.addEventListener('keydown', e => { if (e.key === 'Escape') { fecharMega(true); abrirDrawer(false); if ($('faside')) abrirFiltros(false); } });
+$('mega').addEventListener('pointerover', e => { clearTimeout(megaT); const c = e.target.closest('[data-sel]'); if (c && e.pointerType !== 'touch') abrirMega(c.dataset.sel); });
+$('mega').addEventListener('focusin', e => { const c = e.target.closest('[data-sel]'); if (c) abrirMega(c.dataset.sel); });
+document.querySelector('header').addEventListener('pointerleave', () => { if (megaAtual) fecharMega(); });
+document.querySelector('header').addEventListener('pointerenter', () => clearTimeout(megaT));
+document.addEventListener('click', e => { if (megaAtual && !e.composedPath().some(el => el.tagName === 'HEADER')) fecharMega(true); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') { if (megaAtual) { fecharMega(true); $('allBtn')?.focus(); } abrirDrawer(false); if ($('faside')) abrirFiltros(false); } });
 document.addEventListener('focusin', e => { if (megaAtual && !e.target.closest('header')) fecharMega(true); });
 function abrirDrawer(on) {
-  const d = $('drawer'); if (!d) return;
+  const d = $('drawer'); if (!d || (!on && !d.classList.contains('open'))) return;
   d.classList.toggle('open', on); d.setAttribute('aria-hidden', String(!on)); on ? d.removeAttribute('inert') : d.setAttribute('inert', '');
   $('menuBtn').setAttribute('aria-expanded', String(on));
   $('scrim').hidden = !on && !$('faside')?.classList.contains('open');
   requestAnimationFrame(() => $('scrim').classList.toggle('on', on));
   document.body.style.overflow = on ? 'hidden' : '';
-  if (on) d.querySelector('[data-dclose]')?.focus();
+  if (on) d.querySelector('[data-dclose]')?.focus(); else $('menuBtn').focus({preventScroll:true});
 }
 $('menuBtn').addEventListener('click', () => abrirDrawer(true));
 $('drawer').addEventListener('click', e => {
@@ -552,6 +574,21 @@ $('drawer').addEventListener('click', e => {
   const b = e.target.closest('.dcat>button'); if (b) { const on = b.getAttribute('aria-expanded') !== 'true'; b.setAttribute('aria-expanded', String(on)); $(b.getAttribute('aria-controls')).hidden = !on; }
 });
 $('scrim').addEventListener('click', () => { abrirDrawer(false); if ($('faside')) abrirFiltros(false); });
+
+/* ---------- faixa promocional (montada com as ofertas do momento) ---------- */
+let promoK = 0;
+function montarPromo() {
+  const nMenor = P.filter(p => p.menor_30d).length, nFrete = P.filter(p => p.frete_gratis).length, maxD = P.length ? Math.max(...P.map(p => p.desconto)) : 0;
+  const msgs = [
+    nMenor ? {h:`<b>Menor preço em 30 dias</b> em ${nMenor} ${nMenor === 1 ? 'produto' : 'produtos'} · ver ofertas`, u:'?ver=menor'} : null,
+    maxD ? {h:`Descontos de <b>até ${maxD}% off</b> conferidos pelo nosso robô`, u:'?ver=descontos'} : null,
+    nFrete ? {h:`<b>Frete grátis</b> em ${nFrete} ${nFrete === 1 ? 'oferta' : 'ofertas'} agora`, u:'?ver=full'} : null,
+    {h:'Preços conferidos <b>a cada 15 minutos</b>', u:'?ver=novas'},
+  ].filter(Boolean);
+  const mostrar = () => { const m = msgs[promoK % msgs.length]; $('ann').innerHTML = m.h; $('promo').setAttribute('href', m.u); };
+  mostrar();
+  if (!reduz && msgs.length > 1) setInterval(() => { if (!document.hidden) { promoK++; mostrar(); } }, 5000);
+}
 
 /* ---------- roteador ---------- */
 function rota() {
@@ -619,8 +656,6 @@ async function compartilhar(id) {
   try { await navigator.clipboard.writeText(texto + ' ' + url); toast('Link da oferta copiado'); }
   catch (e) { window.open('https://wa.me/?text=' + encodeURIComponent(texto + ' ' + url), '_blank', 'noopener'); }
 }
-const AVISOS = ['Preços conferidos a cada 15 minutos', 'Só desconto de verdade, comparado com o histórico', 'Compra segura direto no Mercado Livre'];
-if (!reduz) { let k = 0; setInterval(() => { if (!document.hidden) $('ann').textContent = AVISOS[k = (k + 1) % AVISOS.length]; }, 4500); }
 $('up').addEventListener('click', () => scrollTo({top:0, behavior:'smooth'}));
 addEventListener('scroll', () => $('up').classList.toggle('on', scrollY > 900), {passive:true});
 
@@ -639,7 +674,7 @@ Promise.all([
   P.forEach(p => { cont1[p.categoria] = (cont1[p.categoria] || 0) + 1; if (p.marca) cont2[p.marca] = (cont2[p.marca] || 0) + 1; });
   CATS = Object.entries(cont1).map(([nome, n]) => ({nome, n})).sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
   MARCAS = Object.entries(cont2).map(([nome, n]) => ({nome, n})).sort((a, b) => b.n - a.n || a.nome.localeCompare(b.nome, 'pt-BR'));
-  montarMenus();
+  montarMenus(); montarPromo();
   if (d.modo === 'demonstração') $('demo').hidden = false;
   contarFavs(); rota();
 }).catch(() => { $('view').innerHTML = '<div class="wrap" style="padding-block:40px"><div class="empty"><strong>Não foi possível carregar as ofertas</strong><p>Tente recarregar a página em instantes.</p></div></div>'; });
