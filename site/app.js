@@ -156,6 +156,18 @@ function evento(tipo, id) {
 }
 
 /* ---------- componentes ---------- */
+/* Lojas: ícone oficial do site da loja (o mesmo que aparece na aba do navegador) + nome */
+const LOJAS = {
+  'Mercado Livre': {dom: 'mercadolivre.com.br', bg: '#fff159'}, 'Amazon': {dom: 'amazon.com.br', bg: '#ffd8a8'},
+  'Shopee': {dom: 'shopee.com.br', bg: '#ffd9cf'}, 'Magalu': {dom: 'magazineluiza.com.br', bg: '#d6ebff'},
+  'AliExpress': {dom: 'aliexpress.com', bg: '#ffd6d2'}, 'Casas Bahia': {dom: 'casasbahia.com.br', bg: '#d9e4ff'},
+  'Netshoes': {dom: 'netshoes.com.br', bg: '#ead9ff'}, 'Centauro': {dom: 'centauro.com.br', bg: '#ffd6d6'}, 'Kabum': {dom: 'kabum.com.br', bg: '#ffe2c7'},
+};
+const lojaDe = p => p.loja || 'Mercado Livre';
+function selo(nome, grande) {
+  const l = LOJAS[nome], ic = l ? `<img src="https://www.google.com/s2/favicons?domain=${l.dom}&sz=64" alt="" width="16" height="16" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()">` : '';
+  return `<span class="loja${grande ? ' g' : ''}" style="--lj:${l ? l.bg : 'var(--soft)'}">${ic}${esc(nome)}</span>`;
+}
 function card(p, opts = {}) {
   const e = estilo(p.categoria), foto = seguro(p.foto), fav = favs().has(p.id);
   const novo = p.novo_em && minutos(p.novo_em) < 180;
@@ -173,6 +185,7 @@ function card(p, opts = {}) {
       <span class="now">${brl(p.preco)}</span>
       ${p.parcelas > 1 ? `<span class="parc">em ${p.parcelas}x de ${brl(p.preco / p.parcelas)}${p.sem_juros ? ' sem juros' : ''}</span>` : '<span class="parc">à vista</span>'}
       <span class="meta">${p.frete_gratis ? '<span class="ship">Frete grátis</span>' : ''}${p.full ? '<span class="full"><svg class="bolt" viewBox="0 0 12 16" aria-hidden="true"><path d="M7 0L0 9h5l-1 7 7-9H6z" fill="currentColor"/></svg>FULL</span>' : ''}${opts.pop && pop && pop.c ? `<span class="pop">${pop.c} ${pop.c === 1 ? 'pessoa foi' : 'pessoas foram'} à loja hoje</span>` : ''}</span>
+      <span class="vend">vendido em ${selo(lojaDe(p))}</span>
     </div></a></article>`;
 }
 function fallbackImgs(root) {
@@ -431,7 +444,7 @@ function painel() {
   const nb = (f, fn) => P.filter(p => passa(p, f) && fn(p)).length;
   h += faceta('entrega', 'Entrega e preço', [['frete', 'Frete grátis', p => p.frete_gratis], ['full', 'Entrega Full', p => p.full], ['low', 'Menor preço em 30 dias', p => p.menor_30d]]
     .map(([f, l, fn]) => { const n = nb(f, fn); return `<label class="fopt${n ? '' : ' zero'}"><input type="checkbox" data-f="${f}"${L[f] ? ' checked' : ''}><span>${l}</span><small>${n}</small></label>`; }).join(''), [L.frete, L.full, L.low].filter(Boolean).length);
-  h += faceta('loja', 'Loja', `<label class="fopt"><input type="checkbox" checked disabled><span><span class="pill">Mercado Livre</span></span></label><label class="fopt zero"><input type="checkbox" disabled><span>Amazon</span><small>em breve</small></label><label class="fopt zero"><input type="checkbox" disabled><span>Shopee</span><small>em breve</small></label>`, 0);
+  h += faceta('loja', 'Loja', `<label class="fopt"><input type="checkbox" checked disabled><span>${selo('Mercado Livre')}</span></label><label class="fopt zero"><input type="checkbox" disabled><span>Amazon</span><small>em breve</small></label><label class="fopt zero"><input type="checkbox" disabled><span>Shopee</span><small>em breve</small></label>`, 0);
   const fp = $('fpanel'), y = fp.scrollTop, foco = document.activeElement && document.activeElement.id === 'fmq';
   fp.innerHTML = h; fp.scrollTop = y;
   if (foco) { const i = $('fmq'); i.focus(); i.setSelectionRange(i.value.length, i.value.length); }
@@ -554,7 +567,7 @@ function viewProduto(id) {
       ${fotos.length > 1 ? `<div class="thumbs">${fotos.map((f, i) => `<button type="button" data-img="${esc(f)}" aria-label="Foto ${i + 1}" aria-current="${i === 0}"><img src="${esc(f)}" alt="" loading="lazy" referrerpolicy="no-referrer"></button>`).join('')}</div>` : ''}
     </div>
     <div class="info">
-      <div class="tags"><span class="pill">${esc(p.loja || 'Mercado Livre')}</span>${p.full ? '<span class="full"><svg class="bolt" viewBox="0 0 12 16" aria-hidden="true"><path d="M7 0L0 9h5l-1 7 7-9H6z" fill="currentColor"/></svg>Entrega FULL</span>' : ''}</div>
+      <div class="tags">${selo(lojaDe(p), true)}${p.full ? '<span class="full"><svg class="bolt" viewBox="0 0 12 16" aria-hidden="true"><path d="M7 0L0 9h5l-1 7 7-9H6z" fill="currentColor"/></svg>Entrega FULL</span>' : ''}</div>
       ${p.marca ? `<span class="brandn">${esc(p.marca)}</span>` : ''}
       <h1>${esc(p.titulo)}</h1>
       <div class="pbox">
@@ -564,7 +577,7 @@ function viewProduto(id) {
         <div class="verdict" id="verdict" hidden></div>
         ${p.parcelas > 1 ? `<span class="parc" style="font-size:15px">em ${p.parcelas}x de ${brl(p.preco / p.parcelas)}${p.sem_juros ? ' sem juros' : ''}</span>` : ''}
         ${p.frete_gratis ? '<span class="ship">Frete grátis</span>' : ''}
-        <a class="buy" id="buy" href="${esc(link)}" target="_blank" rel="nofollow sponsored noopener" data-buy="${esc(p.id)}">Comprar no Mercado Livre ↗</a>
+        <a class="buy" id="buy" href="${esc(link)}" target="_blank" rel="nofollow sponsored noopener" data-buy="${esc(p.id)}">Comprar ${lojaDe(p) === 'Amazon' ? 'na' : 'no'} ${esc(lojaDe(p))} ↗</a>
         <button class="share" type="button" data-share="${esc(p.id)}">${SVG_SHARE} Compartilhar oferta</button>
         <p class="aff"><b>Link de afiliado</b> O Baixou pode receber uma comissão se você comprar por este link, sem custo extra para você. <a href="privacidade.html#afiliado">Saiba mais</a></p>
         <p class="note">Preço verificado ${ago(p.verificado_em)}. Você conclui a compra no Mercado Livre; preço e estoque podem mudar.</p>
