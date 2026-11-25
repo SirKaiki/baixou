@@ -178,8 +178,9 @@ header{background:var(--head);color:#fff;position:relative;z-index:20}
 .ptile:hover::after{transform:translate(4px,-50%)}
 .tiles{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:12px}
 .tile{position:relative;overflow:hidden;display:flex;flex-direction:column;justify-content:flex-end;min-height:160px;padding:14px;border-radius:8px;text-decoration:none;color:#16171b}
-.tile svg{position:absolute;right:8%;top:12%;width:42%;transition:transform .2s}
-.tile:hover svg{transform:scale(1.08)}
+.tile .bub{position:absolute;right:10px;top:10px;width:50%;max-width:104px;height:auto;aspect-ratio:1;background:#fff;box-shadow:0 10px 22px -14px rgba(0,0,0,.45);transition:transform .2s}
+.tile:hover .bub{transform:scale(1.06)}
+.tile{min-height:190px}
 .tile b{position:relative;font:700 19px/1.05 var(--disp);overflow-wrap:anywhere}
 .tile small{position:relative;font-size:13px;font-weight:500;opacity:.7}
 
@@ -210,7 +211,8 @@ header{background:var(--head);color:#fff;position:relative;z-index:20}
 .parc{font-size:13px;color:var(--mute)}
 .meta{display:flex;flex-wrap:wrap;gap:4px 10px;align-items:center;margin-top:auto;padding-top:8px;font-size:13px}
 .ship{font-weight:600;color:var(--ok)}
-.full{font-weight:700;color:var(--ok);font-size:13px}
+.full{display:inline-flex;align-items:center;gap:3px;font:800 italic 13px/1 Inter,sans-serif;color:var(--ok);letter-spacing:.02em}
+.full .bolt{width:9px;height:12px}
 .pop{font-size:12.5px;font-weight:600;color:var(--link)}
 .pill{display:inline-block;background:var(--ml);color:#16171b;border-radius:4px;padding:2px 7px;font-size:12px;font-weight:700;white-space:nowrap}
 
@@ -295,7 +297,7 @@ select{height:42px;border:1px solid var(--line);border-radius:6px;padding:0 10px
 .proof b{font:800 22px/1 var(--disp)}
 .trust{display:grid;gap:8px;margin:0;padding:0;list-style:none;font-size:14px}
 .trust li{display:flex;gap:10px;align-items:flex-start}
-.trust li::before{content:"✓";color:var(--ok);font-weight:800}
+.trust li::before{content:"";flex:none;width:18px;height:18px;margin-top:2px;background:var(--ok);-webkit-mask:url("data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 24 24%27%3E%3Cpath d=%27M5 12.5l4.5 4.5L19 7.5%27 fill=%27none%27 stroke=%27black%27 stroke-width=%273%27 stroke-linecap=%27round%27 stroke-linejoin=%27round%27/%3E%3C/svg%3E") center/contain no-repeat;mask:url("data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 24 24%27%3E%3Cpath d=%27M5 12.5l4.5 4.5L19 7.5%27 fill=%27none%27 stroke=%27black%27 stroke-width=%273%27 stroke-linecap=%27round%27 stroke-linejoin=%27round%27/%3E%3C/svg%3E") center/contain no-repeat}
 .hist{border:1px solid var(--line);border-radius:10px;padding:22px;margin-top:30px;display:grid;grid-template-columns:minmax(0,1fr) 230px;gap:24px;align-items:center}
 .hist .h2{grid-column:1/-1}
 .fig{position:relative;height:220px}
@@ -407,3 +409,17 @@ body.has-buybar .up{bottom:90px}
 .fa-itens i{font-style:normal;font-size:12px;font-weight:700;background:var(--red);color:#fff;padding:3px 6px;border-radius:4px}
 @media(max-width:720px){.feedad{grid-template-columns:minmax(0,1fr);padding:18px;gap:14px}.feedad::before{display:none}.fa-itens{gap:8px}.fa-itens b{font-size:17px}}
 @media(prefers-reduced-motion:reduce){.fa-itens a{transition:none}}
+
+/* ===== paginação ===== */
+.pager{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:6px;margin-top:30px}
+.pager:empty{display:none}
+.pg-nums{display:flex;align-items:center;gap:4px}
+.pager button{min-width:42px;height:42px;padding:0 12px;border:1px solid transparent;border-radius:6px;background:transparent;color:var(--ink);font:600 15px Inter,sans-serif;cursor:pointer}
+.pager button:hover:not(:disabled){border-color:var(--line);background:var(--soft)}
+.pager button[aria-current=page]{background:var(--ink);color:var(--bg)}
+.pager .pg-nav{color:var(--link)}
+.pager button:disabled{opacity:.35;cursor:default}
+.pg-gap{color:var(--mute);padding:0 4px}
+.pg-info{text-align:center;color:var(--mute);font-size:14px;margin:10px 0 0}
+.pg-info:empty{display:none}
+@media(max-width:600px){.pager .pg-nav{font-size:0;min-width:42px}.pager .pg-nav::before{font-size:20px}.pager .pg-nav:first-child::before{content:"‹"}.pager .pg-nav:last-child::before{content:"›"}}

@@ -117,14 +117,14 @@ function card(p, opts = {}) {
       ${p.preco_cheio ? `<span class="was">${brl(p.preco_cheio)}</span>` : ''}
       <span class="now">${brl(p.preco)}</span>
       ${p.parcelas > 1 ? `<span class="parc">em ${p.parcelas}x de ${brl(p.preco / p.parcelas)}${p.sem_juros ? ' sem juros' : ''}</span>` : '<span class="parc">à vista</span>'}
-      <span class="meta">${p.frete_gratis ? '<span class="ship">Frete grátis</span>' : ''}${p.full ? '<span class="full">⚡ Full</span>' : ''}${opts.pop && pop && pop.c ? `<span class="pop">${pop.c} ${pop.c === 1 ? 'pessoa foi' : 'pessoas foram'} à loja hoje</span>` : ''}</span>
+      <span class="meta">${p.frete_gratis ? '<span class="ship">Frete grátis</span>' : ''}${p.full ? '<span class="full"><svg class="bolt" viewBox="0 0 12 16" aria-hidden="true"><path d="M7 0L0 9h5l-1 7 7-9H6z" fill="currentColor"/></svg>FULL</span>' : ''}${opts.pop && pop && pop.c ? `<span class="pop">${pop.c} ${pop.c === 1 ? 'pessoa foi' : 'pessoas foram'} à loja hoje</span>` : ''}</span>
     </div></a></article>`;
 }
 function fallbackImgs(root) {
-  for (const img of root.querySelectorAll('.pic img, .plate img, .fa-foto img')) img.addEventListener('error', () => {
+  for (const img of root.querySelectorAll('.pic img, .plate img, .fa-foto img, .bub img')) img.addEventListener('error', () => {
     const a = img.closest('a'); const id = a && new URLSearchParams((a.getAttribute('href') || '').replace(/^.*\?/, '')).get('p');
     const p = byId.get(id);
-    img.outerHTML = img.closest('.plate, .fa-foto') ? icone(p ? p.categoria : '') : `<span class="ph">${icone(p ? p.categoria : '', '#8b90a1')}</span>`;
+    img.outerHTML = img.closest('.plate, .fa-foto, .bub') ? icone(p ? p.categoria : '') : `<span class="ph">${icone(p ? p.categoria : '', '#8b90a1')}</span>`;
   }, {once:true});
 }
 function rail(id, titulo, itens, link, linkTxt = 'Ver todas', sub = '', opts = {}) {
@@ -210,7 +210,7 @@ function viewHome() {
   h += rail('r-novas', 'Acabou de baixar', novas, '?ver=novas', 'Ver todas', 'Entraram no site agora há pouco');
   if (populares.length >= 6) h += rail('r-pop', 'Mais procurados hoje', populares.slice(0, 14), '', '', 'O que mais gente levou para a loja nas últimas 24 horas', {pop:true});
   if (faixas.length >= 2) h += `<section class="sec wrap" aria-labelledby="preco-t"><div class="sec-head"><h2 id="preco-t">Escolha por preço</h2></div><div class="prices">${faixas.map(f => `<a class="ptile" href="${qs({max:f.m})}" data-nav><span>Até</span><b>R$ ${f.m}</b><small>${f.n} ofertas</small></a>`).join('')}</div></section>`;
-  h += `<section class="sec wrap" aria-labelledby="cats-t"><div class="sec-head"><h2 id="cats-t">Compre por categoria</h2></div><div class="tiles">${CATS.map(c => { const e = estilo(c.nome); return `<a class="tile" href="${esc(qs({cat:c.nome}))}" data-nav style="background:${e.bg}">${icone(c.nome)}<b>${esc(c.nome)}</b><small>${c.n} ${c.n === 1 ? 'oferta' : 'ofertas'}</small></a>`; }).join('')}</div></section>`;
+  h += `<section class="sec wrap" aria-labelledby="cats-t"><div class="sec-head"><h2 id="cats-t">Compre por categoria</h2></div><div class="tiles">${CATS.map(c => { const e = estilo(c.nome); return `<a class="tile" href="${esc(qs({cat:c.nome}))}" data-nav style="background:${e.bg}">${bolha(c.nome)}<b>${esc(c.nome)}</b><small>${c.n} ${c.n === 1 ? 'oferta' : 'ofertas'}</small></a>`; }).join('')}</div></section>`;
   if (vis.length) h += rail('r-vistos', 'Vistos recentemente', vis.slice(0, 12), '', '', 'Continue de onde parou');
   if (cs.menor) h += rail('r-menor', 'Menor preço em 30 dias', cs.menor.itens.slice(0, 14), '?ver=menor', 'Ver todas', 'O preço mais baixo que registramos no mês');
   topCats.forEach((c, i) => { h += rail('r-cat' + i, `Destaques em ${c.nome}`, P.filter(p => p.categoria === c.nome).sort(porDesc).slice(0, 14), qs({cat:c.nome})); });
@@ -233,6 +233,14 @@ const VITRINES = {
 const FAIXAS = [['ate50', 'Até R$ 50', 0, 50], ['50-100', 'R$ 50 a R$ 100', 50, 100], ['100-200', 'R$ 100 a R$ 200', 100, 200], ['200-500', 'R$ 200 a R$ 500', 200, 500], ['500+', 'Acima de R$ 500', 500, Infinity]];
 const DESCONTOS = [20, 30, 40, 50];
 const PAGE = 24;
+const irParaLista = () => { const g = $('grid'); if (g) scrollTo({top: g.getBoundingClientRect().top + scrollY - (desktop.matches ? 170 : 70), behavior: reduz ? 'auto' : 'smooth'}); };
+function paginador(atual, total) {
+  if (total <= 1) return '';
+  const nums = [...new Set([1, 2, atual - 1, atual, atual + 1, total - 1, total])].filter(n => n >= 1 && n <= total).sort((a, b) => a - b);
+  let h = `<button type="button" class="pg-nav" data-pg="${atual - 1}"${atual === 1 ? ' disabled' : ''}>‹ Anterior</button><span class="pg-nums">`, ant = 0;
+  for (const n of nums) { if (n - ant > 1) h += '<span class="pg-gap">…</span>'; h += `<button type="button" data-pg="${n}"${n === atual ? ' aria-current="page"' : ''} aria-label="Página ${n}">${n}</button>`; ant = n; }
+  return h + `</span><button type="button" class="pg-nav" data-pg="${atual + 1}"${atual === total ? ' disabled' : ''}>Seguinte ›</button>`;
+}
 let L = null;
 const naFaixa = (p, f) => f[2] === 0 ? p.preco <= f[3] : p.preco > f[2] && p.preco <= f[3];
 const lista = v => (v || '').split(',').map(s => s.trim()).filter(Boolean);
@@ -250,7 +258,7 @@ function viewLista(ps) {
     disc: DESCONTOS.includes(+ps.get('desc')) ? +ps.get('desc') : 0,
     frete: !!v.frete || ps.get('frete') === '1', full: !!v.full || ps.get('full') === '1', low: !!v.low || ps.get('menor') === '1',
     sort: ['new', 'disc', 'low', 'high'].includes(ps.get('ordem')) ? ps.get('ordem') : v.sort || (ps.get('q') ? 'disc' : 'new'),
-    shown: PAGE, ui: {open: new Set(['sub', 'marca', 'preco', 'entrega']), more: new Set(), mq: ''},
+    pagina: Math.max(1, parseInt(ps.get('pagina'), 10) || 1), ui: {open: new Set(['sub', 'marca', 'preco', 'entrega']), more: new Set(), mq: ''},
   };
   if (L.catFixa && !CATS.some(c => c.nome === L.catFixa)) L.catFixa = '';
   if (!L.catFixa) L.ui.open.add('cat');
@@ -265,12 +273,12 @@ function viewLista(ps) {
       <div class="fbar"><button type="button" id="fopen">Filtrar <em id="fcount" hidden></em></button><select id="sort2" aria-label="Ordenar"><option value="new">Mais recentes</option><option value="disc">Maior desconto</option><option value="low">Menor preço</option><option value="high">Maior preço</option></select></div>
       <div class="bar"><b id="cnt"></b><label for="sort">Ordenar <select id="sort"><option value="new">Mais recentes</option><option value="disc">Maior desconto</option><option value="low">Menor preço</option><option value="high">Maior preço</option></select></label></div>
       <div class="active" id="active"></div><div class="grid" id="grid"></div>
-      <div class="more" id="more" hidden><button class="btn2" type="button" id="moreb">Carregar mais ofertas</button><span id="moret"></span></div>
+      <nav class="pager" id="pager" aria-label="Páginas"></nav><p class="pg-info" id="moret"></p>
     </section></div>`;
   $('sort').value = $('sort2').value = L.sort;
   const ordenar = e => { L.sort = e.target.value; $('sort').value = $('sort2').value = L.sort; listar(); };
   $('sort').addEventListener('change', ordenar); $('sort2').addEventListener('change', ordenar);
-  $('moreb').addEventListener('click', () => { L.shown += PAGE; listar(false); });
+  $('pager').addEventListener('click', e => { const b = e.target.closest('[data-pg]'); if (!b || b.disabled) return; L.pagina = +b.dataset.pg; listar(false); irParaLista(); });
   $('fopen').addEventListener('click', () => abrirFiltros(true));
   const fp = $('fpanel');
   fp.addEventListener('change', e => {
@@ -296,7 +304,7 @@ function viewLista(ps) {
     else if (k === 'disc') L.disc = 0;
     else L[k] = false;
     listar(); });
-  listar();
+  listar(false);
 }
 function abrirFiltros(on) {
   $('faside').classList.toggle('open', on); $('scrim').hidden = !on;
@@ -364,21 +372,23 @@ function painel() {
 }
 function syncLista() {
   const u = {cat:L.catFixa, q:L.q, ver:L.ver !== 'todas' ? L.ver : '', sub:[...L.subs].join(','), marca:[...L.marcas].join(','), preco:L.faixa, min:L.min, max:L.max, desc:L.disc || '',
-    frete: L.frete && !VITRINES[L.ver]?.frete ? 1 : '', full: L.full && !VITRINES[L.ver]?.full ? 1 : '', menor: L.low && !VITRINES[L.ver]?.low ? 1 : '', ordem: L.sort !== (VITRINES[L.ver]?.sort || (L.q ? 'disc' : 'new')) ? L.sort : ''};
+    frete: L.frete && !VITRINES[L.ver]?.frete ? 1 : '', full: L.full && !VITRINES[L.ver]?.full ? 1 : '', menor: L.low && !VITRINES[L.ver]?.low ? 1 : '', ordem: L.sort !== (VITRINES[L.ver]?.sort || (L.q ? 'disc' : 'new')) ? L.sort : '', pagina: L.pagina > 1 ? L.pagina : ''};
   const url = qs(u); try { history.replaceState(null, '', url === './' ? '?ver=todas' : url); } catch (e) {}
 }
 function listar(reset = true) {
-  if (reset) L.shown = PAGE;
+  if (reset) L.pagina = 1;
   const by = {disc:porDesc, low:(a, b) => a.preco - b.preco, high:(a, b) => b.preco - a.preco, new:porNovo}[L.sort];
-  const r = P.filter(p => passa(p, '')).sort(by), vis = r.slice(0, L.shown);
+  const r = P.filter(p => passa(p, '')).sort(by), paginas = Math.max(1, Math.ceil(r.length / PAGE));
+  L.pagina = Math.min(L.pagina, paginas);
+  const ini = (L.pagina - 1) * PAGE, vis = r.slice(ini, ini + PAGE);
   $('cnt').textContent = r.length + (r.length === 1 ? ' oferta' : ' ofertas');
   $('fver').textContent = `Ver ${r.length} ${r.length === 1 ? 'oferta' : 'ofertas'}`;
   $('grid').innerHTML = vis.length ? comAnuncios(vis, r.length) : L.fav && !favs().size
     ? `<div class="empty"><strong>Nenhum favorito ainda</strong><p>Toque no coração de uma oferta para salvá-la aqui.</p><a class="btn2" href="./" data-nav>Ver ofertas</a></div>`
     : `<div class="empty"><strong>Nenhuma oferta com esses filtros</strong><p>Tire algum filtro ou tente outra busca.</p><button class="btn2" type="button" data-x="tudo">Limpar filtros</button></div>`;
   fallbackImgs($('grid'));
-  $('more').hidden = r.length <= L.shown;
-  $('moret').textContent = `Mostrando ${vis.length} de ${r.length}`;
+  $('pager').innerHTML = paginador(L.pagina, paginas);
+  $('moret').textContent = r.length > PAGE ? `Mostrando ${ini + 1}–${ini + vis.length} de ${r.length} ofertas` : '';
   const a = [];
   L.cats.forEach(c => a.push(['cats|' + c, c]));
   L.subs.forEach(c => a.push(['subs|' + c, c]));
@@ -476,7 +486,7 @@ function viewProduto(id) {
       ${fotos.length > 1 ? `<div class="thumbs">${fotos.map((f, i) => `<button type="button" data-img="${esc(f)}" aria-label="Foto ${i + 1}" aria-current="${i === 0}"><img src="${esc(f)}" alt="" loading="lazy" referrerpolicy="no-referrer"></button>`).join('')}</div>` : ''}
     </div>
     <div class="info">
-      <div class="tags"><span class="pill">${esc(p.loja || 'Mercado Livre')}</span>${p.full ? '<span class="full">⚡ Entrega Full</span>' : ''}</div>
+      <div class="tags"><span class="pill">${esc(p.loja || 'Mercado Livre')}</span>${p.full ? '<span class="full"><svg class="bolt" viewBox="0 0 12 16" aria-hidden="true"><path d="M7 0L0 9h5l-1 7 7-9H6z" fill="currentColor"/></svg>Entrega FULL</span>' : ''}</div>
       ${p.marca ? `<span class="brandn">${esc(p.marca)}</span>` : ''}
       <h1>${esc(p.titulo)}</h1>
       <div class="pbox">
@@ -647,7 +657,7 @@ function rota() {
   const id = ps.get('p') || ps.get('oferta');
   if (ps.get('oferta')) history.replaceState(null, '', qs({p:id}));
   if (id) viewProduto(id);
-  else if (['cat', 'q', 'ver', 'marca', 'sub', 'max', 'min', 'preco', 'desc', 'frete', 'full', 'menor'].some(k => ps.get(k))) viewLista(ps);
+  else if (['cat', 'q', 'ver', 'marca', 'sub', 'max', 'min', 'preco', 'desc', 'frete', 'full', 'menor', 'pagina', 'ordem'].some(k => ps.get(k))) viewLista(ps);
   else viewHome();
   $('q').value = ps.get('q') || '';
   const atual = id ? null : ps.get('cat') ? 'cat:' + ps.get('cat') : ps.get('ver') ? 'ver:' + ps.get('ver') : ps.toString() ? null : 'home';
