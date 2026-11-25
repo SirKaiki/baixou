@@ -222,8 +222,8 @@ header{background:var(--head);color:#fff;position:relative;z-index:20}
 .lhead h1{font:800 clamp(30px,3.6vw,44px)/1.05 var(--disp);margin:0}
 .lhead p{margin:6px 0 0;color:var(--mute)}
 .lmain{display:grid;grid-template-columns:250px minmax(0,1fr);gap:32px;padding-block:20px 40px}
-.lmain aside{align-self:start}
-@media(min-width:901px){.lmain aside{position:sticky;top:150px;max-height:calc(100vh - 170px);overflow-y:auto;padding-right:6px;scrollbar-width:thin}}
+.lmain>aside{align-self:start}
+@media(min-width:901px){.lmain>aside{position:sticky;top:150px;max-height:calc(100vh - 170px);overflow-y:auto;padding-right:6px;scrollbar-width:thin}}
 .fpanel{display:grid}
 .fp-head,.fp-foot,.fbar{display:none}
 .facet{border-bottom:1px solid var(--line)}
@@ -338,8 +338,8 @@ body.has-buybar .up{bottom:90px}
 .fav-link .lbl{display:none}
 .top{padding-bottom:14px}
 .lmain{grid-template-columns:minmax(0,1fr);gap:16px;padding-top:16px}
-.lmain aside{position:fixed;inset:0 0 0 auto;align-self:stretch;height:100%;width:min(92vw,420px);background:var(--card);z-index:31;transform:translateX(102%);transition:transform .25s ease;display:flex;flex-direction:column}
-.lmain aside.open{transform:none}
+.lmain>aside{position:fixed;inset:0 0 0 auto;align-self:stretch;height:100%;width:min(92vw,420px);background:var(--card);z-index:31;transform:translateX(102%);transition:transform .25s ease;display:flex;flex-direction:column}
+.lmain>aside.open{transform:none}
 .fp-head{display:flex;justify-content:space-between;align-items:center;background:var(--head);color:#fff;padding:12px 16px}
 .fp-head b{font:700 22px/1 var(--disp)}
 .fp-head button{width:44px;height:44px;border:0;background:transparent;color:#fff;font-size:28px;cursor:pointer}
@@ -386,4 +386,24 @@ body.has-buybar .up{bottom:90px}
 .heart{width:34px;height:34px}
 .badges{right:46px}
 }
-@media(prefers-reduced-motion:reduce){.card,.toast,.tile svg,.pic img,.dot i,.buybar,.drawer,.lmain aside,.scrim,.nav a::after,.mcard,.ptile{transition:none}}
+@media(prefers-reduced-motion:reduce){.card,.toast,.tile svg,.pic img,.dot i,.buybar,.drawer,.lmain>aside,.scrim,.nav a::after,.mcard,.ptile{transition:none}}
+
+/* ===== anúncios do Baixou na listagem ===== */
+.feedad{grid-column:1/-1;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);align-items:center;gap:20px;border-radius:10px;padding:22px 26px;color:#fff;overflow:hidden;position:relative}
+.feedad::before{content:"";position:absolute;right:-6%;top:-40%;width:44%;aspect-ratio:1;border-radius:50%;background:rgba(255,255,255,.08)}
+.feedad .kick{display:inline-block;background:rgba(255,255,255,.16);font:600 13px/1 Inter,sans-serif;padding:6px 11px;border-radius:99px;margin-bottom:10px}
+.feedad h3{font:800 clamp(24px,2.6vw,34px)/1.05 var(--disp);margin:0 0 6px}
+.feedad p{margin:0 0 14px;font-size:15px;opacity:.9}
+.feedad .cta{display:inline-flex;align-items:center;height:44px;padding:0 18px;border-radius:6px;background:#fff;color:#16171b;text-decoration:none;font-weight:700;font-size:15px}
+.feedad.s-yel .kick{background:rgba(20,22,31,.08)}.feedad.s-yel .cta{background:#16171b;color:#fff}
+.fa-txt,.fa-itens{position:relative}
+.fa-itens{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.fa-itens a{display:flex;flex-direction:column;align-items:center;gap:6px;text-decoration:none;color:inherit;transition:transform .15s}
+.fa-itens a:hover{transform:translateY(-3px)}
+.fa-foto{width:100%;max-width:150px;aspect-ratio:1;border-radius:50%;background:#fff;display:grid;place-items:center;overflow:hidden;box-shadow:0 14px 28px -16px rgba(0,0,0,.5)}
+.fa-foto img{width:74%;height:74%;object-fit:contain}
+.fa-foto svg{width:54%}
+.fa-itens b{font:700 20px/1 var(--disp)}
+.fa-itens i{font-style:normal;font-size:12px;font-weight:700;background:var(--red);color:#fff;padding:3px 6px;border-radius:4px}
+@media(max-width:720px){.feedad{grid-template-columns:minmax(0,1fr);padding:18px;gap:14px}.feedad::before{display:none}.fa-itens{gap:8px}.fa-itens b{font-size:17px}}
+@media(prefers-reduced-motion:reduce){.fa-itens a{transition:none}}

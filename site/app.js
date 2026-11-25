@@ -121,10 +121,10 @@ function card(p, opts = {}) {
     </div></a></article>`;
 }
 function fallbackImgs(root) {
-  for (const img of root.querySelectorAll('.pic img, .plate img')) img.addEventListener('error', () => {
+  for (const img of root.querySelectorAll('.pic img, .plate img, .fa-foto img')) img.addEventListener('error', () => {
     const a = img.closest('a'); const id = a && new URLSearchParams((a.getAttribute('href') || '').replace(/^.*\?/, '')).get('p');
     const p = byId.get(id);
-    img.outerHTML = img.closest('.plate') ? icone(p ? p.categoria : '') : `<span class="ph">${icone(p ? p.categoria : '', '#8b90a1')}</span>`;
+    img.outerHTML = img.closest('.plate, .fa-foto') ? icone(p ? p.categoria : '') : `<span class="ph">${icone(p ? p.categoria : '', '#8b90a1')}</span>`;
   }, {once:true});
 }
 function rail(id, titulo, itens, link, linkTxt = 'Ver todas', sub = '', opts = {}) {
@@ -373,7 +373,7 @@ function listar(reset = true) {
   const r = P.filter(p => passa(p, '')).sort(by), vis = r.slice(0, L.shown);
   $('cnt').textContent = r.length + (r.length === 1 ? ' oferta' : ' ofertas');
   $('fver').textContent = `Ver ${r.length} ${r.length === 1 ? 'oferta' : 'ofertas'}`;
-  $('grid').innerHTML = vis.length ? vis.map(p => card(p)).join('') : L.fav && !favs().size
+  $('grid').innerHTML = vis.length ? comAnuncios(vis, r.length) : L.fav && !favs().size
     ? `<div class="empty"><strong>Nenhum favorito ainda</strong><p>Toque no coração de uma oferta para salvá-la aqui.</p><a class="btn2" href="./" data-nav>Ver ofertas</a></div>`
     : `<div class="empty"><strong>Nenhuma oferta com esses filtros</strong><p>Tire algum filtro ou tente outra busca.</p><button class="btn2" type="button" data-x="tudo">Limpar filtros</button></div>`;
   fallbackImgs($('grid'));
@@ -392,6 +392,52 @@ function listar(reset = true) {
   $('active').innerHTML = a.map(([k, l]) => `<button type="button" data-x="${esc(k)}" aria-label="Remover filtro ${esc(l)}">${esc(l)} <span aria-hidden="true">×</span></button>`).join('') + (a.length > 1 ? '<button class="clear" type="button" data-x="tudo">Limpar tudo</button>' : '');
   $('fcount').textContent = a.length; $('fcount').hidden = !a.length;
   painel(); syncLista();
+}
+
+/* ---------- anúncios do próprio Baixou no meio da listagem ---------- */
+// Categorias que combinam entre si (para sugerir "leve também")
+const COMBINA = [
+  [/beleza|perfum/, /moda|calcad|esporte/], [/moda|calcad/, /beleza|esporte/], [/esporte|fitness/, /moda|calcad|eletronic/],
+  [/celular/, /eletronic|informatica/], [/informatica/, /eletronic|celular|game/], [/eletronic|audio|tv/, /celular|game|informatica/],
+  [/game/, /eletronic|informatica|tv/], [/eletrodom/, /casa|decora/], [/casa|decora/, /eletrodom|ferrament/],
+  [/ferrament/, /casa|decora/], [/bebe/, /brinquedo|casa/], [/brinquedo/, /bebe|game/],
+];
+const combinaCom = cat => { const n = norm(cat); const par = COMBINA.find(([a]) => a.test(n)); return par ? CATS.filter(c => c.nome !== cat && par[1].test(norm(c.nome)) && c.n >= 3).map(c => c.nome) : []; };
+const CORES_AD = ['s-blue', 's-green', 's-black', 's-red', 's-yel'];
+function adHTML(a, i) {
+  return `<section class="feedad ${CORES_AD[i % CORES_AD.length]}" aria-label="${esc(a.titulo)}">
+    <div class="fa-txt"><span class="kick">${esc(a.kick)}</span><h3>${esc(a.titulo)}</h3>${a.sub ? `<p>${esc(a.sub)}</p>` : ''}<a class="cta" href="${esc(a.href)}" data-nav>${esc(a.cta || 'Ver ofertas')} →</a></div>
+    <div class="fa-itens">${a.itens.slice(0, 3).map(p => { const f = seguro(p.foto); return `<a href="?p=${encodeURIComponent(p.id)}" data-nav aria-label="${esc(p.titulo)} por ${brl(p.preco)}"><span class="fa-foto">${f ? `<img src="${esc(f)}" alt="" loading="lazy" referrerpolicy="no-referrer">` : icone(p.categoria)}</span><b>${brl0(p.preco)}</b><i>-${p.desconto}%</i></a>`; }).join('')}</div></section>`;
+}
+function anunciosFeed(resultado) {
+  const ads = [], noFeed = new Set(resultado.slice(0, 8).map(p => p.id)), fora = p => !noFeed.has(p.id);
+  const freq = {}; resultado.forEach(p => freq[p.categoria] = (freq[p.categoria] || 0) + 1);
+  const catBase = L.catFixa || Object.entries(freq).sort((a, b) => b[1] - a[1])[0]?.[0] || '';
+  // 1. Leve também: categoria que combina com o que a pessoa está vendo
+  combinaCom(catBase).forEach(c => { const it = P.filter(p => p.categoria === c && fora(p)).sort(porDesc);
+    if (it.length >= 3) ads.push({kick:`Combina com ${catBase.toLowerCase()}`, titulo:`Leve também: ${c}`, sub:`Até ${it[0].desconto}% off em ${c.toLowerCase()} agora.`, href:qs({cat:c}), cta:`Ver ${c.toLowerCase()}`, itens:it}); });
+  // 2. Continue de onde parou (vistos recentemente)
+  const vis = vistos().filter(fora);
+  if (vis.length >= 2) ads.push({kick:'Vistos recentemente', titulo:'Ainda pensando nestes?', sub:'Os preços continuam sendo conferidos a cada 15 minutos.', href:'?ver=todas', cta:'Continuar vendo', itens:vis});
+  // 3. Campanhas do momento (menor preço, frete, até R$ 100, outras categorias)
+  const menor = P.filter(p => p.menor_30d && fora(p)).sort(porDesc);
+  if (menor.length >= 3 && L.ver !== 'menor' && !L.low) ads.push({kick:'Comparado com o histórico', titulo:'Menor preço em 30 dias', sub:`${menor.length} produtos no preço mais baixo do mês.`, href:'?ver=menor', itens:menor});
+  const ate = P.filter(p => p.preco <= 100 && fora(p)).sort(porDesc);
+  if (ate.length >= 3 && !(L.max && +L.max <= 100)) ads.push({kick:'Cabe no bolso', titulo:'Tudo até R$ 100', sub:'Pequenos presentes e reposições com desconto de verdade.', href:qs({max:100}), itens:ate});
+  const full = P.filter(p => p.full && p.frete_gratis && fora(p)).sort(porDesc);
+  if (full.length >= 3 && !L.full) ads.push({kick:'Chega rápido', titulo:'Frete grátis + Full', sub:'Sai do estoque do Mercado Livre, com envio expresso.', href:'?ver=full', itens:full});
+  // 4. Favoritos salvos
+  const fv = [...favs()].map(id => byId.get(id)).filter(Boolean).filter(fora);
+  if (fv.length && !L.fav) ads.push({kick:'Seus favoritos', titulo:`Você salvou ${fv.length} ${fv.length === 1 ? 'oferta' : 'ofertas'}`, sub:'Confira se o preço continua bom antes que a promoção acabe.', href:'?ver=favoritos', cta:'Ver favoritos', itens:fv});
+  return ads;
+}
+// Intercala um anúncio depois da 8ª oferta e depois a cada 12 (só quando há ofertas suficientes)
+function comAnuncios(vis, total) {
+  if (total < 10) return vis.map(p => card(p)).join('');
+  const ads = anunciosFeed(vis);
+  let h = '', k = 0;
+  vis.forEach((p, i) => { h += card(p); const pos = i + 1; if (ads[k] && (pos === 8 || (pos > 8 && (pos - 8) % 12 === 0)) && pos < vis.length) h += adHTML(ads[k], k++); });
+  return h;
 }
 
 /* ---------- produto ---------- */
