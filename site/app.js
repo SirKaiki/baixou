@@ -649,11 +649,11 @@ function grafico(p, pts) {
     const x = i => ml + i / (serie.length - 1) * (W - ml - mr), y = v => mt + (hi - v) / (hi - lo) * (H - mt - mb);
     const linha = serie.map((d, i) => `${i ? 'L' : 'M'}${x(i).toFixed(1)},${y(d[1]).toFixed(1)}`).join('');
     const u = serie.length - 1;
-    s.innerHTML = `<path d="${linha}L${x(u)},${H - mb}L${x(0)},${H - mb}Z" fill="var(--blue)" opacity=".12"/>
+    s.innerHTML = `<path d="${linha}L${x(u)},${H - mb}L${x(0)},${H - mb}Z" fill="var(--chart)" opacity=".14"/>
       <line x1="${ml}" x2="${W - mr}" y1="${y(menor)}" y2="${y(menor)}" stroke="#0b7a3b" stroke-dasharray="4 4"/>
       <text x="${W - mr + 8}" y="${y(menor) + 4}">menor ${brl(menor).replace('R$', '').trim()}</text>
-      <path d="${linha}" fill="none" stroke="var(--blue)" stroke-width="2.5" stroke-linejoin="round"/>
-      <circle cx="${x(u)}" cy="${y(serie[u][1])}" r="5" fill="var(--blue)" stroke="var(--card)" stroke-width="2"/>
+      <path d="${linha}" fill="none" stroke="var(--chart)" stroke-width="2.5" stroke-linejoin="round"/>
+      <circle cx="${x(u)}" cy="${y(serie[u][1])}" r="5" fill="var(--chart)" stroke="var(--card)" stroke-width="2"/>
       ${Math.abs(y(serie[u][1]) - y(menor)) > 16 ? `<text x="${W - mr + 8}" y="${y(serie[u][1]) + 4}" style="fill:var(--ink);font-weight:600">hoje</text>` : ''}
       <text x="${ml}" y="${H - 8}">${dm(serie[0][0])}</text><text x="${W - mr}" y="${H - 8}" text-anchor="end">${dm(serie[u][0])}</text>`;
   };
@@ -686,7 +686,7 @@ function montarMenus() {
   $('nav').innerHTML = `<button class="all" type="button" id="allBtn" aria-expanded="false" aria-controls="mega"><i class="i-menu">${ICON_MENU}</i><i class="i-x">${ICON_X}</i><span>Todas as categorias</span></button><a class="hot" href="?ver=menor" data-nav data-k="ver:menor">Menor preço</a><a href="?ver=novas" data-nav data-k="ver:novas">Acabou de baixar</a>`
     + top5.map(c => `<a href="${esc(qs({cat:c.nome}))}" data-nav data-k="cat:${esc(c.nome)}" data-mega="${esc(c.nome)}">${esc(c.nome)}</a>`).join('');
   $('allBtn').addEventListener('click', () => megaAtual ? fecharMega(true) : abrirMega(top5[0]?.nome || CATS[0]?.nome));
-  $('drawer').innerHTML = `<div class="dhead"><b>Baixou</b><button type="button" data-dclose aria-label="Fechar menu">×</button></div>
+  $('drawer').innerHTML = `<div class="dhead"><b class="flogo"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x=".5" y=".5" width="23" height="23" rx="6" fill="#ffd000"/><path d="M11.00 1.00 L16.60 1.00 L13.08 7.40 L17.88 7.40 L14.47 13.60 L18.00 13.60 L12.00 23.00 L6.00 13.60 L8.87 13.60 L10.52 10.60 L5.72 10.60Z" transform="translate(12 12) scale(.8) translate(-12 -12)" fill="#111"/></svg>baixou</b><button type="button" data-dclose aria-label="Fechar menu">×</button></div>
     <div class="dcards">${[...CATS].sort((x, y) => y.n - x.n).map(c => `<a class="mcard" href="${esc(qs({cat:c.nome}))}" data-nav>${bolha(c.nome)}${esc(c.nome)}</a>`).join('')}</div>
     <nav class="dlinks"><a href="./" data-nav>Destaques</a><a class="hot" href="?ver=menor" data-nav>Menor preço em 30 dias</a><a href="?ver=novas" data-nav>Acabou de baixar</a><a href="?ver=favoritos" data-nav>Meus favoritos</a><a href="?ver=todas" data-nav>Todas as ofertas</a></nav>
     ${CATS.map((c, i) => { const subs = subsDe(c.nome); return `<div class="dcat"><button type="button" aria-expanded="false" aria-controls="dsub${i}"><span>${esc(c.nome)}</span><i aria-hidden="true">+</i></button>

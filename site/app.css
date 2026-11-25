@@ -1,13 +1,13 @@
 /* VOICE sports-store, clean: dark header, white space, confident prices, no shouting
    IDEA a big sports retailer's storefront (dark bar, pill search, category panel with round photo cards)
    PICTURE rotating campaign banners with real product photos on white discs
-   COLOUR graphite header #141414, white page, store yellow accent, electric blue promo bar, red price tags
+   COLOUR identidade preto + amarelo-raio #FFD000; vermelho só para desconto; verde para frete e menor preço
    TYPE Barlow 700/800 display + Inter text; logo in condensed italic
    LAYOUT header (logo, search, favorites, theme) + nav; promo bar; hero; benefits; shelves; filters left of grid */
 :root{color-scheme:light dark;
 --bg:light-dark(#ffffff,#0e0f12);--ink:light-dark(#16171b,#f1f2f5);--mute:light-dark(#62656f,#a1a5b1);--line:light-dark(#e7e8ec,#25272e);
---card:light-dark(#ffffff,#16181d);--soft:light-dark(#f4f5f7,#121418);--blue:#1f3cff;--blue2:#1530d6;--ml:#ffe600;--red:#e3120b;
---head:#141414;--head2:#1f1f1f;--ok:light-dark(#0b7a3b,#4fd287);--link:light-dark(#1f3cff,#9aa9ff);
+--card:light-dark(#ffffff,#16181d);--soft:light-dark(#f4f5f7,#121418);--blue:#2a2c33;--blue2:#16171b;--ml:#ffd000;--chart:light-dark(#16171b,#ffd000);--red:#e3120b;
+--head:#141414;--head2:#1f1f1f;--ok:light-dark(#0b7a3b,#4fd287);--link:light-dark(#16171b,#ffd000);
 --shadow:light-dark(rgba(16,17,20,.22),rgba(0,0,0,.6));
 --disp:"Barlow","Arial",sans-serif;--logo:"Barlow Condensed","Arial Narrow",sans-serif}
 :root[data-theme=light]{color-scheme:light}
@@ -27,8 +27,8 @@ img{max-width:100%}
 header{background:var(--head);color:#fff;position:relative;z-index:20}
 @media(min-width:901px){header{position:sticky;top:0}}
 .top{display:flex;flex-wrap:wrap;align-items:center;gap:12px 22px;padding-block:14px 10px}
-.logo{display:flex;align-items:center;gap:9px;text-decoration:none;color:#fff;font:800 italic 32px/1 var(--logo);text-transform:uppercase;letter-spacing:.01em}
-.logo svg{width:32px;height:32px}
+.logo{display:flex;align-items:center;gap:10px;text-decoration:none;color:#fff;font:800 32px/1 var(--disp);letter-spacing:-.015em}
+.logo svg{width:34px;height:34px;flex:none}.logo span{transform:translateY(-1px)}
 .sbox{position:relative;flex:1 1 380px}
 .search{display:flex;align-items:center;background:#fff;border-radius:99px;overflow:hidden;padding-left:20px}
 .search input{flex:1;border:0;height:46px;font-size:15px;color:#16171b;background:#fff;outline:none}
@@ -62,11 +62,11 @@ header{background:var(--head);color:#fff;position:relative;z-index:20}
 .nav .all:hover,.nav .all[aria-expanded=true]{border-color:#fff;background:rgba(255,255,255,.06)}
 .nav .all svg{width:20px;height:20px}
 .nav .all i{display:grid;font-style:normal}.nav .all .i-x,.nav .all[aria-expanded=true] .i-menu{display:none}.nav .all[aria-expanded=true] .i-x{display:grid}
-.promo{background:var(--blue);color:#fff;font:700 16px/1.2 var(--disp);text-align:center}
+.promo{background:var(--ml);color:#16171b;font:700 16px/1.2 var(--disp);text-align:center}
 .promo .wrap{position:relative;display:flex;align-items:center;justify-content:center;min-height:42px;padding-block:8px;padding-right:56px;padding-left:56px}
-.promo a{color:#fff;text-decoration:none}
+.promo a{color:#16171b;text-decoration:none}
 .promo a:hover{text-decoration:underline}
-.promo b{color:var(--ml)}
+.promo b{color:var(--ml);background:#16171b;padding:1px 7px;border-radius:4px;white-space:nowrap}
 #promoX{position:absolute;right:max(3.5vw,4px);top:50%;transform:translateY(-50%);width:36px;height:36px;border:0;border-radius:50%;background:transparent;color:#fff;font-size:24px;line-height:1;cursor:pointer;opacity:.8}
 #promoX:hover{opacity:1;background:rgba(255,255,255,.15)}
 .demo{background:light-dark(#eef0f4,#1b1d23);color:var(--mute);font-size:13px}
@@ -108,7 +108,7 @@ header{background:var(--head);color:#fff;position:relative;z-index:20}
 .drawer{position:fixed;top:0;bottom:0;left:0;width:min(88vw,380px);background:var(--head);color:#fff;z-index:31;transform:translateX(-102%);transition:transform .25s ease;overflow-y:auto;display:flex;flex-direction:column}
 .drawer.open{transform:none}
 .dhead{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid #2a2a2a;position:sticky;top:0;background:var(--head);z-index:1}
-.dhead b{font:800 italic 28px/1 var(--logo);text-transform:uppercase}
+.dhead b{font:800 26px/1 var(--disp)}
 .dhead button{width:44px;height:44px;border:0;background:transparent;color:#fff;font-size:28px;cursor:pointer}
 .drawer>*{flex:none}
 .dcards{display:flex;gap:10px;overflow-x:auto;padding:14px 16px;scrollbar-width:none;border-bottom:1px solid #2a2a2a}
@@ -145,8 +145,8 @@ header{background:var(--head);color:#fff;position:relative;z-index:20}
 .plate:nth-child(2){left:0;top:38%;width:40%;z-index:2}
 .plate:nth-child(3){right:0;top:44%;width:36%;z-index:1}
 .tagp{position:absolute;bottom:12%;left:50%;transform:translateX(-50%);background:var(--red);color:#fff;font:700 16px/1 var(--disp);padding:6px 9px;border-radius:4px;white-space:nowrap}
-.s-black{background:#1b1c20}.s-blue{background:#1f3cff}.s-red{background:#c8102e}.s-green{background:#0b6b3a}.s-yel{background:var(--ml);color:#16171b}
-.s-yel h2 em{color:var(--blue)}.s-yel .kick{background:rgba(20,22,31,.08)}.s-yel .cta{background:#16171b;color:#fff}
+.s-black{background:#1b1c20}.s-blue{background:#2a2c33}.s-red{background:#c8102e}.s-green{background:#0b6b3a}.s-yel{background:var(--ml);color:#16171b}
+.s-yel h2 em{color:#16171b;box-shadow:inset 0 -.2em rgba(255,255,255,.7)}.s-yel .kick{background:rgba(20,22,31,.08)}.s-yel .cta{background:#16171b;color:#fff}
 .hero-ctl{position:absolute;left:0;right:0;bottom:14px;display:flex;justify-content:center;gap:4px;z-index:2;pointer-events:none}
 .hero-ctl .dot{pointer-events:auto}
 .dot{width:26px;height:24px;border:0;background:transparent;cursor:pointer;display:grid;place-items:center;padding:0}
@@ -168,7 +168,7 @@ header{background:var(--head);color:#fff;position:relative;z-index:20}
 .sec-head h2,.h2{flex:1;font:700 clamp(24px,2.6vw,30px)/1.1 var(--disp);margin:0}
 .sec-head .sub{display:block;font:400 14px/1.3 Inter,sans-serif;color:var(--mute);margin-top:4px}
 .arrows{display:flex;gap:8px;align-items:center;flex:none}
-.arrows a{font:600 15px Inter,sans-serif;color:var(--link);text-decoration:none;white-space:nowrap;margin-right:6px}
+.arrows a{font:600 15px Inter,sans-serif;color:var(--link);text-decoration:underline;text-decoration-color:var(--ml);text-decoration-thickness:3px;text-underline-offset:5px;white-space:nowrap;margin-right:6px}
 .arrows a:hover{text-decoration:underline}
 .arrows button{width:40px;height:40px;border-radius:50%;border:1px solid var(--line);background:var(--card);cursor:pointer;font-size:18px}
 .arrows button:hover{border-color:var(--ink)}
@@ -203,7 +203,7 @@ header{background:var(--head);color:#fff;position:relative;z-index:20}
 .badges{position:absolute;top:10px;left:10px;right:52px;display:flex;flex-wrap:wrap;gap:6px;align-items:flex-start}
 .off{background:var(--red);color:#fff;font:700 14px/1 Inter,sans-serif;padding:5px 7px;border-radius:4px}
 .flag{font:600 12px/1 Inter,sans-serif;padding:5px 7px;border-radius:4px;color:#fff}
-.flag.low{background:#0b7a3b}.flag.new{background:var(--blue)}.flag.hot{background:#16171b;color:var(--ml)}
+.flag.low{background:#0b7a3b}.flag.new{background:#16171b}.flag.hot{background:#16171b;color:var(--ml)}
 .heart{position:absolute;top:8px;right:8px;width:36px;height:36px;border-radius:50%;border:0;background:rgba(255,255,255,.92);color:#16171b;display:grid;place-items:center;cursor:pointer;z-index:2;box-shadow:0 2px 8px rgba(0,0,0,.12)}
 .heart svg{width:19px;height:19px}
 .heart[aria-pressed=true]{color:var(--red)}
@@ -376,7 +376,7 @@ body.has-buybar .up{bottom:90px}
 .tile{flex:0 0 42%;min-height:130px}
 }
 @media(max-width:600px){
-.logo{font-size:26px}.logo svg{width:26px;height:26px}
+.logo{font-size:26px;gap:8px}.logo svg{width:28px;height:28px}
 .top{gap:10px 8px}
 .theme button{width:28px;height:30px}.theme{padding:2px}.tools{gap:2px}.fav-link{padding:0 6px}
 .sbox{order:3;flex-basis:100%}
@@ -507,7 +507,7 @@ header .hs-box::after,.mega .hs-box::after,.drawer .hs-box::after{background:lin
 .verdict b{font-size:15px}
 .verdict span{color:var(--mute)}
 .verdict.top{background:color-mix(in srgb,var(--ok) 12%,transparent);border-color:var(--ok)}.verdict.top b{color:var(--ok)}
-.verdict.bom{background:color-mix(in srgb,var(--blue) 10%,transparent);border-color:var(--blue)}
+.verdict.bom{background:color-mix(in srgb,var(--ml) 16%,transparent);border-color:var(--ml)}
 .verdict.meh{background:color-mix(in srgb,#e8a400 14%,transparent);border-color:#e8a400}
 .verdict.novo{background:var(--soft);border-color:var(--line)}
 /* Identificação do link de afiliado (CONAR) */
@@ -551,3 +551,8 @@ header .hs-box::after,.mega .hs-box::after,.drawer .hs-box::after{background:lin
 .loja img{width:16px;height:16px;border-radius:50%;background:#fff;object-fit:contain;padding:1px}
 .loja.g{font-size:13px;padding:3px 10px 3px 4px}.loja.g img{width:18px;height:18px}
 .vend{display:flex;align-items:center;gap:6px;margin-top:8px;padding-top:8px;border-top:1px dashed var(--line);font-size:12px;color:var(--mute)}
+
+.flogo{display:inline-flex;align-items:center;gap:8px;font:800 22px/1 var(--disp)}.flogo svg{width:26px;height:26px}
+.dhead .flogo svg{width:28px;height:28px}
+/* Selo de loja no celular: só o selo, sem "vendido em" quebrando linha */
+@media(max-width:560px){.vend{font-size:0;gap:0}.vend .loja{font-size:12px}}
