@@ -566,6 +566,7 @@ function montarMenus() {
     ${CATS.map((c, i) => { const subs = subsDe(c.nome); return `<div class="dcat"><button type="button" aria-expanded="false" aria-controls="dsub${i}"><span>${esc(c.nome)}</span><i aria-hidden="true">+</i></button>
       <div class="dsub" id="dsub${i}" hidden>${subs.map(([s, n]) => `<a href="${esc(qs({cat:c.nome, sub:s}))}" data-nav>${esc(s)} <small>${n}</small></a>`).join('')}<a class="all" href="${esc(qs({cat:c.nome}))}" data-nav>Ver tudo de ${esc(c.nome)} <small>${c.n}</small></a></div></div>`; }).join('')}`;
   falhasDeFoto($('drawer'));
+  setasBorda(document.querySelector('header')); setasBorda($('drawer'));
 }
 const falhasDeFoto = root => root.querySelectorAll('.bub img, .mbanner img').forEach(i => i.addEventListener('error', () => { i.outerHTML = icone(''); }, {once:true}));
 let megaAtual = null, megaT = 0;
@@ -588,7 +589,7 @@ function abrirMega(cat) {
   const m = $('mega');
   if (!megaAtual) {
     m.innerHTML = `<div class="wrap"><div class="mcards" role="list">${CATS.map(c => `<a class="mcard" role="listitem" href="${esc(qs({cat:c.nome}))}" data-nav data-sel="${esc(c.nome)}">${bolha(c.nome)}${esc(c.nome)}</a>`).join('')}</div><div id="mcols"></div></div>`;
-    m.hidden = false; falhasDeFoto(m);
+    m.hidden = false; falhasDeFoto(m); setasBorda(m);
   }
   if (megaAtual !== cat) {
     megaAtual = cat;
@@ -646,6 +647,48 @@ function montarPromo() {
   if (!reduz && msgs.length > 1) setInterval(() => { if (!document.hidden) { promoK++; mostrar(); } }, 5000);
 }
 
+
+/* ---------- rolagem horizontal com mouse comum: arrastar e setas nas bordas ---------- */
+const ROLAVEIS = '.rail, .mcards, .nav, .dcards, .tiles, .hero-track, .perks .wrap, .gal .thumbs, .cats';
+const mouseFino = matchMedia('(hover: hover) and (pointer: fine)');
+let arraste = null, engolirClique = false;
+document.addEventListener('pointerdown', e => {
+  if (e.pointerType !== 'mouse' || e.button !== 0) return;
+  const el = e.target.closest(ROLAVEIS);
+  if (!el || el.scrollWidth <= el.clientWidth + 2 || e.target.closest('input, select, textarea')) return;
+  arraste = {el, x: e.clientX, s: el.scrollLeft, moveu: false};
+});
+addEventListener('pointermove', e => {
+  if (!arraste) return;
+  const dx = e.clientX - arraste.x;
+  if (!arraste.moveu && Math.abs(dx) > 6) { arraste.moveu = true; arraste.el.classList.add('arrastando'); }
+  if (arraste.moveu) { arraste.el.scrollLeft = arraste.s - dx; e.preventDefault(); }
+});
+const soltar = () => { if (!arraste) return; if (arraste.moveu) { engolirClique = true; arraste.el.classList.remove('arrastando'); setTimeout(() => { engolirClique = false; }, 0); } arraste = null; };
+addEventListener('pointerup', soltar); addEventListener('pointercancel', soltar);
+document.addEventListener('click', e => { if (engolirClique) { e.preventDefault(); e.stopImmediatePropagation(); engolirClique = false; } }, true);
+document.addEventListener('dragstart', e => { if (e.target.closest && e.target.closest(ROLAVEIS)) e.preventDefault(); });
+// Setas que aparecem nas bordas quando há conteúdo escondido (menu, cartões de categoria)
+function setasBorda(root = document) {
+  root.querySelectorAll('.nav, .mcards, .tiles, .dcards').forEach(el => {
+    if (el.dataset.hs) { atualizarSetas(el); return; }
+    el.dataset.hs = '1';
+    const box = document.createElement('div'); box.className = 'hs-box'; el.before(box); box.append(el);
+    box.insertAdjacentHTML('beforeend', '<button type="button" class="hs-btn l" aria-label="Rolar para a esquerda" tabindex="-1">‹</button><button type="button" class="hs-btn r" aria-label="Rolar para a direita" tabindex="-1">›</button>');
+    box.querySelector('.l').addEventListener('click', () => el.scrollBy({left: -el.clientWidth * .8, behavior: reduz ? 'auto' : 'smooth'}));
+    box.querySelector('.r').addEventListener('click', () => el.scrollBy({left: el.clientWidth * .8, behavior: reduz ? 'auto' : 'smooth'}));
+    el.addEventListener('scroll', () => atualizarSetas(el), {passive:true});
+    atualizarSetas(el);
+  });
+}
+function atualizarSetas(el) {
+  const box = el.parentElement; if (!box || !box.classList.contains('hs-box')) return;
+  const sobra = el.scrollWidth - el.clientWidth > 2;
+  box.querySelector('.l').hidden = !sobra || el.scrollLeft < 4;
+  box.querySelector('.r').hidden = !sobra || el.scrollLeft + el.clientWidth >= el.scrollWidth - 4;
+}
+addEventListener('resize', () => document.querySelectorAll('[data-hs]').forEach(atualizarSetas), {passive:true});
+
 /* ---------- roteador ---------- */
 function rota() {
   limparTimers(); fecharSugg(); fecharMega(true);
@@ -662,7 +705,7 @@ function rota() {
   $('q').value = ps.get('q') || '';
   const atual = id ? null : ps.get('cat') ? 'cat:' + ps.get('cat') : ps.get('ver') ? 'ver:' + ps.get('ver') : ps.toString() ? null : 'home';
   document.querySelectorAll('#nav a').forEach(a => { if (a.dataset.k === atual) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current'); });
-  fallbackImgs($('view'));
+  fallbackImgs($('view')); setasBorda($('view'));
 }
 function ir(url) { history.pushState(null, '', url); rota(); scrollTo(0, 0); $('view').focus({preventScroll:true}); }
 addEventListener('popstate', rota);
