@@ -140,6 +140,15 @@ class TestSegurancaDoSite(unittest.TestCase):
         self.assertNotRegex(js, r"\son(error|click|load|mouseover)=")
 
 
+class TestTestesNaoMexemNosDadosReais(unittest.TestCase):
+    def test_todos_os_arquivos_do_robo_sao_isolados(self):
+        import re
+        texto = Path(__file__).read_text(encoding="utf-8")
+        isolados = set(re.findall(r'mock\.patch\.object\(robo, "(ARQ_\w+)"', texto))
+        gravados = {n for n in dir(robo) if n.startswith("ARQ_") and n != "ARQ_CONFIG"}
+        self.assertEqual(gravados - isolados, set(), "um teste gravaria nos dados reais do site")
+
+
 class TestSemSegredosNoCodigo(unittest.TestCase):
     """O erro clássico de código feito por IA: colar a chave no código para "fazer funcionar". Aqui isso reprova o robô."""
 
@@ -278,6 +287,9 @@ class TestRoboReal(unittest.TestCase):
             mock.patch.object(robo, "ARQ_STATUS", raiz / "status.json"),
             mock.patch.object(robo, "ARQ_PRECOS", raiz / "precos.json"),
             mock.patch.object(robo, "ARQ_CATS", raiz / "categorias.json"),
+            mock.patch.object(robo, "ARQ_ENCERRADAS", raiz / "encerradas.json"),
+            mock.patch.object(robo, "ARQ_RELACIONADOS", raiz / "relacionados.json"),
+            mock.patch.object(robo, "ARQ_CONTADOR", raiz / "contador.json"),
             mock.patch.object(robo, "ClienteML", FakeCliente),
             mock.patch.dict(os.environ, {"ML_CLIENT_ID": "x", "ML_CLIENT_SECRET": "y",
                                          "ML_MATT_WORD": "cesar", "ML_MATT_TOOL": "999"}),
