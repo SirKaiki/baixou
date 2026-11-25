@@ -214,7 +214,6 @@ function viewHome() {
   if (vis.length) h += rail('r-vistos', 'Vistos recentemente', vis.slice(0, 12), '', '', 'Continue de onde parou');
   if (cs.menor) h += rail('r-menor', 'Menor preço em 30 dias', cs.menor.itens.slice(0, 14), '?ver=menor', 'Ver todas', 'O preço mais baixo que registramos no mês');
   topCats.forEach((c, i) => { h += rail('r-cat' + i, `Destaques em ${c.nome}`, P.filter(p => p.categoria === c.nome).sort(porDesc).slice(0, 14), qs({cat:c.nome})); });
-  if (MARCAS.length >= 4) h += `<section class="sec wrap" aria-labelledby="marcas-t"><div class="sec-head"><h2 id="marcas-t">Compre por marca</h2></div><div class="brands">${MARCAS.slice(0, 18).map(m => `<a class="brand" href="${esc(qs({marca:m.nome}))}" data-nav>${esc(m.nome)} <small>${m.n}</small></a>`).join('')}</div></section>`;
   h += rail('r-desc', 'Maiores descontos', [...P].sort(porDesc).slice(0, 14), '?ver=descontos');
   h += `<section class="sec wrap" aria-labelledby="all-t"><div class="sec-head"><h2 id="all-t">Todas as ofertas</h2><div class="arrows"><a href="?ver=todas" data-nav>Ver as ${P.length}</a></div></div><div class="grid">${[...P].sort(porNovo).slice(0, 10).map(p => card(p)).join('')}</div>
     <div class="more"><a class="btn2" href="?ver=todas" data-nav>Ver todas as ofertas</a></div></section>`;
@@ -222,7 +221,7 @@ function viewHome() {
   heroInit(); railAuto('r-novas');
 }
 
-/* ---------- listagem ---------- */
+/* ---------- listagem com filtros ---------- */
 const VITRINES = {
   todas: {t:'Todas as ofertas', d:'Tudo o que está em promoção agora.'},
   novas: {t:'Acabou de baixar', d:'As ofertas mais recentes primeiro.', sort:'new'},
@@ -231,82 +230,168 @@ const VITRINES = {
   full: {t:'Frete grátis + Full', d:'Saem do estoque do Mercado Livre, com envio expresso.', full:true, frete:true},
   favoritos: {t:'Meus favoritos', d:'Salvos neste aparelho. Toque no coração de qualquer oferta para guardar aqui.', fav:true},
 };
+const FAIXAS = [['ate50', 'Até R$ 50', 0, 50], ['50-100', 'R$ 50 a R$ 100', 50, 100], ['100-200', 'R$ 100 a R$ 200', 100, 200], ['200-500', 'R$ 200 a R$ 500', 200, 500], ['500+', 'Acima de R$ 500', 500, Infinity]];
+const DESCONTOS = [20, 30, 40, 50];
 const PAGE = 24;
 let L = null;
+const naFaixa = (p, f) => f[2] === 0 ? p.preco <= f[3] : p.preco > f[2] && p.preco <= f[3];
+const lista = v => (v || '').split(',').map(s => s.trim()).filter(Boolean);
 function viewLista(ps) {
-  const max = /^\d+$/.test(ps.get('max') || '') ? ps.get('max') : '';
   let ver = VITRINES[ps.get('ver')] ? ps.get('ver') : '';
-  if (!ver && !ps.get('cat') && !ps.get('q') && !ps.get('marca') && !max) ver = 'todas';
+  const temAlgo = ['cat', 'q', 'marca', 'sub', 'max', 'min', 'preco', 'desc', 'frete', 'full', 'menor'].some(k => ps.get(k));
+  if (!ver && !temAlgo) ver = 'todas';
   const v = VITRINES[ver] || {};
-  L = {cat: ps.get('cat') || '', marca: ps.get('marca') || '', q: ps.get('q') || '', ver, fav: !!v.fav, disc:0, min:'', max, frete:!!v.frete, full:!!v.full, low:!!v.low, sort:v.sort || (ps.get('q') ? 'disc' : 'new'), shown:PAGE};
-  if (L.cat && !CATS.some(c => c.nome === L.cat)) L.cat = '';
-  const titulo = L.q ? `“${L.q}”` : L.cat || L.marca || (max && !ver ? `Tudo até R$ ${max}` : v.t);
-  const desc = L.q ? 'Resultados da busca' : L.cat ? `Ofertas selecionadas em ${L.cat.toLowerCase()}.` : L.marca ? `Ofertas da marca ${L.marca}.` : (max && !ver ? 'Ofertas que cabem no bolso.' : v.d);
+  const max = /^\d+$/.test(ps.get('max') || '') ? ps.get('max') : '';
+  const min = /^\d+$/.test(ps.get('min') || '') ? ps.get('min') : '';
+  L = {
+    ver, fav: !!v.fav, q: ps.get('q') || '', catFixa: ps.get('cat') || '',
+    cats: new Set(), subs: new Set(lista(ps.get('sub'))), marcas: new Set(lista(ps.get('marca'))),
+    faixa: FAIXAS.some(f => f[0] === ps.get('preco')) ? ps.get('preco') : '', min, max,
+    disc: DESCONTOS.includes(+ps.get('desc')) ? +ps.get('desc') : 0,
+    frete: !!v.frete || ps.get('frete') === '1', full: !!v.full || ps.get('full') === '1', low: !!v.low || ps.get('menor') === '1',
+    sort: ['new', 'disc', 'low', 'high'].includes(ps.get('ordem')) ? ps.get('ordem') : v.sort || (ps.get('q') ? 'disc' : 'new'),
+    shown: PAGE, ui: {open: new Set(['sub', 'marca', 'preco', 'entrega']), more: new Set(), mq: ''},
+  };
+  if (L.catFixa && !CATS.some(c => c.nome === L.catFixa)) L.catFixa = '';
+  if (!L.catFixa) L.ui.open.add('cat');
+  const marcaUnica = !L.catFixa && !L.q && L.marcas.size === 1 && !ver ? [...L.marcas][0] : '';
+  const titulo = L.q ? `“${L.q}”` : L.catFixa || marcaUnica || (max && !ver && !min ? `Tudo até R$ ${max}` : v.t || 'Ofertas');
+  const desc = L.q ? 'Resultados da busca' : L.catFixa ? `Ofertas selecionadas em ${L.catFixa.toLowerCase()}.` : marcaUnica ? `Ofertas da marca ${marcaUnica}.` : (max && !ver ? 'Ofertas que cabem no bolso.' : v.d || '');
   document.title = `${L.q ? 'Busca: ' + L.q : titulo} | Baixou`;
   $('view').innerHTML = `<div class="lhead"><div class="wrap"><div class="crumbs"><a href="./" data-nav>Início</a> › ${esc(L.q ? 'Busca' : titulo)}</div><h1>${esc(titulo)}</h1>${desc ? `<p>${esc(desc)}</p>` : ''}</div></div>
   <div class="wrap lmain">
-    <aside><details id="fd" open><summary>Filtros</summary><div class="fbox">
-      ${L.cat ? '' : `<div><h3>Categoria</h3><select id="fcat" aria-label="Categoria"><option value="">Todas</option>${CATS.map(c => `<option value="${esc(c.nome)}">${esc(c.nome)} (${c.n})</option>`).join('')}</select></div>`}
-      <div><h3>Desconto</h3>${[0, 20, 30, 40].map(d => `<label class="opt"><input type="radio" name="disc" value="${d}"${d ? '' : ' checked'}> ${d ? d + '% ou mais' : 'Qualquer desconto'}</label>`).join('')}</div>
-      <div><h3>Preço</h3><div class="price-row"><input id="pmin" type="number" inputmode="numeric" min="0" placeholder="Mín. R$" aria-label="Preço mínimo"><input id="pmax" type="number" inputmode="numeric" min="0" placeholder="Máx. R$" aria-label="Preço máximo" value="${esc(L.max)}"></div></div>
-      <div><h3>Entrega e preço</h3>
-        <label class="opt"><input id="frete" type="checkbox"${L.frete ? ' checked' : ''}> Frete grátis</label>
-        <label class="opt"><input id="full" type="checkbox"${L.full ? ' checked' : ''}> Entrega Full</label>
-        <label class="opt"><input id="low" type="checkbox"${L.low ? ' checked' : ''}> Menor preço em 30 dias</label></div>
-      <div><h3>Loja</h3><label class="opt"><input type="checkbox" checked disabled> <span class="pill">Mercado Livre</span></label><label class="opt"><input type="checkbox" disabled> Amazon <small>em breve</small></label><label class="opt"><input type="checkbox" disabled> Shopee <small>em breve</small></label></div>
-      <button class="btn2" id="reset" type="button">Limpar filtros</button>
-    </div></details></aside>
+    <aside id="faside" aria-label="Filtros"><div class="fp-head"><b>Filtrar</b><button type="button" data-fclose aria-label="Fechar filtros">×</button></div><div class="fpanel" id="fpanel"></div><div class="fp-foot"><button class="lim" type="button" data-flimpar>Limpar</button><button class="ver" type="button" data-fclose id="fver">Ver ofertas</button></div></aside>
     <section aria-live="polite">
+      <div class="fbar"><button type="button" id="fopen">Filtrar <em id="fcount" hidden></em></button><select id="sort2" aria-label="Ordenar"><option value="new">Mais recentes</option><option value="disc">Maior desconto</option><option value="low">Menor preço</option><option value="high">Maior preço</option></select></div>
       <div class="bar"><b id="cnt"></b><label for="sort">Ordenar <select id="sort"><option value="new">Mais recentes</option><option value="disc">Maior desconto</option><option value="low">Menor preço</option><option value="high">Maior preço</option></select></label></div>
       <div class="active" id="active"></div><div class="grid" id="grid"></div>
       <div class="more" id="more" hidden><button class="btn2" type="button" id="moreb">Carregar mais ofertas</button><span id="moret"></span></div>
     </section></div>`;
-  $('sort').value = L.sort;
-  if (matchMedia('(max-width:900px)').matches) $('fd').open = false;
-  const on = (id, ev, fn) => $(id)?.addEventListener(ev, fn);
-  on('fcat', 'change', e => { L.cat = e.target.value; listar(); });
-  document.querySelectorAll('input[name=disc]').forEach(r => r.addEventListener('change', e => { L.disc = +e.target.value; listar(); }));
-  on('pmin', 'input', e => { L.min = e.target.value; listar(); });
-  on('pmax', 'input', e => { L.max = e.target.value; listar(); });
-  ['frete', 'full', 'low'].forEach(k => on(k, 'change', e => { L[k] = e.target.checked; listar(); }));
-  on('sort', 'change', e => { L.sort = e.target.value; listar(); });
-  on('reset', 'click', () => { Object.assign(L, {disc:0, min:'', max:'', frete:false, full:false, low:false}); if ($('fcat')) { L.cat = ''; $('fcat').value = ''; } $('pmin').value = ''; $('pmax').value = ''; ['frete', 'full', 'low'].forEach(k => $(k).checked = false); document.querySelector('input[name=disc][value="0"]').checked = true; listar(); });
-  on('moreb', 'click', () => { L.shown += PAGE; listar(false); });
-  $('active').addEventListener('click', e => { const b = e.target.closest('[data-x]'); if (!b) return; const k = b.dataset.x;
-    if (k === 'disc') { L.disc = 0; document.querySelector('input[name=disc][value="0"]').checked = true; }
-    else if (k === 'min' || k === 'max') { L[k] = ''; $('p' + k).value = ''; }
-    else if (k === 'cat') { L.cat = ''; if ($('fcat')) $('fcat').value = ''; }
-    else { L[k] = false; $(k).checked = false; }
+  $('sort').value = $('sort2').value = L.sort;
+  const ordenar = e => { L.sort = e.target.value; $('sort').value = $('sort2').value = L.sort; listar(); };
+  $('sort').addEventListener('change', ordenar); $('sort2').addEventListener('change', ordenar);
+  $('moreb').addEventListener('click', () => { L.shown += PAGE; listar(false); });
+  $('fopen').addEventListener('click', () => abrirFiltros(true));
+  const fp = $('fpanel');
+  fp.addEventListener('change', e => {
+    const t = e.target, f = t.dataset.f; if (!f) return;
+    if (f === 'cats' || f === 'subs' || f === 'marcas') { t.checked ? L[f].add(t.value) : L[f].delete(t.value); }
+    else if (f === 'faixa') { L.faixa = t.checked ? t.value : ''; L.min = L.max = ''; }
+    else if (f === 'disc') L.disc = +t.value;
+    else L[f] = t.checked;
+    listar();
+  });
+  fp.addEventListener('click', e => {
+    const m = e.target.closest('[data-fmais]'); if (m) { const k = m.dataset.fmais; L.ui.more.has(k) ? L.ui.more.delete(k) : L.ui.more.add(k); painel(); }
+    if (e.target.closest('[data-faplicar]')) { L.min = $('fmin').value.replace(/\D/g, ''); L.max = $('fmax').value.replace(/\D/g, ''); L.faixa = ''; listar(); }
+  });
+  fp.addEventListener('toggle', e => { const d = e.target; if (d.dataset && d.dataset.k) d.open ? L.ui.open.add(d.dataset.k) : L.ui.open.delete(d.dataset.k); }, true);
+  fp.addEventListener('input', e => { if (e.target.id !== 'fmq') return; L.ui.mq = e.target.value; const q = norm(L.ui.mq);
+    fp.querySelectorAll('[data-mopt]').forEach(o => o.hidden = q ? !norm(o.dataset.mopt).includes(q) : o.dataset.extra === '1' && !L.ui.more.has('marcas')); });
+  $('faside').addEventListener('click', e => { if (e.target.closest('[data-fclose]')) abrirFiltros(false); if (e.target.closest('[data-flimpar]')) limparFiltros(); });
+  $('active').addEventListener('click', e => { const b = e.target.closest('[data-x]'); if (!b) return; const [k, val] = b.dataset.x.split('|');
+    if (k === 'tudo') return limparFiltros();
+    if (k === 'cats' || k === 'subs' || k === 'marcas') L[k].delete(val);
+    else if (k === 'preco') { L.faixa = ''; L.min = L.max = ''; }
+    else if (k === 'disc') L.disc = 0;
+    else L[k] = false;
     listar(); });
   listar();
 }
-function filtrados() {
-  const q = norm(L.q.trim()), fv = favs();
-  return P.filter(p => (!q || q.split(/\s+/).every(w => norm(p.titulo + ' ' + p.categoria + ' ' + (p.marca || '')).includes(w)))
-    && (!L.cat || p.categoria === L.cat) && (!L.marca || p.marca === L.marca) && (!L.fav || fv.has(p.id)) && p.desconto >= L.disc
-    && (L.min === '' || p.preco >= +L.min) && (L.max === '' || p.preco <= +L.max)
-    && (!L.frete || p.frete_gratis) && (!L.full || p.full) && (!L.low || p.menor_30d));
+function abrirFiltros(on) {
+  $('faside').classList.toggle('open', on); $('scrim').hidden = !on;
+  requestAnimationFrame(() => $('scrim').classList.toggle('on', on));
+  document.body.style.overflow = on ? 'hidden' : '';
+}
+function limparFiltros() {
+  Object.assign(L, {faixa:'', min:'', max:'', disc:0, frete:false, full:false, low:false});
+  L.cats.clear(); L.subs.clear(); L.marcas.clear(); L.ui.mq = '';
+  listar();
+}
+/* Cada filtro conta as ofertas considerando todos os OUTROS filtros (contagem facetada). */
+function passa(p, sem) {
+  const q = norm(L.q.trim()), fv = L.fav ? favs() : null;
+  if (q && !q.split(/\s+/).every(w => norm(`${p.titulo} ${p.categoria} ${p.subcategoria || ''} ${p.marca || ''}`).includes(w))) return false;
+  if (L.catFixa && p.categoria !== L.catFixa) return false;
+  if (fv && !fv.has(p.id)) return false;
+  if (sem !== 'cats' && L.cats.size && !L.cats.has(p.categoria)) return false;
+  if (sem !== 'subs' && L.subs.size && !L.subs.has(p.subcategoria)) return false;
+  if (sem !== 'marcas' && L.marcas.size && !L.marcas.has(p.marca)) return false;
+  if (sem !== 'faixa') {
+    const f = FAIXAS.find(x => x[0] === L.faixa);
+    if (f && !naFaixa(p, f)) return false;
+    if (L.min !== '' && p.preco < +L.min) return false;
+    if (L.max !== '' && p.preco > +L.max) return false;
+  }
+  if (sem !== 'disc' && p.desconto < L.disc) return false;
+  if (sem !== 'frete' && L.frete && !p.frete_gratis) return false;
+  if (sem !== 'full' && L.full && !p.full) return false;
+  if (sem !== 'low' && L.low && !p.menor_30d) return false;
+  return true;
+}
+function contar(sem, chave) { const c = new Map(); for (const p of P) if (passa(p, sem)) { const k = chave(p); if (k) c.set(k, (c.get(k) || 0) + 1); } return c; }
+function opcoes(f, itens, limite) {
+  const mais = L.ui.more.has(f);
+  return itens.map(([val, n], i) => { const sel = L[f].has(val), extra = i >= limite && !sel;
+    return `<label class="fopt${n ? '' : ' zero'}"${f === 'marcas' ? ` data-mopt="${esc(val)}" data-extra="${extra ? 1 : 0}"` : ''}${extra && !mais ? ' hidden' : ''}><input type="checkbox" data-f="${f}" value="${esc(val)}"${sel ? ' checked' : ''}><span>${esc(val)}</span><small>${n}</small></label>`; }).join('')
+    + (itens.length > limite ? `<button class="fmore" type="button" data-fmais="${f}">${mais ? 'Ver menos' : `Ver mais (${itens.length - limite})`}</button>` : '');
+}
+function faceta(k, titulo, corpo, ativos) {
+  return `<details class="facet" data-k="${k}"${L.ui.open.has(k) || ativos ? ' open' : ''}><summary>${esc(titulo)}${ativos ? `<em>${ativos}</em>` : ''}</summary><div class="fopts">${corpo}</div></details>`;
+}
+function painel() {
+  const ord = (m, sel) => [...m.entries()].sort((a, b) => (sel.has(b[0]) - sel.has(a[0])) || b[1] - a[1] || a[0].localeCompare(b[0], 'pt-BR'));
+  const comSel = (m, sel) => { for (const s of sel) if (!m.has(s)) m.set(s, 0); return m; };
+  let h = '';
+  if (!L.catFixa) h += faceta('cat', 'Categoria', opcoes('cats', ord(comSel(contar('cats', p => p.categoria), L.cats), L.cats), 8), L.cats.size);
+  const subs = ord(comSel(contar('subs', p => p.subcategoria), L.subs), L.subs);
+  if (subs.length) h += faceta('sub', L.catFixa ? `Tipo de produto` : 'Subcategoria', opcoes('subs', subs, 8), L.subs.size);
+  const marcas = ord(comSel(contar('marcas', p => p.marca), L.marcas), L.marcas);
+  if (marcas.length) h += faceta('marca', 'Marca', `${marcas.length > 8 ? `<input class="fsearch" id="fmq" type="search" placeholder="Buscar marca" aria-label="Buscar marca" value="${esc(L.ui.mq)}">` : ''}${opcoes('marcas', marcas, 8)}`, L.marcas.size);
+  const cf = contar('faixa', p => FAIXAS.find(f => naFaixa(p, f))?.[0]);
+  h += faceta('preco', 'Preço', FAIXAS.map(([k, l]) => `<label class="fopt${cf.get(k) ? '' : ' zero'}"><input type="checkbox" data-f="faixa" value="${k}"${L.faixa === k ? ' checked' : ''}><span>${l}</span><small>${cf.get(k) || 0}</small></label>`).join('')
+    + `<div class="fprice"><input id="fmin" inputmode="numeric" placeholder="Mín." aria-label="Preço mínimo" value="${esc(L.min)}"><input id="fmax" inputmode="numeric" placeholder="Máx." aria-label="Preço máximo" value="${esc(L.max)}"><button type="button" data-faplicar>Ok</button></div>`, L.faixa || L.min || L.max ? 1 : 0);
+  const cd = DESCONTOS.map(d => [d, P.filter(p => passa(p, 'disc') && p.desconto >= d).length]);
+  h += faceta('disc', 'Desconto', `<label class="fopt"><input type="radio" name="fdisc" data-f="disc" value="0"${L.disc ? '' : ' checked'}><span>Qualquer desconto</span></label>` + cd.map(([d, n]) => `<label class="fopt${n ? '' : ' zero'}"><input type="radio" name="fdisc" data-f="disc" value="${d}"${L.disc === d ? ' checked' : ''}><span>${d}% ou mais</span><small>${n}</small></label>`).join(''), L.disc ? 1 : 0);
+  const nb = (f, fn) => P.filter(p => passa(p, f) && fn(p)).length;
+  h += faceta('entrega', 'Entrega e preço', [['frete', 'Frete grátis', p => p.frete_gratis], ['full', 'Entrega Full', p => p.full], ['low', 'Menor preço em 30 dias', p => p.menor_30d]]
+    .map(([f, l, fn]) => { const n = nb(f, fn); return `<label class="fopt${n ? '' : ' zero'}"><input type="checkbox" data-f="${f}"${L[f] ? ' checked' : ''}><span>${l}</span><small>${n}</small></label>`; }).join(''), [L.frete, L.full, L.low].filter(Boolean).length);
+  h += faceta('loja', 'Loja', `<label class="fopt"><input type="checkbox" checked disabled><span><span class="pill">Mercado Livre</span></span></label><label class="fopt zero"><input type="checkbox" disabled><span>Amazon</span><small>em breve</small></label><label class="fopt zero"><input type="checkbox" disabled><span>Shopee</span><small>em breve</small></label>`, 0);
+  const fp = $('fpanel'), y = fp.scrollTop, foco = document.activeElement && document.activeElement.id === 'fmq';
+  fp.innerHTML = h; fp.scrollTop = y;
+  if (foco) { const i = $('fmq'); i.focus(); i.setSelectionRange(i.value.length, i.value.length); }
+  if (L.ui.mq) $('fmq')?.dispatchEvent(new Event('input', {bubbles:true}));
+}
+function syncLista() {
+  const u = {cat:L.catFixa, q:L.q, ver:L.ver !== 'todas' ? L.ver : '', sub:[...L.subs].join(','), marca:[...L.marcas].join(','), preco:L.faixa, min:L.min, max:L.max, desc:L.disc || '',
+    frete: L.frete && !VITRINES[L.ver]?.frete ? 1 : '', full: L.full && !VITRINES[L.ver]?.full ? 1 : '', menor: L.low && !VITRINES[L.ver]?.low ? 1 : '', ordem: L.sort !== (VITRINES[L.ver]?.sort || (L.q ? 'disc' : 'new')) ? L.sort : ''};
+  const url = qs(u); try { history.replaceState(null, '', url === './' ? '?ver=todas' : url); } catch (e) {}
 }
 function listar(reset = true) {
   if (reset) L.shown = PAGE;
   const by = {disc:porDesc, low:(a, b) => a.preco - b.preco, high:(a, b) => b.preco - a.preco, new:porNovo}[L.sort];
-  const r = filtrados().sort(by), vis = r.slice(0, L.shown);
+  const r = P.filter(p => passa(p, '')).sort(by), vis = r.slice(0, L.shown);
   $('cnt').textContent = r.length + (r.length === 1 ? ' oferta' : ' ofertas');
-  $('grid').innerHTML = vis.length ? vis.map(p => card(p)).join('') : L.fav
+  $('fver').textContent = `Ver ${r.length} ${r.length === 1 ? 'oferta' : 'ofertas'}`;
+  $('grid').innerHTML = vis.length ? vis.map(p => card(p)).join('') : L.fav && !favs().size
     ? `<div class="empty"><strong>Nenhum favorito ainda</strong><p>Toque no coração de uma oferta para salvá-la aqui.</p><a class="btn2" href="./" data-nav>Ver ofertas</a></div>`
-    : `<div class="empty"><strong>Nenhuma oferta com esses filtros</strong><p>Tente outra busca ou afrouxe os filtros.</p><a class="btn2" href="?ver=todas" data-nav>Ver todas as ofertas</a></div>`;
+    : `<div class="empty"><strong>Nenhuma oferta com esses filtros</strong><p>Tire algum filtro ou tente outra busca.</p><button class="btn2" type="button" data-x="tudo">Limpar filtros</button></div>`;
   fallbackImgs($('grid'));
   $('more').hidden = r.length <= L.shown;
   $('moret').textContent = `Mostrando ${vis.length} de ${r.length}`;
   const a = [];
-  if (L.cat && $('fcat')) a.push(['cat', L.cat]);
+  L.cats.forEach(c => a.push(['cats|' + c, c]));
+  L.subs.forEach(c => a.push(['subs|' + c, c]));
+  L.marcas.forEach(c => a.push(['marcas|' + c, c]));
+  const f = FAIXAS.find(x => x[0] === L.faixa);
+  if (f) a.push(['preco', f[1]]); else if (L.min || L.max) a.push(['preco', L.min && L.max ? `${brl0(L.min)} a ${brl0(L.max)}` : L.min ? `A partir de ${brl0(L.min)}` : `Até ${brl0(L.max)}`]);
   if (L.disc) a.push(['disc', `${L.disc}% ou mais`]);
-  if (L.min !== '') a.push(['min', `A partir de ${brl(L.min)}`]);
-  if (L.max !== '') a.push(['max', `Até ${brl(L.max)}`]);
   if (L.frete) a.push(['frete', 'Frete grátis']);
   if (L.full) a.push(['full', 'Entrega Full']);
   if (L.low) a.push(['low', 'Menor preço em 30 dias']);
-  $('active').innerHTML = a.map(([k, l]) => `<button type="button" data-x="${k}" aria-label="Remover filtro ${esc(l)}">${esc(l)} <span aria-hidden="true">×</span></button>`).join('');
+  $('active').innerHTML = a.map(([k, l]) => `<button type="button" data-x="${esc(k)}" aria-label="Remover filtro ${esc(l)}">${esc(l)} <span aria-hidden="true">×</span></button>`).join('') + (a.length > 1 ? '<button class="clear" type="button" data-x="tudo">Limpar tudo</button>' : '');
+  $('fcount').textContent = a.length; $('fcount').hidden = !a.length;
+  painel(); syncLista();
 }
 
 /* ---------- produto ---------- */
@@ -407,16 +492,79 @@ function grafico(p, pts) {
   new ResizeObserver(draw).observe(s);
 }
 
+/* ---------- menu de categorias (mega menu no computador, gaveta no celular) ---------- */
+const subsDe = cat => { const m = new Map(); P.forEach(p => { if (p.categoria === cat && p.subcategoria) m.set(p.subcategoria, (m.get(p.subcategoria) || 0) + 1); }); return [...m].sort((a, b) => b[1] - a[1]); };
+const marcasDe = cat => { const m = new Map(); P.forEach(p => { if (p.categoria === cat && p.marca) m.set(p.marca, (m.get(p.marca) || 0) + 1); }); return [...m].sort((a, b) => b[1] - a[1]); };
+function montarMenus() {
+  const ICON_GRID = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>';
+  $('nav').innerHTML = `<a class="all" href="?ver=todas" data-nav data-mega="*" aria-haspopup="true">${ICON_GRID} Categorias</a><a class="hot" href="?ver=menor" data-nav data-k="ver:menor">Menor preço</a><a href="?ver=novas" data-nav data-k="ver:novas">Acabou de baixar</a>`
+    + [...CATS].sort((x, y) => y.n - x.n).slice(0, 5).map(c => `<a href="${esc(qs({cat:c.nome}))}" data-nav data-k="cat:${esc(c.nome)}" data-mega="${esc(c.nome)}" aria-haspopup="true">${esc(c.nome)}</a>`).join('');
+  $('drawer').innerHTML = `<div class="dhead"><b>Baixou</b><button type="button" data-dclose aria-label="Fechar menu">×</button></div>
+    <nav class="dlinks"><a href="./" data-nav>Destaques</a><a class="hot" href="?ver=menor" data-nav>Menor preço em 30 dias</a><a href="?ver=novas" data-nav>Acabou de baixar</a><a href="?ver=favoritos" data-nav>Meus favoritos</a><a href="?ver=todas" data-nav>Todas as ofertas</a></nav>
+    ${CATS.map((c, i) => { const subs = subsDe(c.nome); return `<div class="dcat"><button type="button" aria-expanded="false" aria-controls="dsub${i}"><span>${icone(c.nome)}${esc(c.nome)}</span><i aria-hidden="true">+</i></button>
+      <div class="dsub" id="dsub${i}" hidden><a class="all" href="${esc(qs({cat:c.nome}))}" data-nav>Ver tudo em ${esc(c.nome)} <small>${c.n}</small></a>${subs.map(([s, n]) => `<a href="${esc(qs({cat:c.nome, sub:s}))}" data-nav>${esc(s)} <small>${n}</small></a>`).join('')}</div></div>`; }).join('')}`;
+}
+let megaAtual = null, megaT = 0;
+function megaHTML(alvo) {
+  if (alvo === '*') return `<div class="wrap"><div class="mhead"><h3>Todas as categorias</h3><a href="?ver=todas" data-nav>Ver todas as ofertas</a></div>
+    <div class="mall mcol">${CATS.map(c => { const e = estilo(c.nome); return `<a href="${esc(qs({cat:c.nome}))}" data-nav style="background:${e.bg};color:#0a0a0c">${icone(c.nome)}<span>${esc(c.nome)}<small>${c.n} ${c.n === 1 ? 'oferta' : 'ofertas'}</small></span></a>`; }).join('')}</div></div>`;
+  const c = CATS.find(x => x.nome === alvo); if (!c) return '';
+  const subs = subsDe(c.nome).slice(0, 10), marcas = marcasDe(c.nome).slice(0, 10);
+  const top = P.filter(p => p.categoria === c.nome).sort(porDesc).slice(0, 3);
+  return `<div class="wrap"><div class="mhead"><h3>${esc(c.nome)}</h3><a href="${esc(qs({cat:c.nome}))}" data-nav>Ver tudo (${c.n})</a></div><div class="mgrid">
+    <div class="mcol"><h4>Tipos de produto</h4><ul class="mlist">${subs.length ? subs.map(([s, n]) => `<li><a href="${esc(qs({cat:c.nome, sub:s}))}" data-nav>${esc(s)} <small>${n}</small></a></li>`).join('') : `<li><a href="${esc(qs({cat:c.nome}))}" data-nav>Todas as ofertas <small>${c.n}</small></a></li>`}</ul></div>
+    <div class="mcol"><h4>Marcas</h4><ul class="mlist">${marcas.length ? marcas.map(([m, n]) => `<li><a href="${esc(qs({cat:c.nome, marca:m}))}" data-nav>${esc(m)} <small>${n}</small></a></li>`).join('') : '<li><small>Sem marca informada</small></li>'}</ul></div>
+    <div class="mcol"><h4>Maiores descontos agora</h4><div class="mdeals">${top.map(p => { const f = seguro(p.foto); return `<a class="mdeal" href="?p=${encodeURIComponent(p.id)}" data-nav><span class="mp">${f ? `<img src="${esc(f)}" alt="" loading="lazy" referrerpolicy="no-referrer">` : icone(p.categoria)}<span class="off">-${p.desconto}%</span></span><span class="t">${esc(p.titulo)}</span><b>${brl(p.preco)}</b></a>`; }).join('')}</div></div>
+  </div></div>`;
+}
+function abrirMega(alvo) {
+  clearTimeout(megaT);
+  if (megaAtual === alvo) return;
+  megaAtual = alvo;
+  const m = $('mega'); m.innerHTML = megaHTML(alvo); m.hidden = false;
+  m.querySelectorAll('img').forEach(i => i.addEventListener('error', () => { i.outerHTML = icone(''); }, {once:true}));
+  document.querySelectorAll('#nav [data-mega]').forEach(a => { a.classList.toggle('open', a.dataset.mega === alvo); a.setAttribute('aria-expanded', String(a.dataset.mega === alvo)); });
+}
+function fecharMega(ja) {
+  clearTimeout(megaT);
+  const f = () => { megaAtual = null; $('mega').hidden = true; document.querySelectorAll('#nav [data-mega]').forEach(a => { a.classList.remove('open'); a.setAttribute('aria-expanded', 'false'); }); };
+  ja ? f() : (megaT = setTimeout(f, 180));
+}
+const desktop = matchMedia('(min-width: 901px)');
+$('nav').addEventListener('pointerover', e => { if (!desktop.matches || e.pointerType === 'touch') return; const a = e.target.closest('[data-mega]'); clearTimeout(megaT); if (a) megaT = setTimeout(() => abrirMega(a.dataset.mega), megaAtual ? 60 : 140); });
+$('nav').addEventListener('focusin', e => { const a = e.target.closest('[data-mega]'); if (a && desktop.matches) abrirMega(a.dataset.mega); });
+document.querySelector('header').addEventListener('pointerleave', () => fecharMega());
+$('mega').addEventListener('pointerenter', () => clearTimeout(megaT));
+document.addEventListener('keydown', e => { if (e.key === 'Escape') { fecharMega(true); abrirDrawer(false); if ($('faside')) abrirFiltros(false); } });
+document.addEventListener('focusin', e => { if (megaAtual && !e.target.closest('header')) fecharMega(true); });
+function abrirDrawer(on) {
+  const d = $('drawer'); if (!d) return;
+  d.classList.toggle('open', on); d.setAttribute('aria-hidden', String(!on)); on ? d.removeAttribute('inert') : d.setAttribute('inert', '');
+  $('menuBtn').setAttribute('aria-expanded', String(on));
+  $('scrim').hidden = !on && !$('faside')?.classList.contains('open');
+  requestAnimationFrame(() => $('scrim').classList.toggle('on', on));
+  document.body.style.overflow = on ? 'hidden' : '';
+  if (on) d.querySelector('[data-dclose]')?.focus();
+}
+$('menuBtn').addEventListener('click', () => abrirDrawer(true));
+$('drawer').addEventListener('click', e => {
+  if (e.target.closest('[data-dclose]')) return abrirDrawer(false);
+  const b = e.target.closest('.dcat>button'); if (b) { const on = b.getAttribute('aria-expanded') !== 'true'; b.setAttribute('aria-expanded', String(on)); $(b.getAttribute('aria-controls')).hidden = !on; }
+});
+$('scrim').addEventListener('click', () => { abrirDrawer(false); if ($('faside')) abrirFiltros(false); });
+
 /* ---------- roteador ---------- */
 function rota() {
-  limparTimers(); fecharSugg();
+  limparTimers(); fecharSugg(); fecharMega(true);
+  if ($('drawer').classList.contains('open')) abrirDrawer(false);
+  $('scrim').hidden = true; $('scrim').classList.remove('on'); document.body.style.overflow = '';
   if (obsBuy) { removeEventListener('scroll', obsBuy); obsBuy = null; }
   $('buybar').classList.remove('on'); document.body.classList.remove('has-buybar');
   const ps = new URLSearchParams(location.search);
   const id = ps.get('p') || ps.get('oferta');
   if (ps.get('oferta')) history.replaceState(null, '', qs({p:id}));
   if (id) viewProduto(id);
-  else if (ps.get('cat') || ps.get('q') || ps.get('ver') || ps.get('marca') || ps.get('max')) viewLista(ps);
+  else if (['cat', 'q', 'ver', 'marca', 'sub', 'max', 'min', 'preco', 'desc', 'frete', 'full', 'menor'].some(k => ps.get(k))) viewLista(ps);
   else viewHome();
   $('q').value = ps.get('q') || '';
   const atual = id ? null : ps.get('cat') ? 'cat:' + ps.get('cat') : ps.get('ver') ? 'ver:' + ps.get('ver') : ps.toString() ? null : 'home';
@@ -433,6 +581,7 @@ document.addEventListener('click', e => {
   const pv = e.target.closest('[data-prev]'), nx = e.target.closest('[data-next]');
   if (pv || nx) { const r = $((pv || nx).dataset.prev || (pv || nx).dataset.next); r.scrollBy({left: (pv ? -1 : 1) * r.clientWidth * .85, behavior:'smooth'}); }
   const sh = e.target.closest('[data-share]'); if (sh) compartilhar(sh.dataset.share);
+  if (e.target.closest('#grid [data-x="tudo"]') && L) limparFiltros();
 });
 
 /* ---------- busca com sugestões ---------- */
@@ -490,7 +639,7 @@ Promise.all([
   P.forEach(p => { cont1[p.categoria] = (cont1[p.categoria] || 0) + 1; if (p.marca) cont2[p.marca] = (cont2[p.marca] || 0) + 1; });
   CATS = Object.entries(cont1).map(([nome, n]) => ({nome, n})).sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
   MARCAS = Object.entries(cont2).map(([nome, n]) => ({nome, n})).sort((a, b) => b.n - a.n || a.nome.localeCompare(b.nome, 'pt-BR'));
-  $('nav').innerHTML = `<a href="./" data-nav data-k="home">Destaques</a><a class="hot" href="?ver=menor" data-nav data-k="ver:menor">Menor preço</a><a href="?ver=novas" data-nav data-k="ver:novas">Acabou de baixar</a>` + CATS.map(c => `<a href="${esc(qs({cat:c.nome}))}" data-nav data-k="cat:${esc(c.nome)}">${esc(c.nome)}</a>`).join('');
+  montarMenus();
   if (d.modo === 'demonstração') $('demo').hidden = false;
   contarFavs(); rota();
 }).catch(() => { $('view').innerHTML = '<div class="wrap" style="padding-block:40px"><div class="empty"><strong>Não foi possível carregar as ofertas</strong><p>Tente recarregar a página em instantes.</p></div></div>'; });

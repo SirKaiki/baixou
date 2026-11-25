@@ -24,6 +24,7 @@ from ml import ClienteML, ErroML, normalizar  # noqa: E402
 RAIZ = Path(__file__).resolve().parent.parent
 ARQ_CONFIG = RAIZ / "config.json"
 ARQ_HIST = RAIZ / "dados" / "historico.json"
+ARQ_CATS = RAIZ / "dados" / "categorias.json"
 ARQ_OFERTAS = RAIZ / "site" / "data" / "ofertas.json"
 ARQ_STATUS = RAIZ / "site" / "data" / "status.json"
 ARQ_PRECOS = RAIZ / "site" / "data" / "precos.json"
@@ -194,6 +195,16 @@ def main() -> int:
         except ErroML as e:
             alertas.append(f"Não foi possível buscar as fotos extras ({e}).")
 
+    # Subcategoria (nome da categoria exata do Mercado Livre), com cache para não repetir chamadas
+    nomes_cat = ler(ARQ_CATS, {})
+    if cliente and not freio:
+        novas = [c for c in {i.get("categoria_ml") for i in aprovadas} if c and c not in nomes_cat][:80]
+        for cid in novas:
+            nome = cliente.nome_categoria(cid)
+            if nome:
+                nomes_cat[cid] = nome
+        gravar(ARQ_CATS, nomes_cat)
+
     # 6. Publicação
     removidas = []
     if freio:
@@ -203,6 +214,7 @@ def main() -> int:
         for item in aprovadas:
             publicadas.append({
                 "id": item["id"], "titulo": item["titulo"], "categoria": item["categoria"],
+                "subcategoria": nomes_cat.get(item.get("categoria_ml") or "") or item.get("subcategoria"),
                 "preco": item["preco"], "preco_cheio": item["preco_cheio"],
                 "desconto": g.desconto(item["preco"], item["preco_cheio"]),
                 "parcelas": item["parcelas"], "sem_juros": item["sem_juros"],

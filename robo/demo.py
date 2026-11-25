@@ -74,8 +74,18 @@ MARCAS = ["Samsung", "Motorola", "Amazfit", "Lenovo", "LG", "Kingston", "JBL", "
           "PlayStation", "Bosch", "Lego", "Burigotto"]
 
 
+SUBS = [("smartphone", "Smartphones"), ("iphone", "Smartphones"), ("smartwatch", "Smartwatches"), ("notebook", "Notebooks"),
+        ("monitor", "Monitores"), ("ssd", "Armazenamento"), ("fone", "Fones de ouvido"), ("caixa de som", "Caixas de som"),
+        ("tv", "Smart TVs"), ("air fryer", "Fritadeiras"), ("liquidificador", "Liquidificadores"), ("cafeteira", "Cafeteiras"),
+        ("panela", "Panelas"), ("cama", "Roupa de cama"), ("perfume", "Perfumes"), ("secador", "Secadores"),
+        ("protetor", "Protetor solar"), ("tênis", "Tênis"), ("mochila", "Mochilas"), ("halteres", "Musculação"),
+        ("bicicleta", "Ergométricas"), ("controle", "Controles"), ("console", "Consoles"), ("furadeira", "Furadeiras"),
+        ("chaves", "Ferramentas manuais"), ("lego", "Blocos de montar"), ("carrinho", "Carrinhos de bebê")]
+
+
 def _item(n, titulo, cat, cheio, preco, frete, full, parc, rep, condicao, rnd) -> dict:
     return {
+        "subcategoria": next((s for k, s in SUBS if k in titulo.lower()), None),
         "marca": next((m for m in MARCAS if m.lower() in titulo.lower()), None),
         "id": f"DEMO{n:04d}",
         "titulo": titulo,

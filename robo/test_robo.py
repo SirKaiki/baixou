@@ -114,7 +114,7 @@ class FakeCliente:
         return [{"id": f"MLB{n}", "title": f"Caixa de som modelo {n}", "price": 100.0, "original_price": 150.0,
                  "condition": "new", "available_quantity": 5, "status": "active",
                  "seller": {"id": 7}, "shipping": {"free_shipping": True, "logistic_type": "fulfillment"},
-                 "installments": {"quantity": 6, "rate": 0}, "thumbnail": "http://http2.mlstatic.com/D_1-I.jpg",
+                 "installments": {"quantity": 6, "rate": 0}, "thumbnail": "http://http2.mlstatic.com/D_1-I.jpg", "category_id": "MLB3835",
                  "permalink": f"https://produto.mercadolivre.com.br/MLB-{n}-caixa"} for n in range(30)]
 
     def itens(self, ids):
@@ -123,6 +123,9 @@ class FakeCliente:
 
     def reputacao(self, vid):
         return "5_green"
+
+    def nome_categoria(self, cid):
+        return "Caixas de som" if cid == "MLB3835" else None
 
 
 class TestRoboReal(unittest.TestCase):
@@ -134,6 +137,7 @@ class TestRoboReal(unittest.TestCase):
             mock.patch.object(robo, "ARQ_OFERTAS", raiz / "ofertas.json"),
             mock.patch.object(robo, "ARQ_STATUS", raiz / "status.json"),
             mock.patch.object(robo, "ARQ_PRECOS", raiz / "precos.json"),
+            mock.patch.object(robo, "ARQ_CATS", raiz / "categorias.json"),
             mock.patch.object(robo, "ClienteML", FakeCliente),
             mock.patch.dict(os.environ, {"ML_CLIENT_ID": "x", "ML_CLIENT_SECRET": "y",
                                          "ML_MATT_WORD": "cesar", "ML_MATT_TOOL": "999"}),
@@ -159,6 +163,7 @@ class TestRoboReal(unittest.TestCase):
         self.assertTrue(ofertas[0]["full"] and ofertas[0]["frete_gratis"])
         self.assertEqual(len(ofertas[0]["fotos"]), 4)
         self.assertEqual(ofertas[0]["marca"], "JBL")
+        self.assertEqual(ofertas[0]["subcategoria"], "Caixas de som")
         precos = self.ler("precos.json")
         self.assertEqual(set(precos), {o["id"] for o in ofertas})
 

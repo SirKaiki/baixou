@@ -99,6 +99,12 @@ class ClienteML:
             saida += [x["body"] for x in r if x.get("code") == 200 and isinstance(x.get("body"), dict)]
         return saida
 
+    def nome_categoria(self, categoria_id: str) -> str | None:
+        try:
+            return self._requisicao("GET", f"/categories/{categoria_id}", tentativas=2).get("name")
+        except ErroML:
+            return None
+
     def reputacao(self, vendedor_id) -> str | None:
         chave = str(vendedor_id)
         if chave not in self._reputacoes:
@@ -136,4 +142,5 @@ def normalizar(bruto: dict, categoria_nome: str, reputacao: str | None) -> dict:
         "foto": foto,
         "permalink": bruto.get("permalink", ""),
         "catalogo": bruto.get("catalog_product_id"),
+        "categoria_ml": bruto.get("category_id"),
     }
