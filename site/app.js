@@ -102,6 +102,8 @@ temaBtns.forEach(b => b.addEventListener('click', () => aplicarTema(b.dataset.t)
 let P = [], byId = new Map(), CATS = [], MARCAS = [], REL = {quem_viu:{}, populares:[]}, POP = new Map(), precosP = null;
 const vistos = () => ler('baixou-vistos', []).map(id => byId.get(String(id))).filter(Boolean);
 function marcarVisto(id) { const v = ler('baixou-vistos', []).filter(x => x !== id); v.unshift(id); guardar('baixou-vistos', v.slice(0, 16)); }
+let encP = null;
+const encerradas = () => encP ??= fetch('data/encerradas.json', {cache:'no-store'}).then(r => r.ok ? r.json() : {}).then(d => d.ofertas || []).catch(() => []);
 const precos = () => precosP ??= fetch('data/precos.json', {cache:'no-store'}).then(r => r.ok ? r.json() : {}).catch(() => ({}));
 
 /* ---------- favoritos ---------- */
@@ -109,9 +111,40 @@ const favs = () => new Set(ler('baixou-favs', []));
 function contarFavs() { const n = [...favs()].filter(id => byId.has(id)).length; $('favn').textContent = n; $('favn').hidden = !n; }
 function alternarFav(id) {
   const f = favs(); const on = !f.has(id); on ? f.add(id) : f.delete(id); guardar('baixou-favs', [...f]);
+  const fp = ler('baixou-favp', {}); if (on && byId.has(id)) fp[id] = byId.get(id).preco; else delete fp[id]; guardar('baixou-favp', fp);
   document.querySelectorAll(`[data-fav="${CSS.escape(id)}"]`).forEach(b => { b.setAttribute('aria-pressed', String(on)); b.setAttribute('aria-label', on ? 'Remover dos favoritos' : 'Salvar nos favoritos'); });
   contarFavs(); toast(on ? 'Salvo nos favoritos' : 'Removido dos favoritos');
 }
+
+/* ---------- alertas guardados neste navegador (favoritos que baixaram, buscas, ofertas que voltaram) ---------- */
+const casaBusca = (p, q) => { q = norm(String(q).trim()); return !!q && q.split(/\s+/).every(w => norm(`${p.titulo} ${p.categoria} ${p.subcategoria || ''} ${p.marca || ''}`).includes(w)); };
+const alertasBusca = () => ler('baixou-alertas', []).filter(a => a && a.q);
+function alternarAlertaBusca(q) {
+  const l = alertasBusca(), i = l.findIndex(a => norm(a.q) === norm(q));
+  if (i >= 0) l.splice(i, 1); else l.unshift({q, desde: new Date().toISOString()});
+  guardar('baixou-alertas', l.slice(0, 20)); return i < 0;
+}
+function vistoBusca(q) { const l = alertasBusca(), a = l.find(x => norm(x.q) === norm(q)); if (a) { a.desde = new Date().toISOString(); guardar('baixou-alertas', l); } }
+const quedasFav = () => { const fp = ler('baixou-favp', {}); return [...favs()].map(id => byId.get(id)).filter(p => p && fp[p.id] && p.preco < fp[p.id] - .009).map(p => ({p, antes: fp[p.id]})); };
+function avisos() {
+  // favoritos antigos (de antes desta função) passam a ser acompanhados a partir do preço de hoje
+  const fp = ler('baixou-favp', {}); let mudou = false;
+  favs().forEach(id => { if (!(id in fp) && byId.has(id)) { fp[id] = byId.get(id).preco; mudou = true; } }); if (mudou) guardar('baixou-favp', fp);
+  const itens = [];
+  const q = quedasFav(); if (q.length) itens.push([`favq:${q.map(x => x.p.id + x.p.preco).join()}`, q.length === 1 ? `Seu favorito baixou: <b>${esc(q[0].p.titulo)}</b> de ${brl(q[0].antes)} por ${brl(q[0].p.preco)}` : `<b>${q.length} favoritos</b> baixaram de preço desde que você salvou`, q.length === 1 ? `?p=${encodeURIComponent(q[0].p.id)}` : '?ver=favoritos']);
+  alertasBusca().forEach(a => { const n = P.filter(p => casaBusca(p, a.q) && p.novo_em > a.desde).length; if (n) itens.push([`busca:${a.q}:${n}`, `<b>${n} ${n === 1 ? 'oferta nova' : 'ofertas novas'}</b> para “${esc(a.q)}”`, qs({q:a.q})]); });
+  ler('baixou-voltar', []).forEach(id => { const p = byId.get(id); if (p) itens.push([`volta:${id}`, `Voltou ao ar: <b>${esc(p.titulo)}</b> por ${brl(p.preco)}`, `?p=${encodeURIComponent(id)}`]); });
+  const fechados = new Set(ler('baixou-avisos-fechados', [])), vis = itens.filter(i => !fechados.has(i[0]));
+  const el = $('aviso'); if (!el) return;
+  el.hidden = !vis.length; if (!vis.length) return;
+  const [k, txt, href] = vis[0];
+  el.innerHTML = `<div class="wrap"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 8a6 6 0 1112 0c0 7 3 9 3 9H3s3-2 3-9M10 21a2 2 0 004 0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><a href="${esc(href)}" data-nav>${txt}${vis.length > 1 ? ` <small>+${vis.length - 1}</small>` : ''} <span>Ver →</span></a><button type="button" aria-label="Fechar aviso">×</button></div>`;
+  el.querySelector('button').onclick = () => { guardar('baixou-avisos-fechados', [...fechados, ...vis.map(i => i[0])].slice(-60)); el.hidden = true; };
+  el.querySelector('a').addEventListener('click', () => { guardar('baixou-avisos-fechados', [...fechados, k].slice(-60)); if (k.startsWith('volta:')) guardar('baixou-voltar', ler('baixou-voltar', []).filter(x => x !== k.slice(6))); setTimeout(avisos, 0); });
+}
+
+/* ---------- dados estruturados (Google) da página de produto ---------- */
+function ld(obj) { let el = document.getElementById('ld'); if (!obj) { el?.remove(); return; } if (!el) { el = document.createElement('script'); el.type = 'application/ld+json'; el.id = 'ld'; document.head.appendChild(el); } el.textContent = JSON.stringify(obj); }
 
 /* ---------- contador anônimo (só se estiver publicado) ---------- */
 let CONTADOR = '';
@@ -291,7 +324,7 @@ function viewLista(ps) {
   const titulo = L.q ? `“${L.q}”` : L.catFixa || marcaUnica || (max && !ver && !min ? `Tudo até R$ ${max}` : v.t || 'Ofertas');
   const desc = L.q ? 'Resultados da busca' : L.catFixa ? `Ofertas selecionadas em ${L.catFixa.toLowerCase()}.` : marcaUnica ? `Ofertas da marca ${marcaUnica}.` : (max && !ver ? 'Ofertas que cabem no bolso.' : v.d || '');
   document.title = `${L.q ? 'Busca: ' + L.q : titulo} | Baixou`;
-  $('view').innerHTML = `<div class="lhead"><div class="wrap"><div class="crumbs"><a href="./" data-nav>Início</a> › ${esc(L.q ? 'Busca' : titulo)}</div><h1>${esc(titulo)}</h1>${desc ? `<p>${esc(desc)}</p>` : ''}</div></div>
+  $('view').innerHTML = `<div class="lhead"><div class="wrap"><div class="crumbs"><a href="./" data-nav>Início</a> › ${esc(L.q ? 'Busca' : titulo)}</div><h1>${esc(titulo)}</h1>${desc ? `<p>${esc(desc)}</p>` : ''}${L.q ? `<button type="button" class="alertbtn" id="alertbtn" aria-pressed="${alertasBusca().some(a => norm(a.q) === norm(L.q))}"></button>` : ''}${L.fav ? resumoFavs() : ''}</div></div>
   <div class="wrap lmain">
     <aside id="faside" aria-label="Filtros"><div class="fp-head"><b>Filtrar</b><button type="button" data-fclose aria-label="Fechar filtros">×</button></div><div class="fpanel" id="fpanel"></div><div class="fp-foot"><button class="lim" type="button" data-flimpar>Limpar</button><button class="ver" type="button" data-fclose id="fver">Ver ofertas</button></div></aside>
     <section aria-live="polite">
@@ -329,8 +362,17 @@ function viewLista(ps) {
     else if (k === 'disc') L.disc = 0;
     else L[k] = false;
     listar(); });
+  if (L.q) { vistoBusca(L.q); pintarAlertaBtn(); $('alertbtn').onclick = () => { const on = alternarAlertaBusca(L.q); $('alertbtn').setAttribute('aria-pressed', String(on)); pintarAlertaBtn(); toast(on ? 'Pronto: avisamos aqui quando surgir oferta nova' : 'Alerta removido'); }; }
+  $('view').querySelectorAll('[data-rmalerta]').forEach(b => b.onclick = () => { alternarAlertaBusca(b.dataset.rmalerta); b.parentElement.remove(); toast('Alerta removido'); });
   listar(false);
 }
+function resumoFavs() {
+  const q = quedasFav(), al = alertasBusca();
+  return (q.length ? `<div class="quedas"><b>Baixaram desde que você salvou</b>${q.map(x => `<a href="?p=${encodeURIComponent(x.p.id)}" data-nav>${esc(x.p.titulo)} <s>${brl(x.antes)}</s> <b>${brl(x.p.preco)}</b></a>`).join('')}</div>` : '')
+    + (al.length ? `<div class="alist"><b>Seus alertas de busca</b>${al.map(a => `<span><a href="${esc(qs({q:a.q}))}" data-nav>${esc(a.q)}</a><button type="button" data-rmalerta="${esc(a.q)}" aria-label="Remover alerta ${esc(a.q)}">×</button></span>`).join('')}</div>` : '')
+    + '<p class="anota">Favoritos e alertas ficam salvos neste navegador. Quando algo baixar ou aparecer, avisamos no topo do site.</p>';
+}
+function pintarAlertaBtn() { const b = $('alertbtn'); if (!b) return; const on = b.getAttribute('aria-pressed') === 'true'; b.innerHTML = `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 8a6 6 0 1112 0c0 7 3 9 3 9H3s3-2 3-9M10 21a2 2 0 004 0" fill="${on ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>${on ? 'Alerta criado para esta busca' : 'Me avise de novas ofertas desta busca'}`; }
 function abrirFiltros(on) {
   $('faside').classList.toggle('open', on); $('scrim').hidden = !on;
   requestAnimationFrame(() => $('scrim').classList.toggle('on', on));
@@ -343,8 +385,8 @@ function limparFiltros() {
 }
 /* Cada filtro conta as ofertas considerando todos os OUTROS filtros (contagem facetada). */
 function passa(p, sem) {
-  const q = norm(L.q.trim()), fv = L.fav ? favs() : null;
-  if (q && !q.split(/\s+/).every(w => norm(`${p.titulo} ${p.categoria} ${p.subcategoria || ''} ${p.marca || ''}`).includes(w))) return false;
+  const fv = L.fav ? favs() : null;
+  if (L.q.trim() && !casaBusca(p, L.q)) return false;
   if (L.catFixa && p.categoria !== L.catFixa) return false;
   if (fv && !fv.has(p.id)) return false;
   if (sem !== 'cats' && L.cats.size && !L.cats.has(p.categoria)) return false;
@@ -490,6 +532,7 @@ function viewProduto(id) {
   if (!p) {
     document.title = 'Oferta encerrada | Baixou';
     $('view').innerHTML = `<div class="wrap" style="padding-block:40px"><div class="empty"><strong>Esta oferta acabou</strong><p>O robô tira do ar o que encareceu ou esgotou. Veja o que está valendo agora:</p><a class="btn2" href="./" data-nav>Ir para a página inicial</a></div></div>${rail('r-desc', 'Maiores descontos agora', [...P].sort(porDesc).slice(0, 14), '?ver=descontos')}`;
+    encerradas().then(lista => { const o = lista.find(x => String(x.id) === id); if (o && new URLSearchParams(location.search).get('p') === id) viewEncerrada(o); });
     return;
   }
   marcarVisto(p.id); evento('v', p.id);
@@ -518,10 +561,12 @@ function viewProduto(id) {
         ${p.preco_cheio ? `<span class="was">${brl(p.preco_cheio)}</span>` : ''}
         <div class="row"><span class="now">${brl(p.preco)}</span><span class="off">-${p.desconto}%</span></div>
         ${economia > 0 ? `<span class="save">Você economiza ${brl(economia)}</span>` : ''}
+        <div class="verdict" id="verdict" hidden></div>
         ${p.parcelas > 1 ? `<span class="parc" style="font-size:15px">em ${p.parcelas}x de ${brl(p.preco / p.parcelas)}${p.sem_juros ? ' sem juros' : ''}</span>` : ''}
         ${p.frete_gratis ? '<span class="ship">Frete grátis</span>' : ''}
         <a class="buy" id="buy" href="${esc(link)}" target="_blank" rel="nofollow sponsored noopener" data-buy="${esc(p.id)}">Comprar no Mercado Livre ↗</a>
         <button class="share" type="button" data-share="${esc(p.id)}">${SVG_SHARE} Compartilhar oferta</button>
+        <p class="aff"><b>Link de afiliado</b> O Baixou pode receber uma comissão se você comprar por este link, sem custo extra para você. <a href="privacidade.html#afiliado">Saiba mais</a></p>
         <p class="note">Preço verificado ${ago(p.verificado_em)}. Você conclui a compra no Mercado Livre; preço e estoque podem mudar.</p>
       </div>
       ${pop && pop.c >= 3 ? `<div class="proof"><b>${pop.c}</b> pessoas foram à loja por esta oferta nas últimas 24 horas</div>` : ''}
@@ -540,11 +585,39 @@ function viewProduto(id) {
   }));
   // barra de compra fixa quando o botão principal sai da tela
   const bar = $('buybar');
-  bar.innerHTML = `<div class="p"><b>${brl(p.preco)}</b><small>-${p.desconto}% · ${p.frete_gratis ? 'frete grátis' : 'Mercado Livre'}</small></div><a href="${esc(link)}" target="_blank" rel="nofollow sponsored noopener" data-buy="${esc(p.id)}">Comprar ↗</a>`;
+  bar.innerHTML = `<div class="p"><b>${brl(p.preco)}</b><small>-${p.desconto}% · ${p.frete_gratis ? 'frete grátis · ' : ''}link de afiliado</small></div><a href="${esc(link)}" target="_blank" rel="nofollow sponsored noopener" data-buy="${esc(p.id)}">Comprar ↗</a>`;
   const btn = $('buy');
   obsBuy = () => { const on = btn.getBoundingClientRect().bottom < 0; bar.classList.toggle('on', on); bar.setAttribute('aria-hidden', String(!on)); document.body.classList.toggle('has-buybar', on); };
   addEventListener('scroll', obsBuy, {passive:true});
+  ld({'@context': 'https://schema.org/', '@type': 'Product', name: p.titulo, image: fotos, category: p.categoria, ...(p.marca ? {brand: {'@type': 'Brand', name: p.marca}} : {}),
+    offers: {'@type': 'Offer', url: location.href, price: p.preco.toFixed(2), priceCurrency: 'BRL', availability: 'https://schema.org/InStock', itemCondition: 'https://schema.org/NewCondition', seller: {'@type': 'Organization', name: p.loja || 'Mercado Livre'}}});
   precos().then(todos => grafico(p, todos[p.id] || []));
+}
+/* Veredito do preço, no estilo dos sites de promoção: compara o preço de hoje com o histórico que o robô guardou */
+function viewEncerrada(o) {
+  const f = seguro(o.foto), e = estilo(o.categoria), voltar = () => ler('baixou-voltar', []), on = voltar().includes(String(o.id));
+  const par = P.filter(x => x.categoria === o.categoria).sort(porDesc);
+  document.title = `Oferta encerrada: ${o.titulo} | Baixou`;
+  $('view').innerHTML = `<div class="wrap"><div class="crumbs" style="padding-top:18px"><a href="./" data-nav>Início</a> › <a href="${esc(qs({cat:o.categoria}))}" data-nav>${esc(o.categoria)}</a></div>
+    <div class="ended"><div class="pic" style="${f ? '' : `background:${e.bg}`}">${f ? `<img src="${esc(f)}" alt="" referrerpolicy="no-referrer">` : `<span class="ph">${icone(o.categoria)}</span>`}</div>
+    <div><span class="tagend">Oferta encerrada</span><h1>${esc(o.titulo)}</h1>
+      <p>Último preço que vimos: <b>${brl(o.preco)}</b>${o.preco_cheio ? ` <s>${brl(o.preco_cheio)}</s>` : ''} · saiu do ar ${ago(o.encerrada_em)}. O robô tira a oferta quando o preço sobe, o estoque acaba ou o desconto deixa de ser real.</p>
+      <div class="acts"><button type="button" class="buy" id="avise" aria-pressed="${on}">${on ? 'Vamos avisar se voltar ✓' : 'Me avise se voltar'}</button><a class="btn2" href="${esc(qs({cat:o.categoria}))}" data-nav>Ver ofertas de ${esc(o.categoria.toLowerCase())}</a></div></div></div></div>
+    ${par.length ? rail('r-par', 'Parecidas que estão valendo agora', par.slice(0, 14), qs({cat:o.categoria}), 'Ver categoria') : ''}
+    ${rail('r-desc', 'Maiores descontos agora', [...P].sort(porDesc).slice(0, 14), '?ver=descontos')}`;
+  $('avise').onclick = () => { const l = voltar(), id = String(o.id), liga = !l.includes(id); guardar('baixou-voltar', liga ? [id, ...l].slice(0, 30) : l.filter(x => x !== id));
+    $('avise').setAttribute('aria-pressed', String(liga)); $('avise').textContent = liga ? 'Vamos avisar se voltar ✓' : 'Me avise se voltar'; toast(liga ? 'Avisamos aqui no site se a oferta voltar' : 'Aviso removido'); };
+  fallbackImgs($('view')); setasBorda($('view'));
+}
+function veredito(p, serie) {
+  const el = $('verdict'); if (!el) return;
+  const vals = serie.map(s => s[1]), menor = Math.min(...vals), maior = Math.max(...vals), desde = dm(serie[0][0]);
+  let cls, tit, txt;
+  if (serie.length < 3) { cls = 'novo'; tit = 'Preço recém-chegado ao nosso radar'; txt = `Acompanhamos desde ${desde}. O desconto de ${p.desconto}% foi conferido pelo robô.`; }
+  else if (p.preco <= menor + .009) { cls = 'top'; tit = 'Preço excelente: o menor que já registramos'; txt = `Desde ${desde}, variou entre ${brl(menor)} e ${brl(maior)}.`; }
+  else if (p.preco - menor <= (maior - menor) * .35) { cls = 'bom'; tit = 'Bom preço: perto do menor registrado'; txt = `O menor desde ${desde} foi ${brl(menor)}; hoje está ${brl(p.preco - menor)} acima.`; }
+  else { cls = 'meh'; tit = 'Pode melhorar: já esteve mais barato'; const d = serie.find(s => s[1] === menor); txt = `Chegou a ${brl(menor)} em ${dm(d[0])}. Salve nos favoritos que avisamos se baixar.`; }
+  el.className = 'verdict ' + cls; el.innerHTML = `<b>${tit}</b><span>${txt}</span>`; el.hidden = false;
 }
 function grafico(p, pts) {
   const fig = $('fig'), stats = $('stats'); if (!fig) return;
@@ -552,6 +625,7 @@ function grafico(p, pts) {
   const serie = pts.map(([d, v]) => [d, Number(v)]);
   if (!serie.length || serie[serie.length - 1][0] !== hoje) serie.push([hoje, p.preco]);
   const vals = serie.map(s => s[1]), menor = Math.min(...vals), maior = Math.max(...vals);
+  veredito(p, serie);
   stats.innerHTML = `<div><span>Hoje</span><b>${brl(p.preco)}</b></div><div class="hl"><span>Menor registrado</span><b>${brl(menor)}</b></div><div><span>Maior registrado</span><b>${brl(maior)}</b></div>`;
   if (serie.length < 2) { fig.style.height = 'auto'; fig.innerHTML = `<p class="note" style="font-size:15px">Começamos a acompanhar este preço em ${dm(serie[0][0])}. O gráfico aparece assim que tivermos mais dias de histórico.</p>`; return; }
   fig.innerHTML = '<svg role="img" aria-label="Gráfico do histórico de preço"></svg>';
@@ -742,7 +816,7 @@ document.addEventListener('wheel', e => {
 
 /* ---------- roteador ---------- */
 function rota() {
-  limparTimers(); fecharSugg(); fecharMega(true);
+  limparTimers(); ld(null); fecharSugg(); fecharMega(true);
   if ($('drawer').classList.contains('open')) abrirDrawer(false);
   $('scrim').hidden = true; $('scrim').classList.remove('on'); document.body.style.overflow = '';
   if (obsBuy) { removeEventListener('scroll', obsBuy); obsBuy = null; }
@@ -800,7 +874,7 @@ $('sf').addEventListener('submit', e => { e.preventDefault(); const q = $('q').v
 function toast(m) { const t = $('toast'); t.textContent = m; t.classList.add('on'); clearTimeout(toast.h); toast.h = setTimeout(() => t.classList.remove('on'), 2000); }
 async function compartilhar(id) {
   const p = byId.get(id); if (!p) return;
-  const url = location.origin + location.pathname + '?p=' + encodeURIComponent(id);
+  const url = location.origin + location.pathname.replace(/[^/]*$/, '') + 'o/' + encodeURIComponent(id) + '.html';
   const texto = `${p.titulo} por ${brl(p.preco)} (-${p.desconto}%) no Baixou`;
   if (navigator.share) { try { await navigator.share({title:'Baixou', text:texto, url}); return; } catch (e) { if (e && e.name === 'AbortError') return; } }
   try { await navigator.clipboard.writeText(texto + ' ' + url); toast('Link da oferta copiado'); }
@@ -826,6 +900,6 @@ Promise.all([
   MARCAS = Object.entries(cont2).map(([nome, n]) => ({nome, n})).sort((a, b) => b.n - a.n || a.nome.localeCompare(b.nome, 'pt-BR'));
   montarMenus(); montarPromo();
   if (d.modo === 'demonstração') $('demo').hidden = false;
-  contarFavs(); rota();
+  contarFavs(); rota(); avisos();
 }).catch(() => { $('view').innerHTML = '<div class="wrap" style="padding-block:40px"><div class="empty"><strong>Não foi possível carregar as ofertas</strong><p>Tente recarregar a página em instantes.</p></div></div>'; });
 }

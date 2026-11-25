@@ -13,6 +13,7 @@ import sys
 import time
 import urllib.request
 from collections import Counter
+from datetime import timedelta
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
@@ -30,6 +31,8 @@ ARQ_STATUS = RAIZ / "site" / "data" / "status.json"
 ARQ_PRECOS = RAIZ / "site" / "data" / "precos.json"
 ARQ_CONTADOR = RAIZ / "site" / "data" / "contador.json"
 ARQ_RELACIONADOS = RAIZ / "site" / "data" / "relacionados.json"
+ARQ_ENCERRADAS = RAIZ / "site" / "data" / "encerradas.json"
+DIAS_ENCERRADAS = 7  # quanto tempo a página de uma oferta que saiu do ar continua mostrando o último preço
 
 
 def montar_relacionados(export: dict, publicados: set) -> dict:
@@ -109,6 +112,21 @@ def coletar_real(cfg: dict, anteriores: dict, alertas: list) -> tuple[list[dict]
     for item in itens.values():
         item["link"] = g.link_afiliado(item["permalink"], mw, mt)
     return list(itens.values()), cliente
+
+
+def atualizar_encerradas(atual: dict, anteriores: dict, ids_novos: set, avaliacao: dict, historico: dict, agora) -> dict:
+    """Guarda por alguns dias as ofertas que saíram do ar, para o link antigo mostrar "oferta encerrada" com o último preço."""
+    carimbo = agora.isoformat(timespec="minutes")
+    limite = (agora - timedelta(days=DIAS_ENCERRADAS)).isoformat(timespec="minutes")
+    lista = {o["id"]: o for o in atual.get("ofertas", []) if o.get("encerrada_em", "") >= limite and o["id"] not in ids_novos}
+    for id_ant, ant in anteriores.items():
+        if id_ant in ids_novos or id_ant in lista:
+            continue
+        motivo = avaliacao.get(id_ant, ("", "anúncio encerrado"))[1] or "substituída por oferta melhor"
+        lista[id_ant] = {k: ant.get(k) for k in ("id", "titulo", "categoria", "subcategoria", "marca", "foto", "preco", "preco_cheio", "desconto", "loja")} | {
+            "encerrada_em": carimbo, "motivo": motivo, "historico": g.precos_diarios(historico.get(id_ant, []))}
+    ordem = sorted(lista.values(), key=lambda o: o["encerrada_em"], reverse=True)[:300]
+    return {"gerado_em": carimbo, "ofertas": ordem}
 
 
 def main() -> int:
@@ -231,6 +249,7 @@ def main() -> int:
             if id_ant not in ids_novos:
                 motivo = avaliacao.get(id_ant, ("", "anúncio não encontrado ou encerrado"))[1] or "substituída por oferta melhor"
                 removidas.append({"titulo": ant["titulo"], "motivo": motivo})
+        gravar(ARQ_ENCERRADAS, atualizar_encerradas(ler(ARQ_ENCERRADAS, {}), anteriores, ids_novos, avaliacao, historico, agora), compacto=True)
         gravar(ARQ_OFERTAS, {"gerado_em": carimbo, "modo": modo, "ofertas": publicadas}, compacto=True)
         gravar(ARQ_PRECOS, {o["id"]: g.precos_diarios(historico.get(o["id"], [])) for o in publicadas}, compacto=True)
         export = ler_contador(alertas)

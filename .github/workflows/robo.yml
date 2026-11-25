@@ -58,6 +58,9 @@ jobs:
             git pull -q --rebase origin main && git push -q
           fi
 
+      - name: Gerar páginas de compartilhamento e sitemap (só no pacote publicado)
+        run: python robo/paginas.py
+
       - uses: actions/configure-pages@v5
 
       - name: Forçar o navegador a baixar a versão nova do site

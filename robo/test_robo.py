@@ -97,6 +97,19 @@ class TestRelacionados(unittest.TestCase):
         self.assertEqual(r["visitas_24h"], 9)
 
 
+class TestEncerradas(unittest.TestCase):
+    def test_guarda_as_que_sairam_e_esquece_depois_de_uma_semana(self):
+        ant = {"A": {"id": "A", "titulo": "Fone", "categoria": "Eletrônicos", "preco": 99.9, "preco_cheio": 150.0, "desconto": 33, "foto": "https://x/a.jpg"},
+               "B": {"id": "B", "titulo": "Mouse", "categoria": "Informática", "preco": 50.0}}
+        velha = {"id": "C", "titulo": "Velha", "encerrada_em": (AGORA - timedelta(days=8)).isoformat(timespec="minutes")}
+        voltou = {"id": "B", "titulo": "Mouse", "encerrada_em": (AGORA - timedelta(days=1)).isoformat(timespec="minutes")}
+        r = robo.atualizar_encerradas({"ofertas": [velha, voltou]}, ant, {"B"}, {"A": ("reprovada", "sem estoque")}, {}, AGORA)
+        ids = [o["id"] for o in r["ofertas"]]
+        self.assertEqual(ids, ["A"])  # A saiu agora; B voltou ao ar; C passou de 7 dias
+        self.assertEqual(r["ofertas"][0]["motivo"], "sem estoque")
+        self.assertEqual(r["ofertas"][0]["preco"], 99.9)
+
+
 class FakeCliente:
     """Imita a API do Mercado Livre."""
     falhar_tudo = False
