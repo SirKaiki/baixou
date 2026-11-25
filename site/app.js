@@ -72,7 +72,7 @@ const CAT_FOTO = {
   'Moda e calçados':    { id: '1600185365483-26d7a4cc7519', bg: '#cdcec8' }
 };
 const catFoto = (cat, w = 480, h = Math.round(w * .75)) => CAT_FOTO[cat] ? `https://images.unsplash.com/photo-${CAT_FOTO[cat].id}?w=${w}&h=${h}&q=72&auto=format&fit=crop` : '';
-const fotoImg = (cat, w, h) => { const f = CAT_FOTO[cat], m = f && f.mult; return `<img src="${esc(catFoto(cat, w, h))}" alt="" loading="lazy" referrerpolicy="no-referrer"${m ? ` class="mult" style="filter:brightness(${m})"` : ''} onerror="this.remove()">`; };
+const fotoImg = (cat, w, h) => { const f = CAT_FOTO[cat], m = f && f.mult; return `<img src="${esc(catFoto(cat, w, h))}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer"${m ? ` class="mult" style="filter:brightness(${m})"` : ''} onerror="this.remove()">`; };
 const icone = (cat, cor) => { const e = estilo(cat); return `<svg viewBox="0 0 120 120" aria-hidden="true">${IC[e.ic](cor || e.fg)}</svg>`; };
 const SVG_HEART = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s-7.5-4.6-9.5-9.2C1 8.3 3.2 4.5 7 4.5c2 0 3.6 1.1 5 3 1.4-1.9 3-3 5-3 3.8 0 6 3.8 4.5 7.3C19.5 16.4 12 21 12 21z"/></svg>';
 const SVG_SHARE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/></svg>';
