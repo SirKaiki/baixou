@@ -481,7 +481,8 @@ header .hs-box::after,.mega .hs-box::after,.drawer .hs-box::after{background:lin
 .tile.tsolid{color:#16171b;padding:0;gap:0;justify-content:flex-start;min-height:0;border-radius:12px;isolation:isolate}
 .tile .tph{display:block;aspect-ratio:4/3;overflow:hidden}
 .tile .tph img{display:block;width:100%;height:100%;object-fit:cover;-webkit-mask-image:linear-gradient(#000 72%,transparent);mask-image:linear-gradient(#000 72%,transparent);transition:transform .4s ease}
-.tile .tph img.mult,.bub img.mult{mix-blend-mode:multiply;-webkit-mask-image:none;mask-image:none}
+.tile .tph img.mult,.bub img.mult{mix-blend-mode:multiply}
+.bub img.mult{-webkit-mask-image:none;mask-image:none}
 .tile.tsolid:hover .tph img{transform:scale(1.06)}
 .tile .ttx{display:flex;flex-direction:column;gap:3px;padding:2px 14px 14px}
 .tile.tsolid b{font:700 17px/1.15 var(--disp);color:#16171b;hyphens:auto}

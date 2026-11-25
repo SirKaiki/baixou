@@ -60,9 +60,9 @@ const estilo = cat => { const n = norm(cat); for (const [re, ic, bg, fg] of ESTI
 const CAT_FOTO = {
   'Bebês':              { id: '1622290319146-7b63df48a635', bg: '#ddd0af' },
   'Beleza':             { id: '1630573133526-8d090e0269af', bg: '#dcd0dd' },
-  'Brinquedos':         { id: '1582845512747-e42001c95638', bg: '#cfe4f4', mult: 1 },
-  'Casa e decoração':   { id: '1642582652474-d5cff4857c40', bg: '#dde7d4', mult: 1 },
-  'Celulares':          { id: '1634403665481-74948d815f03', bg: '#eee4df' },
+  'Brinquedos':         { id: '1582845512747-e42001c95638', bg: '#cfe4f4', mult: 1.07 },
+  'Casa e decoração':   { id: '1642582652474-d5cff4857c40', bg: '#dde7d4', mult: 1.05 },
+  'Celulares':          { id: '1634403665481-74948d815f03', bg: '#eee4df', fill: 1 },
   'Eletrodomésticos':   { id: '1571552879083-e93b6ea70d1d', bg: '#e3def3', mult: 1.16 },
   'Eletrônicos':        { id: '1505740420928-5e560c06d30e', bg: '#f0ba0c' },
   'Esportes e fitness': { id: '1784894645353-81486c66a687', bg: '#9fc2d2' },
@@ -71,7 +71,8 @@ const CAT_FOTO = {
   'Informática':        { id: '1551515300-2d3b7bb80920', bg: '#d4eee4', mult: 1 },
   'Moda e calçados':    { id: '1600185365483-26d7a4cc7519', bg: '#cdcec8' }
 };
-const catFoto = (cat, w = 480, h = Math.round(w * .75)) => CAT_FOTO[cat] ? `https://images.unsplash.com/photo-${CAT_FOTO[cat].id}?w=${w}&h=${h}&q=72&auto=format&fit=crop` : '';
+// fill = foto em pé: mostra o item inteiro e completa as laterais com a cor do fundo
+const catFoto = (cat, w = 480, h = Math.round(w * .75)) => { const f = CAT_FOTO[cat]; return f ? `https://images.unsplash.com/photo-${f.id}?w=${w}&h=${h}&q=72&auto=format&${f.fill ? `fit=fill&fill=solid&fill-color=${f.bg.slice(1)}` : 'fit=crop'}` : ''; };
 const fotoImg = (cat, w, h) => { const f = CAT_FOTO[cat], m = f && f.mult; return `<img src="${esc(catFoto(cat, w, h))}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer"${m ? ` class="mult" style="filter:brightness(${m})"` : ''} onerror="this.remove()">`; };
 const icone = (cat, cor) => { const e = estilo(cat); return `<svg viewBox="0 0 120 120" aria-hidden="true">${IC[e.ic](cor || e.fg)}</svg>`; };
 const SVG_HEART = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s-7.5-4.6-9.5-9.2C1 8.3 3.2 4.5 7 4.5c2 0 3.6 1.1 5 3 1.4-1.9 3-3 5-3 3.8 0 6 3.8 4.5 7.3C19.5 16.4 12 21 12 21z"/></svg>';
