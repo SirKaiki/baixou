@@ -444,3 +444,8 @@ header .hs-btn,.mega .hs-btn,.drawer .hs-btn{background:#2a2a2e;color:#fff;borde
 .hs-box:has(>.rail) .hs-btn{top:calc(50% - 3px);width:44px;height:44px;font-size:24px}
 .hs-box:has(>.rail) .hs-btn.l{left:-14px}.hs-box:has(>.rail) .hs-btn.r{right:-14px}
 @media(max-width:1400px){.hs-box:has(>.rail) .hs-btn.l{left:4px}.hs-box:has(>.rail) .hs-btn.r{right:4px}}
+
+/* setas laterais das vitrines: maiores e no meio da foto */
+.hs-box:has(> .rail) .hs-btn{top:38%;width:46px;height:46px;font-size:24px;background:rgba(255,255,255,.97);color:#16171b;border-color:#e2e3e8;box-shadow:0 10px 24px -10px rgba(0,0,0,.4);transition:transform .15s,opacity .15s}
+.hs-box:has(> .rail) .hs-btn:hover{transform:translateY(-50%) scale(1.08)}
+.hs-box:has(> .rail) .hs-btn.l{left:-16px}.hs-box:has(> .rail) .hs-btn.r{right:-16px}
