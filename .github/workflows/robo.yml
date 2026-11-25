@@ -9,6 +9,7 @@ on:
     paths: ["site/**", "robo/**", "config.json", ".github/workflows/**"]
 
 permissions:
+  actions: read
   contents: write
   pages: write
   id-token: write
