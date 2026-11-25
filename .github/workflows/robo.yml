@@ -2,7 +2,7 @@ name: Robô de ofertas
 
 on:
   schedule:
-    - cron: "*/15 * * * *"   # a cada 15 minutos (o GitHub pode atrasar alguns minutos)
+    - cron: "7,22,37,52 * * * *"   # a cada 15 minutos, fora da virada da hora (o GitHub atrasa menos)
   workflow_dispatch:          # botão "Run workflow" para rodar na hora
   push:
     branches: [main]
@@ -22,9 +22,8 @@ jobs:
   robo:
     runs-on: ubuntu-latest
     timeout-minutes: 12
-    environment:
-      name: github-pages
-      url: ${{ steps.deploy.outputs.page_url }}
+    outputs:
+      freio: ${{ steps.robo.outcome }}
     steps:
       - uses: actions/checkout@v4
 
@@ -65,12 +64,20 @@ jobs:
         with:
           path: site
 
+  publicar:
+    needs: robo
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
       - name: Publicar o site
         id: deploy
         uses: actions/deploy-pages@v4
 
       - name: Avisar se o freio foi acionado
-        if: steps.robo.outcome == 'failure'
+        if: needs.robo.outputs.freio == 'failure'
         run: |
           echo "::error::O robô acionou o freio de emergência ou falhou. Veja o painel (painel.html) para detalhes."
           exit 1
