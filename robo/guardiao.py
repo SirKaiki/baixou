@@ -123,6 +123,15 @@ def menor_preco_periodo(pontos: list, preco: float) -> bool:
     return len(precos) >= 3 and dias >= 3 and preco <= min(precos)
 
 
+def precos_diarios(pontos: list) -> list:
+    """Resume o histórico em um ponto por dia (o menor preço do dia), para o gráfico do site."""
+    por_dia: dict[str, float] = {}
+    for quando, preco in pontos:
+        dia = quando[:10]
+        por_dia[dia] = min(preco, por_dia.get(dia, preco))
+    return [[d, por_dia[d]] for d in sorted(por_dia)]
+
+
 def chave_duplicata(item: dict) -> str:
     """Mesmo produto de catálogo, ou mesmo título, conta como duplicata."""
     return item.get("catalogo") or _sem_acento(item.get("titulo", ""))[:60]

@@ -24,6 +24,7 @@ ARQ_CONFIG = RAIZ / "config.json"
 ARQ_HIST = RAIZ / "dados" / "historico.json"
 ARQ_OFERTAS = RAIZ / "site" / "data" / "ofertas.json"
 ARQ_STATUS = RAIZ / "site" / "data" / "status.json"
+ARQ_PRECOS = RAIZ / "site" / "data" / "precos.json"
 
 
 def ler(caminho: Path, padrao):
@@ -146,7 +147,17 @@ def main() -> int:
     if cliente and cliente.novo_refresh_token:
         alertas.append("O Mercado Livre trocou o refresh token: atualize o segredo ML_REFRESH_TOKEN.")
 
-    # 5. Publicação
+    # 5. Fotos extras para a página do produto (só das aprovadas, em lotes de 20)
+    fotos: dict[str, list[str]] = {}
+    if cliente and aprovadas and not freio:
+        try:
+            for bruto in cliente.itens([i["id"] for i in aprovadas]):
+                urls = [(f.get("secure_url") or f.get("url") or "").replace("http://", "https://") for f in bruto.get("pictures", [])]
+                fotos[bruto["id"]] = [u for u in urls if u][:4]
+        except ErroML as e:
+            alertas.append(f"Não foi possível buscar as fotos extras ({e}).")
+
+    # 6. Publicação
     removidas = []
     if freio:
         alertas.insert(0, "FREIO ACIONADO: o site manteve as ofertas anteriores. " + freio)
@@ -159,7 +170,8 @@ def main() -> int:
                 "desconto": g.desconto(item["preco"], item["preco_cheio"]),
                 "parcelas": item["parcelas"], "sem_juros": item["sem_juros"],
                 "frete_gratis": item["frete_gratis"], "full": item["full"],
-                "foto": item["foto"], "link": item["link"], "loja": cfg["loja"],
+                "foto": item["foto"], "fotos": fotos.get(item["id"], []),
+                "link": item["link"], "loja": cfg["loja"],
                 "menor_30d": g.menor_preco_periodo(historico.get(item["id"], []), item["preco"]),
                 "verificado_em": carimbo,
                 "novo_em": anteriores.get(item["id"], {}).get("novo_em", carimbo),
@@ -170,6 +182,7 @@ def main() -> int:
                 motivo = avaliacao.get(id_ant, ("", "anúncio não encontrado ou encerrado"))[1] or "substituída por oferta melhor"
                 removidas.append({"titulo": ant["titulo"], "motivo": motivo})
         gravar(ARQ_OFERTAS, {"gerado_em": carimbo, "modo": modo, "ofertas": publicadas}, compacto=True)
+        gravar(ARQ_PRECOS, {o["id"]: g.precos_diarios(historico.get(o["id"], [])) for o in publicadas}, compacto=True)
 
     gravar(ARQ_HIST, historico, compacto=True)
 

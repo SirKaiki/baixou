@@ -37,5 +37,5 @@ Edite o `config.json` direto no GitHub (ícone de lápis):
 ## Pastas
 
 - `robo/`: o robô (`robo.py`), o guardião (`guardiao.py`), o cliente da API (`ml.py`), o modo demonstração e os testes.
-- `site/`: o site (`index.html`) e o painel (`painel.html`); `site/data/` é gerado pelo robô.
+- `site/`: a loja (`index.html`, `app.css`, `app.js`) e o painel (`painel.html`); `site/data/` é gerado pelo robô (`ofertas.json`, `precos.json` para o gráfico de histórico, `status.json`).
 - `dados/historico.json`: histórico de preços usado para detectar desconto falso.

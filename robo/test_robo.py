@@ -77,6 +77,10 @@ class TestGuardiao(unittest.TestCase):
         self.assertFalse(g.menor_preco_periodo(hist["X"], 260.0))
         self.assertFalse(g.menor_preco_periodo(hist["X"][:2], 200.0))
 
+    def test_precos_diarios(self):
+        pts = [["2026-11-20T10:00+00:00", 300.0], ["2026-11-20T18:00+00:00", 280.0], ["2026-11-21T09:00+00:00", 290.0]]
+        self.assertEqual(g.precos_diarios(pts), [["2026-11-20", 280.0], ["2026-11-21", 290.0]])
+
     def test_historico_descarta_pontos_antigos(self):
         hist = {"X": [["2026-01-01T00:00+00:00", 10.0]]}
         g.registrar_preco(hist, "X", 12.0, AGORA, 30)
@@ -104,7 +108,7 @@ class FakeCliente:
                  "permalink": f"https://produto.mercadolivre.com.br/MLB-{n}-caixa"} for n in range(30)]
 
     def itens(self, ids):
-        return []
+        return [{"id": i, "pictures": [{"secure_url": f"https://http2.mlstatic.com/D_{i}_{k}-O.jpg"} for k in range(6)]} for i in ids]
 
     def reputacao(self, vid):
         return "5_green"
@@ -118,6 +122,7 @@ class TestRoboReal(unittest.TestCase):
             mock.patch.object(robo, "ARQ_HIST", raiz / "historico.json"),
             mock.patch.object(robo, "ARQ_OFERTAS", raiz / "ofertas.json"),
             mock.patch.object(robo, "ARQ_STATUS", raiz / "status.json"),
+            mock.patch.object(robo, "ARQ_PRECOS", raiz / "precos.json"),
             mock.patch.object(robo, "ClienteML", FakeCliente),
             mock.patch.dict(os.environ, {"ML_CLIENT_ID": "x", "ML_CLIENT_SECRET": "y",
                                          "ML_MATT_WORD": "cesar", "ML_MATT_TOOL": "999"}),
@@ -141,6 +146,9 @@ class TestRoboReal(unittest.TestCase):
         self.assertEqual(len(ofertas), 30)
         self.assertTrue(all("matt_word=cesar" in o["link"] and o["foto"].startswith("https://") for o in ofertas))
         self.assertTrue(ofertas[0]["full"] and ofertas[0]["frete_gratis"])
+        self.assertEqual(len(ofertas[0]["fotos"]), 4)
+        precos = self.ler("precos.json")
+        self.assertEqual(set(precos), {o["id"] for o in ofertas})
 
     def test_sem_codigo_de_afiliado_nada_e_publicado(self):
         with mock.patch.dict(os.environ, {"ML_MATT_WORD": ""}):
