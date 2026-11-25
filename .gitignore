@@ -2,3 +2,13 @@ __pycache__/
 *.pyc
 site/o/
 site/sitemap.xml
+
+# Nunca versionar segredos nem arquivos gerados com dados da conta
+.env
+.env.*
+.dev.vars
+*.pem
+*.key
+worker/wrangler.toml
+worker/node_modules/
+.wrangler/

@@ -6,12 +6,14 @@ Cada regra devolve um motivo legível. Há dois níveis de bloqueio:
 """
 from __future__ import annotations
 
+import re
 import statistics
 import unicodedata
 from datetime import datetime, timedelta, timezone
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 HOSTS_ML = ("mercadolivre.com.br",)
+ID_VALIDO = re.compile(r"[A-Za-z0-9_-]{3,40}")  # vira nome de arquivo e endereço: nada de barras ou pontos
 CAMINHOS_PROIBIDOS = ("/ofertas", "/ofertas-do-dia", "/lista", "/busca")
 
 
@@ -36,10 +38,21 @@ def link_afiliado(permalink: str, matt_word: str | None, matt_tool: str | None) 
     return urlunsplit((partes.scheme or "https", partes.netloc, partes.path, urlencode(query), ""))
 
 
+def id_seguro(valor) -> bool:
+    return isinstance(valor, str) and ID_VALIDO.fullmatch(valor) is not None
+
+
 def checar_link(link: str, exige_afiliado: bool) -> str | None:
     """Devolve um motivo de bloqueio, ou None se o link está ok."""
-    partes = urlsplit(link)
-    host = partes.netloc.lower()
+    try:
+        partes = urlsplit(link)
+        host = (partes.hostname or "").lower()
+        porta = partes.port
+    except ValueError:
+        return "link fora do Mercado Livre"
+    # Nada de "usuario@" no endereço (truque clássico para disfarçar o destino) nem de porta estranha.
+    if "@" in partes.netloc or "\\" in link or porta not in (None, 443):
+        return "link fora do Mercado Livre"
     if partes.scheme != "https" or not any(host == h or host.endswith("." + h) for h in HOSTS_ML):
         return "link fora do Mercado Livre"
     if host.startswith("lista.") or any(partes.path.startswith(c) for c in CAMINHOS_PROIBIDOS) or partes.path in ("", "/"):
@@ -80,6 +93,8 @@ def avaliar(item: dict, regras: dict, comissao: float, historico_item: list, exi
     pct = desconto(preco, cheio)
     titulo = _sem_acento(item.get("titulo", ""))
 
+    if not id_seguro(item.get("id")):
+        return "reprovada", "código do anúncio inválido"
     if item.get("status") != "active":
         return "reprovada", "anúncio inativo"
     if (item.get("estoque") or 0) <= 0:

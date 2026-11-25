@@ -16,6 +16,9 @@ const ago = iso => { const m = Math.max(0, Math.round(minutos(iso))); return m <
 const dm = d => { const [, m, dd] = String(d).split('-'); return `${dd}/${m}`; };
 const reduz = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const qs = o => { const u = new URLSearchParams(); for (const [k, v] of Object.entries(o)) if (v !== '' && v != null && v !== false) u.set(k, v); const s = u.toString(); return s ? '?' + s : './'; };
+// Foto que não carrega some do cartão. Ouvinte único (erros de imagem não "sobem", por isso a captura),
+// para o site não precisar de scripts inline e a política de segurança (CSP) poder bloqueá-los.
+document.addEventListener('error', e => { const t = e.target; if (t && t.tagName === 'IMG' && t.hasAttribute('data-rm')) t.remove(); }, true);
 const guardar = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} };
 const ler = (k, d) => { try { return JSON.parse(localStorage.getItem(k)) ?? d; } catch (e) { return d; } };
 const porDesc = (a, b) => b.desconto - a.desconto;
@@ -75,7 +78,7 @@ const CAT_FOTO = {
 // pos = centro do item (x, y) e tamanho, em frações da largura da foto 4:3; usado para centralizar nas bolinhas
 // fill = foto em pé: mostra o item inteiro e completa as laterais com a cor do fundo
 const catFoto = (cat, w = 480, h = Math.round(w * .75)) => { const f = CAT_FOTO[cat]; if (f && f.src) return f.src; return f ? `https://images.unsplash.com/photo-${f.id}?w=${w}&h=${h}&q=72&auto=format&${f.fill ? `fit=fill&fill=solid&fill-color=${f.bg.slice(1)}` : 'fit=crop'}` : ''; };
-const fotoImg = (cat, w, h) => { const f = CAT_FOTO[cat], m = f && f.mult; return `<img src="${esc(catFoto(cat, w, h))}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer"${f && f.src ? ' class="cut"' : m ? ` class="mult" style="filter:brightness(${m})"` : ''} onerror="this.remove()">`; };
+const fotoImg = (cat, w, h) => { const f = CAT_FOTO[cat], m = f && f.mult; return `<img src="${esc(catFoto(cat, w, h))}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer"${f && f.src ? ' class="cut"' : m ? ` class="mult" style="filter:brightness(${m})"` : ''} data-rm>`; };
 const icone = (cat, cor) => { const e = estilo(cat); return `<svg viewBox="0 0 120 120" aria-hidden="true">${IC[e.ic](cor || e.fg)}</svg>`; };
 const SVG_HEART = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s-7.5-4.6-9.5-9.2C1 8.3 3.2 4.5 7 4.5c2 0 3.6 1.1 5 3 1.4-1.9 3-3 5-3 3.8 0 6 3.8 4.5 7.3C19.5 16.4 12 21 12 21z"/></svg>';
 const SVG_SHARE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/></svg>';
@@ -174,7 +177,7 @@ const LOJAS = {
 };
 const lojaDe = p => p.loja || 'Mercado Livre';
 function seloLoja(nome, grande) {
-  const l = LOJAS[nome], ic = l ? `<img src="https://www.google.com/s2/favicons?domain=${l.dom}&sz=64" alt="" width="16" height="16" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()">` : '';
+  const l = LOJAS[nome], ic = l ? `<img src="https://www.google.com/s2/favicons?domain=${l.dom}&sz=64" alt="" width="16" height="16" loading="lazy" referrerpolicy="no-referrer" data-rm>` : '';
   return `<span class="loja${grande ? ' g' : ''}" style="--lj:${l ? l.bg : 'var(--soft)'}">${ic}${esc(nome)}</span>`;
 }
 function card(p, opts = {}) {
@@ -683,7 +686,7 @@ function bolha(cat) {
   const f = CAT_FOTO[cat];
   if (f && f.pos) { // item centralizado e ocupando ~62% da bolinha, sem cortar
     const [cx, cy, t] = f.pos, w = .62 / t, pc = v => (v * 100).toFixed(1) + '%';
-    return `<span class="bub foto" style="background:${f.bg}"><img class="pos" src="${esc(catFoto(cat, 480))}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" style="width:${pc(w)};left:${pc(.5 - cx * w)};top:${pc(.5 - cy * w)}${f.mult ? `;filter:brightness(${f.mult})` : ''}"${f.mult ? ' data-mult' : ''} onerror="this.remove()"></span>`;
+    return `<span class="bub foto" style="background:${f.bg}"><img class="pos" src="${esc(catFoto(cat, 480))}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" style="width:${pc(w)};left:${pc(.5 - cx * w)};top:${pc(.5 - cy * w)}${f.mult ? `;filter:brightness(${f.mult})` : ''}"${f.mult ? ' data-mult' : ''} data-rm></span>`;
   }
   if (f) return `<span class="bub foto" style="background:${f.bg}">${fotoImg(cat, 200, 200)}</span>`;
   const t = topDe(cat).find(p => seguro(p.foto)); return `<span class="bub">${t ? `<img src="${esc(seguro(t.foto))}" alt="" loading="lazy" referrerpolicy="no-referrer">` : icone(cat)}</span>`;

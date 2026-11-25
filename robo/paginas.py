@@ -12,9 +12,13 @@ from __future__ import annotations
 import html
 import json
 import os
+import sys
 from datetime import datetime, timezone
 from pathlib import Path
 from urllib.parse import quote, urlencode
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from guardiao import id_seguro  # noqa: E402
 
 RAIZ = Path(__file__).resolve().parent.parent
 SITE = RAIZ / "site"
@@ -85,11 +89,12 @@ def main() -> int:
     destino = SITE / "o"
     destino.mkdir(exist_ok=True)
     ativos = set()
+    ofertas = [o for o in ofertas if id_seguro(o.get("id"))]
     for o in ofertas:
         (destino / f"{o['id']}.html").write_text(pagina(o, base), encoding="utf-8")
         ativos.add(o["id"])
     for o in encerradas:
-        if o.get("id") and o["id"] not in ativos and o.get("titulo") and o.get("preco"):
+        if id_seguro(o.get("id")) and o["id"] not in ativos and o.get("titulo") and o.get("preco"):
             (destino / f"{o['id']}.html").write_text(pagina(o, base, encerrada=True), encoding="utf-8")
 
     hoje = datetime.now(timezone.utc).date().isoformat()

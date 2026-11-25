@@ -24,6 +24,9 @@ import urllib.request
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from guardiao import id_seguro  # noqa: E402
+
 RAIZ = Path(__file__).resolve().parent.parent
 ARQ_OFERTAS = RAIZ / "site" / "data" / "ofertas.json"
 ARQ_CANAIS = RAIZ / "site" / "data" / "canais.json"
@@ -88,7 +91,7 @@ def escolher(ofertas: list[dict], estado: dict, agora: datetime) -> tuple[list[d
     """Decide o que publicar nesta rodada e devolve o estado atualizado (ids já publicados, com data)."""
     limite = (agora - timedelta(days=LEMBRAR_DIAS)).isoformat(timespec="minutes")
     publicados = {k: v for k, v in estado.get("publicados", {}).items() if v >= limite}
-    novas = sorted((o for o in ofertas if o["id"] not in publicados), key=lambda o: -o.get("desconto", 0))
+    novas = sorted((o for o in ofertas if id_seguro(o.get("id")) and o["id"] not in publicados), key=lambda o: -o.get("desconto", 0))
     if not estado:  # primeira vez: só as 3 melhores; o resto conta como já visto
         escolhidas = novas[:3]
         for o in novas[3:]:

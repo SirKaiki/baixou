@@ -49,6 +49,23 @@ class TestGuardiao(unittest.TestCase):
         self.assertEqual(avaliar(item(link="https://lista.mercadolivre.com.br/fone?matt_word=a&matt_tool=b"))[0], "quarentena")
         self.assertEqual(avaliar(item(link="https://golpe.com/MLB-1?matt_word=a&matt_tool=b"))[1], "link fora do Mercado Livre")
 
+    def test_links_disfarcados_sao_barrados(self):
+        ok = "matt_word=a&matt_tool=b"
+        for ruim in (f"https://mercadolivre.com.br@golpe.com/MLB-1?{ok}",
+                     f"https://produto.mercadolivre.com.br:8443/MLB-1?{ok}",
+                     f"https://golpe.com/https://produto.mercadolivre.com.br/MLB-1?{ok}",
+                     f"https://produto.mercadolivre.com.br.golpe.com/MLB-1?{ok}",
+                     f"https://golpe.com\\@produto.mercadolivre.com.br/MLB-1?{ok}",
+                     f"http://produto.mercadolivre.com.br/MLB-1?{ok}",
+                     f"https://produto.mercadolivre.com.br:abc/MLB-1?{ok}"):
+            self.assertEqual(avaliar(item(link=ruim))[1], "link fora do Mercado Livre", ruim)
+        self.assertEqual(avaliar(item(link=f"https://produto.mercadolivre.com.br/MLB-1?{ok}"))[0], "aprovada")
+
+    def test_id_que_vira_nome_de_arquivo_precisa_ser_simples(self):
+        for ruim in ("../../x", "a/b", "MLB 1", "", "a" * 41, None, 123):
+            self.assertEqual(avaliar(item(id=ruim))[1], "código do anúncio inválido", repr(ruim))
+        self.assertTrue(g.id_seguro("MLB123456") and g.id_seguro("DEMO0001"))
+
     def test_link_afiliado_preserva_e_substitui(self):
         url = g.link_afiliado("https://produto.mercadolivre.com.br/MLB-1-x?matt_word=velho&foo=1", "cesar", "999")
         self.assertIn("foo=1", url)
@@ -95,6 +112,32 @@ class TestRelacionados(unittest.TestCase):
         self.assertEqual(r["quem_viu"]["A"], ["B", "C"])
         self.assertEqual(r["populares"], [{"id": "B", "v": 3, "c": 1}])
         self.assertEqual(r["visitas_24h"], 9)
+
+
+class TestSegurancaDoSite(unittest.TestCase):
+    """A política de segurança (CSP) só libera os scripts inline conhecidos; se alguém mexer num deles sem atualizar o hash, o site quebra."""
+
+    def test_csp_bate_com_os_scripts_inline(self):
+        import base64
+        import hashlib
+        import re
+        site = Path(__file__).resolve().parent.parent / "site"
+        for nome in ("index", "painel", "privacidade"):
+            html = (site / f"{nome}.html").read_text(encoding="utf-8")
+            csp = re.search(r'http-equiv="Content-Security-Policy" content="([^"]+)"', html)
+            self.assertIsNotNone(csp, nome)
+            self.assertNotIn("unsafe-eval", csp.group(1))
+            self.assertIn("object-src 'none'", csp.group(1))
+            script_src = re.search(r"script-src ([^;]+)", csp.group(1)).group(1)
+            self.assertNotIn("unsafe-inline", script_src)
+            for corpo in re.findall(r"<script>(.*?)</script>", html, re.S):
+                h = "'sha256-" + base64.b64encode(hashlib.sha256(corpo.encode()).digest()).decode() + "'"
+                self.assertIn(h, script_src, f"{nome}: script inline sem hash na CSP")
+            self.assertNotRegex(html, r"\son(error|click|load)=", nome)
+
+    def test_app_sem_handlers_inline(self):
+        js = (Path(__file__).resolve().parent.parent / "site" / "app.js").read_text(encoding="utf-8")
+        self.assertNotRegex(js, r"\son(error|click|load|mouseover)=")
 
 
 class TestEncerradas(unittest.TestCase):
