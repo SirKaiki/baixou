@@ -62,10 +62,13 @@ header{background:var(--head);color:#fff;position:relative;z-index:20}
 .nav .all:hover,.nav .all[aria-expanded=true]{border-color:#fff;background:rgba(255,255,255,.06)}
 .nav .all svg{width:20px;height:20px}
 .nav .all i{display:grid;font-style:normal}.nav .all .i-x,.nav .all[aria-expanded=true] .i-menu{display:none}.nav .all[aria-expanded=true] .i-x{display:grid}
-.promo{display:block;background:var(--blue);color:#fff;text-decoration:none;font:700 16px/1.2 var(--disp);text-align:center}
-.promo .wrap{display:flex;align-items:center;justify-content:center;gap:10px;min-height:42px;padding-block:8px}
+.promo{background:var(--blue);color:#fff;font:700 16px/1.2 var(--disp);text-align:center}
+.promo .wrap{position:relative;display:flex;align-items:center;justify-content:center;min-height:42px;padding-block:8px;padding-right:56px;padding-left:56px}
+.promo a{color:#fff;text-decoration:none}
+.promo a:hover{text-decoration:underline}
 .promo b{color:var(--ml)}
-.promo:hover .wrap{text-decoration:underline}
+#promoX{position:absolute;right:max(3.5vw,4px);top:50%;transform:translateY(-50%);width:36px;height:36px;border:0;border-radius:50%;background:transparent;color:#fff;font-size:24px;line-height:1;cursor:pointer;opacity:.8}
+#promoX:hover{opacity:1;background:rgba(255,255,255,.15)}
 .demo{background:light-dark(#eef0f4,#1b1d23);color:var(--mute);font-size:13px}
 .demo .wrap{padding-block:8px}
 .menu-btn{display:none;place-items:center;width:44px;height:44px;border:0;border-radius:8px;background:transparent;color:#fff;cursor:pointer;margin-left:-8px}
@@ -185,7 +188,8 @@ header{background:var(--head);color:#fff;position:relative;z-index:20}
 .tile small{position:relative;font-size:13px;font-weight:500;opacity:.7}
 
 /* ===== cards ===== */
-.rail{display:flex;gap:14px;overflow-x:auto;scroll-snap-type:x mandatory;padding:2px 2px 14px;scrollbar-width:thin}
+.rail{display:flex;gap:14px;overflow-x:auto;scroll-snap-type:x mandatory;padding:2px 2px 6px;scrollbar-width:none}
+.rail::-webkit-scrollbar,.nav::-webkit-scrollbar,.mcards::-webkit-scrollbar,.tiles::-webkit-scrollbar,.dcards::-webkit-scrollbar{display:none}
 .rail>.card{flex:0 0 clamp(196px,18.7%,244px);scroll-snap-align:start}
 .card{position:relative;display:flex;flex-direction:column;background:var(--card);border:1px solid var(--line);border-radius:8px;overflow:hidden;transition:box-shadow .15s,border-color .15s}
 .card:hover{box-shadow:0 14px 28px -18px var(--shadow);border-color:light-dark(#d5d7dd,#353842)}
@@ -371,8 +375,9 @@ body.has-buybar .up{bottom:90px}
 .tile{flex:0 0 42%;min-height:130px}
 }
 @media(max-width:600px){
-.logo{font-size:28px}.logo svg{width:28px;height:28px}
-.theme button{width:30px;height:32px}.tools{gap:2px}.fav-link{padding:0 8px}
+.logo{font-size:26px}.logo svg{width:26px;height:26px}
+.top{gap:10px 8px}
+.theme button{width:28px;height:30px}.theme{padding:2px}.tools{gap:2px}.fav-link{padding:0 6px}
 .sbox{order:3;flex-basis:100%}
 .promo{font-size:14px}
 .grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
@@ -426,7 +431,7 @@ body.has-buybar .up{bottom:90px}
 
 /* ===== rolagem horizontal com mouse ===== */
 .hs-box{position:relative;min-width:0}
-.hs-btn{position:absolute;top:50%;transform:translateY(-50%);z-index:3;width:36px;height:36px;border-radius:50%;border:1px solid var(--line);background:var(--card);color:var(--ink);font-size:20px;line-height:1;cursor:pointer;box-shadow:0 6px 16px -8px var(--shadow);display:grid;place-items:center}
+.hs-btn{position:absolute;top:50%;transform:translateY(-50%);z-index:3;width:40px;height:40px;border-radius:50%;border:1px solid var(--line);background:var(--card);color:var(--ink);font-size:20px;line-height:1;cursor:pointer;box-shadow:0 6px 16px -8px var(--shadow);display:grid;place-items:center}
 .hs-btn.l{left:-6px}.hs-btn.r{right:-6px}
 .hs-btn:hover{border-color:var(--ink)}
 header .hs-btn,.mega .hs-btn,.drawer .hs-btn{background:#2a2a2e;color:#fff;border-color:#3a3a40}
@@ -435,3 +440,7 @@ header .hs-btn,.mega .hs-btn,.drawer .hs-btn{background:#2a2a2e;color:#fff;borde
 @media(hover:hover) and (pointer:fine){.rail,.mcards,.nav,.tiles,.hero-track,.dcards{cursor:grab}.rail a,.mcards a,.nav a,.tiles a,.hero-track a,.dcards a{cursor:pointer}}
 .arrastando{cursor:grabbing!important;scroll-snap-type:none!important;user-select:none}
 .arrastando *{pointer-events:none}
+
+.hs-box:has(>.rail) .hs-btn{top:calc(50% - 3px);width:44px;height:44px;font-size:24px}
+.hs-box:has(>.rail) .hs-btn.l{left:-14px}.hs-box:has(>.rail) .hs-btn.r{right:-14px}
+@media(max-width:1400px){.hs-box:has(>.rail) .hs-btn.l{left:4px}.hs-box:has(>.rail) .hs-btn.r{right:4px}}

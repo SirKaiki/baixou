@@ -129,7 +129,7 @@ function fallbackImgs(root) {
 }
 function rail(id, titulo, itens, link, linkTxt = 'Ver todas', sub = '', opts = {}) {
   if (!itens.length) return '';
-  return `<section class="sec wrap" aria-labelledby="${id}-t"><div class="sec-head"><h2 id="${id}-t">${esc(titulo)}${sub ? `<span class="sub">${esc(sub)}</span>` : ''}</h2><div class="arrows">${link ? `<a href="${esc(link)}" data-nav>${esc(linkTxt)}</a>` : ''}<button type="button" data-prev="${id}" aria-label="Anteriores">‹</button><button type="button" data-next="${id}" aria-label="Próximos">›</button></div></div>
+  return `<section class="sec wrap" aria-labelledby="${id}-t"><div class="sec-head"><h2 id="${id}-t">${esc(titulo)}${sub ? `<span class="sub">${esc(sub)}</span>` : ''}</h2>${link ? `<div class="arrows"><a href="${esc(link)}" data-nav>${esc(linkTxt)}</a></div>` : ''}</div>
     <div class="rail" id="${id}" tabindex="0">${itens.map(p => card(p, opts)).join('')}</div></section>`;
 }
 function plates(itens) {
@@ -633,8 +633,11 @@ $('drawer').addEventListener('click', e => {
 $('scrim').addEventListener('click', () => { abrirDrawer(false); if ($('faside')) abrirFiltros(false); });
 
 /* ---------- faixa promocional (montada com as ofertas do momento) ---------- */
-let promoK = 0;
+let promoK = 0, promoTimer = 0;
 function montarPromo() {
+  const fechadoAte = ler('baixou-promo-fechada', 0);
+  if (Date.now() < fechadoAte) { $('promo').hidden = true; return; }
+  $('promoX').addEventListener('click', () => { $('promo').hidden = true; guardar('baixou-promo-fechada', Date.now() + 7 * 864e5); clearInterval(promoTimer); });
   const nMenor = P.filter(p => p.menor_30d).length, nFrete = P.filter(p => p.frete_gratis).length, maxD = P.length ? Math.max(...P.map(p => p.desconto)) : 0;
   const msgs = [
     nMenor ? {h:`<b>Menor preço em 30 dias</b> em ${nMenor} ${nMenor === 1 ? 'produto' : 'produtos'} · ver ofertas`, u:'?ver=menor'} : null,
@@ -642,9 +645,9 @@ function montarPromo() {
     nFrete ? {h:`<b>Frete grátis</b> em ${nFrete} ${nFrete === 1 ? 'oferta' : 'ofertas'} agora`, u:'?ver=full'} : null,
     {h:'Preços conferidos <b>a cada 15 minutos</b>', u:'?ver=novas'},
   ].filter(Boolean);
-  const mostrar = () => { const m = msgs[promoK % msgs.length]; $('ann').innerHTML = m.h; $('promo').setAttribute('href', m.u); };
+  const mostrar = () => { const m = msgs[promoK % msgs.length]; $('ann').innerHTML = m.h; $('promoLink').setAttribute('href', m.u); };
   mostrar();
-  if (!reduz && msgs.length > 1) setInterval(() => { if (!document.hidden) { promoK++; mostrar(); } }, 5000);
+  if (!reduz && msgs.length > 1) promoTimer = setInterval(() => { if (!document.hidden) { promoK++; mostrar(); } }, 5000);
 }
 
 
@@ -670,7 +673,7 @@ document.addEventListener('click', e => { if (engolirClique) { e.preventDefault(
 document.addEventListener('dragstart', e => { if (e.target.closest && e.target.closest(ROLAVEIS)) e.preventDefault(); });
 // Setas que aparecem nas bordas quando há conteúdo escondido (menu, cartões de categoria)
 function setasBorda(root = document) {
-  root.querySelectorAll('.nav, .mcards, .tiles, .dcards').forEach(el => {
+  root.querySelectorAll('.nav, .mcards, .tiles, .dcards, .rail').forEach(el => {
     if (el.dataset.hs) { atualizarSetas(el); return; }
     el.dataset.hs = '1';
     const box = document.createElement('div'); box.className = 'hs-box'; el.before(box); box.append(el);
