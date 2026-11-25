@@ -477,20 +477,19 @@ header .hs-box::after,.mega .hs-box::after,.drawer .hs-box::after{background:lin
 .hs-btn svg{display:block}
 .mcard{hyphens:auto;overflow-wrap:anywhere;padding:10px 6px 12px}
 
-/* Categorias com foto real e a mesma foto desfocada ao fundo */
-.tile.tfoto{background:#1c1d21;color:#fff;isolation:isolate;padding:12px;justify-content:flex-start;gap:12px;min-height:0;border-radius:12px;box-shadow:0 1px 2px rgba(0,0,0,.08)}
-.tile .tbg{position:absolute;inset:-40px;z-index:-2;background-size:cover;background-position:center;filter:blur(26px) saturate(1.5) brightness(.85);transform:scale(1.15)}
-.tile.tfoto::after{content:"";position:absolute;inset:0;z-index:-1;background:linear-gradient(180deg,rgba(0,0,0,.05) 30%,rgba(0,0,0,.5))}
-.tile .tph{display:block;aspect-ratio:1;border-radius:9px;overflow:hidden;box-shadow:0 14px 28px -12px rgba(0,0,0,.65),0 0 0 1px rgba(255,255,255,.18)}
-.tile .tph img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .35s ease}
-.tile.tfoto:hover .tph img{transform:scale(1.07)}
-.tile .ttx{display:flex;flex-direction:column;gap:3px;position:relative}
-.tile.tfoto b{font:700 17px/1.1 var(--disp);color:#fff;text-shadow:0 1px 8px rgba(0,0,0,.35);hyphens:auto}
-.tile.tfoto small{opacity:.85;color:#fff;display:flex;align-items:center;gap:6px}
-.tile.tfoto small i{font-style:normal;transition:transform .2s}
-.tile.tfoto:hover small i{transform:translateX(4px)}
-.tile.tfoto:focus-visible{outline:3px solid var(--ml);outline-offset:2px}
-.bub.foto{background:#ddd}
+/* Categorias: um item, fundo de cor sólida */
+.tile.tsolid{color:#16171b;padding:0;gap:0;justify-content:flex-start;min-height:0;border-radius:12px;isolation:isolate}
+.tile .tph{display:block;aspect-ratio:4/3;overflow:hidden}
+.tile .tph img{display:block;width:100%;height:100%;object-fit:cover;-webkit-mask-image:linear-gradient(#000 72%,transparent);mask-image:linear-gradient(#000 72%,transparent);transition:transform .4s ease}
+.tile .tph img.mult,.bub img.mult{mix-blend-mode:multiply;-webkit-mask-image:none;mask-image:none}
+.tile.tsolid:hover .tph img{transform:scale(1.06)}
+.tile .ttx{display:flex;flex-direction:column;gap:3px;padding:2px 14px 14px}
+.tile.tsolid b{font:700 17px/1.15 var(--disp);color:#16171b;hyphens:auto}
+.tile.tsolid small{color:rgba(22,23,27,.68);display:flex;align-items:center;gap:6px}
+.tile.tsolid small i{font-style:normal;transition:transform .2s}
+.tile.tsolid:hover small i{transform:translateX(4px)}
+.tile.tsolid:focus-visible{outline:3px solid var(--ml);outline-offset:2px}
 .bub.foto img{width:100%;height:100%;object-fit:cover;mix-blend-mode:normal}
-@media(max-width:720px){.tile.tfoto{flex:0 0 40%;padding:9px;gap:9px}.tile.tfoto b{font-size:15px}}
-@media(prefers-reduced-motion:reduce){.tile .tph img,.tile.tfoto small i{transition:none}}
+.bub.foto img.mult{mix-blend-mode:multiply}
+@media(max-width:720px){.tile.tsolid{flex:0 0 40%}.tile.tsolid b{font-size:15px}.tile .ttx{padding:0 10px 11px}}
+@media(prefers-reduced-motion:reduce){.tile .tph img,.tile.tsolid small i{transition:none}}
