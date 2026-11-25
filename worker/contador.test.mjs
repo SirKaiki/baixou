@@ -1,4 +1,4 @@
-// Testes do contador com um banco D1 de mentira (SQLite embutido do Node). Rode: node --test worker/
+// Testes do contador com um banco D1 de mentira (SQLite embutido do Node). Rode: node --test worker/contador.test.mjs
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
@@ -50,4 +50,21 @@ test('exportação exige token e calcula quem viu também viu', async () => {
   assert.ok(!d.pares.some(x => x.b === 'MLB30'));
   assert.equal(d.visitas_24h, 4);
   assert.deepEqual(d.populares[0], {produto: 'MLB20', v: 3, c: 1});
+});
+
+test('limite de envios por visitante devolve 429 e não grava', async () => {
+  const e = env();
+  let n = 0;
+  e.LIMITADOR = {limit: async () => ({success: ++n <= 2})};
+  const s = {s: 'abc123def456', e: [{p: 'MLB1', t: 'v'}]};
+  assert.equal((await enviar(e, s)).status, 204);
+  assert.equal((await enviar(e, {s: 'abc123def457', e: [{p: 'MLB2', t: 'v'}]})).status, 204);
+  assert.equal((await enviar(e, {s: 'abc123def458', e: [{p: 'MLB3', t: 'v'}]})).status, 429);
+  assert.equal(e.DB._db.prepare('SELECT COUNT(*) n FROM eventos').get().n, 2);
+  assert.equal((await exportar(e, 'chute')).status, 429);
+});
+
+test('rota desconhecida responde 404', async () => {
+  const r = await contador.fetch(new Request('https://x.dev/qualquer'), env());
+  assert.equal(r.status, 404);
 });

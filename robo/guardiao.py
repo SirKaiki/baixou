@@ -38,6 +38,24 @@ def link_afiliado(permalink: str, matt_word: str | None, matt_tool: str | None) 
     return urlunsplit((partes.scheme or "https", partes.netloc, partes.path, urlencode(query), ""))
 
 
+HOSTS_FOTO = ("mlstatic.com",)
+
+
+def foto_segura(url) -> str:
+    """Só fotos do Mercado Livre (https, sem disfarce). Outra URL poderia ser um "rastreador" que revela o IP de quem vê."""
+    if not isinstance(url, str):
+        return ""
+    try:
+        partes = urlsplit(url)
+        host = (partes.hostname or "").lower()
+        porta = partes.port
+    except ValueError:
+        return ""
+    if partes.scheme != "https" or "@" in partes.netloc or porta not in (None, 443) or any(c in url for c in "\\\"<> "):
+        return ""
+    return url if any(host == h or host.endswith("." + h) for h in HOSTS_FOTO) else ""
+
+
 def id_seguro(valor) -> bool:
     return isinstance(valor, str) and ID_VALIDO.fullmatch(valor) is not None
 

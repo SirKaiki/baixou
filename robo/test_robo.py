@@ -140,6 +140,61 @@ class TestSegurancaDoSite(unittest.TestCase):
         self.assertNotRegex(js, r"\son(error|click|load|mouseover)=")
 
 
+class TestSemSegredosNoCodigo(unittest.TestCase):
+    """O erro clássico de código feito por IA: colar a chave no código para "fazer funcionar". Aqui isso reprova o robô."""
+
+    PADROES = [r"AKIA[0-9A-Z]{16}", r"gh[pousr]_[A-Za-z0-9]{30,}", r"github_pat_[A-Za-z0-9_]{30,}",
+               r"\b[0-9]{8,10}:AA[A-Za-z0-9_-]{30,}", r"APP_USR-[0-9]{6,}-[0-9]{6}-[0-9a-f]{20,}",
+               r"TG-[0-9a-f]{20,}", r"-----BEGIN [A-Z ]*PRIVATE KEY-----", r"xox[abps]-[A-Za-z0-9-]{20,}",
+               r"(?i)(client_secret|api[_-]?key|bot_token|password)\s*[:=]\s*[\"'][A-Za-z0-9_\-]{16,}[\"']"]
+
+    def test_nenhuma_chave_nos_arquivos(self):
+        import re
+        import subprocess
+        raiz = Path(__file__).resolve().parent.parent
+        try:
+            arquivos = subprocess.run(["git", "ls-files"], cwd=raiz, capture_output=True, text=True, check=True).stdout.split()
+        except (OSError, subprocess.CalledProcessError):
+            self.skipTest("fora de um repositório git")
+        achados = []
+        for nome in arquivos:
+            if nome.endswith((".png", ".webp", ".jpg", ".ico")) or nome == "robo/test_robo.py":
+                continue
+            try:
+                texto = (raiz / nome).read_text(encoding="utf-8")
+            except (OSError, UnicodeDecodeError):
+                continue
+            achados += [f"{nome}: {p}" for p in self.PADROES if re.search(p, texto)]
+        self.assertEqual(achados, [], "parece haver uma chave no código; ela deve ficar só nos Secrets do GitHub")
+
+    def test_detector_funciona(self):
+        import re
+        exemplo = 'BOT_TOKEN = "' + "1234567890:AA" + "x" * 33 + '"'
+        self.assertTrue(any(re.search(p, exemplo) for p in self.PADROES))
+
+
+class TestFotos(unittest.TestCase):
+    def test_so_fotos_do_mercado_livre(self):
+        boa = "https://http2.mlstatic.com/D_NQ_NP_123-O.webp"
+        self.assertEqual(g.foto_segura(boa), boa)
+        for ruim in ("http://http2.mlstatic.com/a.jpg", "https://rastreador.com/pixel.png", "https://mlstatic.com.golpe.com/a.jpg",
+                     "https://mlstatic.com@golpe.com/a.jpg", 'https://http2.mlstatic.com/a.jpg" onerror="x', "javascript:alert(1)", None, 5):
+            self.assertEqual(g.foto_segura(ruim), "", repr(ruim))
+
+    def test_pagina_de_compartilhamento_tem_csp_que_bate(self):
+        import base64
+        import hashlib
+        import re
+        import paginas
+        o = {"id": "MLB123", "titulo": "Fone <b>x</b>", "preco": 99.9, "preco_cheio": 150, "desconto": 33, "foto": "https://rastreador.com/p.png"}
+        h = paginas.pagina(o, "https://sirkaiki.github.io/baixou")
+        self.assertNotIn("rastreador.com", h)
+        self.assertNotIn("<b>x</b>", h)
+        corpo = re.search(r"<script>(.*?)</script>", h, re.S).group(1)
+        hash_ = "'sha256-" + base64.b64encode(hashlib.sha256(corpo.encode()).digest()).decode() + "'"
+        self.assertIn(f"script-src {hash_};", h)
+
+
 class TestEncerradas(unittest.TestCase):
     def test_guarda_as_que_sairam_e_esquece_depois_de_uma_semana(self):
         ant = {"A": {"id": "A", "titulo": "Fone", "categoria": "Eletrônicos", "preco": 99.9, "preco_cheio": 150.0, "desconto": 33, "foto": "https://x/a.jpg"},

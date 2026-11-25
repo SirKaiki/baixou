@@ -10,3 +10,12 @@ ORIGENS = "https://sirkaiki.github.io"
 binding = "DB"
 database_name = "baixou_eventos"
 database_id = "__DB_ID__"
+
+# Até 30 envios por minuto por visitante; acima disso o contador responde 429.
+[[ratelimits]]
+name = "LIMITADOR"
+namespace_id = "1001"
+
+  [ratelimits.simple]
+  limit = 30
+  period = 60

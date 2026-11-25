@@ -237,7 +237,7 @@ def main() -> int:
                 "desconto": g.desconto(item["preco"], item["preco_cheio"]),
                 "parcelas": item["parcelas"], "sem_juros": item["sem_juros"],
                 "frete_gratis": item["frete_gratis"], "full": item["full"],
-                "foto": item["foto"], "fotos": fotos.get(item["id"], []),
+                "foto": g.foto_segura(item["foto"]), "fotos": [f for f in map(g.foto_segura, fotos.get(item["id"], [])) if f],
                 "marca": marcas.get(item["id"]) or item.get("marca"),
                 "link": item["link"], "loja": cfg["loja"],
                 "menor_30d": g.menor_preco_periodo(historico.get(item["id"], []), item["preco"]),

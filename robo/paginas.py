@@ -9,6 +9,8 @@ Uso: python robo/paginas.py   (endereço do site em SITE_URL; se faltar, deduz d
 """
 from __future__ import annotations
 
+import base64
+import hashlib
 import html
 import json
 import os
@@ -18,7 +20,7 @@ from pathlib import Path
 from urllib.parse import quote, urlencode
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from guardiao import id_seguro  # noqa: E402
+from guardiao import foto_segura, id_seguro  # noqa: E402
 
 RAIZ = Path(__file__).resolve().parent.parent
 SITE = RAIZ / "site"
@@ -56,12 +58,14 @@ def pagina(o: dict, base: str, encerrada: bool = False) -> str:
         titulo = f"{o['titulo']} por {preco} (-{o.get('desconto', 0)}%)"
         descricao = (f"De {brl(float(o['preco_cheio']))} por {preco}" if o.get("preco_cheio") else preco) + \
             (" · frete grátis" if o.get("frete_gratis") else "") + " · preço conferido pelo robô do Baixou."
-    foto = o.get("foto") or ""
-    if not foto.startswith("https://"):
-        foto = f"{base}/img/og.png"
+    foto = foto_segura(o.get("foto")) or f"{base}/img/og.png"
+    redirecionar = f"location.replace({json.dumps(alvo)} + location.hash)"
+    csp_script = "'sha256-" + base64.b64encode(hashlib.sha256(redirecionar.encode()).digest()).decode() + "'"
     return f"""<!doctype html>
 <html lang="pt-BR"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src {csp_script}; style-src 'unsafe-inline'; img-src 'self' https://*.mlstatic.com; base-uri 'none'; form-action 'none'">
+<meta name="referrer" content="no-referrer">
 <title>{e(titulo)} | Baixou</title>
 <meta name="description" content="{e(descricao)}">
 <meta name="robots" content="noindex,follow">
@@ -76,7 +80,7 @@ def pagina(o: dict, base: str, encerrada: bool = False) -> str:
 <meta property="product:price:amount" content="{float(o['preco']):.2f}">
 <meta property="product:price:currency" content="BRL">
 <meta name="twitter:card" content="summary_large_image">
-<script>location.replace({json.dumps(alvo)} + location.hash)</script>
+<script>{redirecionar}</script>
 <style>body{{font:16px system-ui,sans-serif;margin:0;display:grid;place-items:center;min-height:100vh;background:#f4f4f6;color:#16171b;text-align:center}}a{{color:#1a3cff}}img{{max-width:220px;height:auto}}</style>
 </head><body><main><img src="{e(foto)}" alt=""><h1 style="font-size:20px;max-width:520px">{e(o['titulo'])}</h1><p><b>{e(preco)}</b></p><p><a href="{e(alvo)}">Ver a oferta no Baixou</a></p></main></body></html>
 """

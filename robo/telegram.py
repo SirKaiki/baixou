@@ -25,7 +25,7 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from guardiao import id_seguro  # noqa: E402
+from guardiao import foto_segura, id_seguro  # noqa: E402
 
 RAIZ = Path(__file__).resolve().parent.parent
 ARQ_OFERTAS = RAIZ / "site" / "data" / "ofertas.json"
@@ -103,8 +103,8 @@ def escolher(ofertas: list[dict], estado: dict, agora: datetime) -> tuple[list[d
 
 def enviar(token: str, chat: str, o: dict, base: str) -> None:
     legenda = texto(o, base)
-    foto = o.get("foto") or ""
-    if foto.startswith("https://"):
+    foto = foto_segura(o.get("foto"))
+    if foto:
         metodo, dados = "sendPhoto", {"chat_id": chat, "photo": foto, "caption": legenda, "parse_mode": "HTML"}
     else:
         metodo, dados = "sendMessage", {"chat_id": chat, "text": legenda, "parse_mode": "HTML"}

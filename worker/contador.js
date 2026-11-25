@@ -35,8 +35,20 @@ function mesmoToken(a, b) {
   return dif === 0;
 }
 
+// Limite de envios por visitante (evita que alguém encha o banco com eventos falsos).
+// O IP só serve de chave para o limitador do Cloudflare, na memória: nunca é gravado.
+async function dentroDoLimite(req, env) {
+  if (!env.LIMITADOR) return true;
+  try {
+    const {success} = await env.LIMITADOR.limit({key: req.headers.get('CF-Connecting-IP') || 'anon'});
+    return success;
+  } catch { return true; }
+}
+
 async function registrar(req, env, cors) {
   if (!origemValida(req, env)) return new Response('origem não permitida', {status: 403, headers: cors});
+  if (!(await dentroDoLimite(req, env))) return new Response('muitas requisições', {status: 429, headers: cors});
+  if (!/^(text\/plain|application\/json)/i.test(req.headers.get('Content-Type') || 'text/plain')) return new Response('tipo inválido', {status: 415, headers: cors});
   const texto = await req.text();
   if (texto.length > 2000) return new Response('grande demais', {status: 413, headers: cors});
   let dados;
@@ -54,6 +66,7 @@ async function registrar(req, env, cors) {
 
 async function exportar(req, env) {
   const token = (req.headers.get('Authorization') || '').replace(/^Bearer\s+/i, '');
+  if (!(await dentroDoLimite(req, env))) return new Response('muitas requisições', {status: 429});
   if (!mesmoToken(token, env.TOKEN || '')) return new Response('não autorizado', {status: 401});
   const agora = Date.now();
   await env.DB.prepare('DELETE FROM eventos WHERE ts < ?1').bind(agora - 45 * DIA).run();
@@ -87,6 +100,6 @@ export default {
     if (req.method === 'OPTIONS') return new Response(null, {status: 204, headers: cors});
     if (url.pathname === '/e' && req.method === 'POST') return registrar(req, env, cors);
     if (url.pathname === '/export' && req.method === 'GET') return exportar(req, env);
-    return new Response('Contador do Baixou', {headers: cors});
+    return new Response('não encontrado', {status: 404, headers: cors});
   },
 };
