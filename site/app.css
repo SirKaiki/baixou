@@ -463,3 +463,16 @@ header .hs-btn:hover,.mega .hs-btn:hover{background:rgba(255,255,255,.32)}
 .hs-box:has(> .rail) .hs-btn:hover{background:#fff}
 .hero-arrow{opacity:.8;transition:opacity .15s}.hero:hover .hero-arrow,.hero-arrow:focus-visible{opacity:1}
 body.has-buybar{padding-bottom:76px}
+
+/* setas legíveis em qualquer fundo: botão escuro translúcido + borda esmaecendo o conteúdo */
+header .hs-btn,.mega .hs-btn,.drawer .hs-btn{background:rgba(14,14,16,.72);border:1px solid rgba(255,255,255,.35);color:#fff;box-shadow:0 6px 18px rgba(0,0,0,.45);backdrop-filter:blur(6px)}
+header .hs-btn:hover,.mega .hs-btn:hover,.drawer .hs-btn:hover{background:rgba(14,14,16,.92);border-color:#fff}
+.hs-box::before,.hs-box::after{content:"";position:absolute;top:0;bottom:0;width:64px;z-index:2;pointer-events:none;opacity:0;transition:opacity .2s}
+.hs-box::before{left:0}.hs-box::after{right:0}
+.hs-box.fade-l::before,.hs-box.fade-r::after{opacity:1}
+header .hs-box::before,.mega .hs-box::before,.drawer .hs-box::before{background:linear-gradient(90deg,#141414 15%,rgba(20,20,20,0))}
+header .hs-box::after,.mega .hs-box::after,.drawer .hs-box::after{background:linear-gradient(270deg,#141414 15%,rgba(20,20,20,0))}
+.hs-box:has(> .rail)::before,.hs-box:has(> .rail)::after,.hs-box:has(> .tiles)::before,.hs-box:has(> .tiles)::after{display:none}
+.mega .hs-box::before,.mega .hs-box::after{bottom:14px}
+.hs-btn svg{display:block}
+.mcard{hyphens:auto;overflow-wrap:anywhere;padding:10px 6px 12px}

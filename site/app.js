@@ -193,7 +193,10 @@ function viewHome() {
   if (!P.length) { $('view').innerHTML = `<div class="wrap" style="padding-block:60px"><div class="empty"><strong>Nenhuma oferta no momento</strong><p>O robô confere as promoções a cada 15 minutos. Volte daqui a pouco.</p></div></div>`; return; }
   const cs = campanhas();
   const heroC = ['menor', 'novas', 'cat0', 'full', 'ate100'].map(k => cs[k]).filter(Boolean).slice(0, 4);
-  const novas = [...P].sort(porNovo).slice(0, 14);
+  // Cada vitrine prioriza produtos que ainda não apareceram acima, para a página não se repetir
+  const usados = new Set();
+  const unicos = (lista, n = 14) => { const novos = lista.filter(p => !usados.has(p.id)), r = (novos.length >= 6 ? novos : [...novos, ...lista.filter(p => usados.has(p.id))]).slice(0, n); r.forEach(p => usados.add(p.id)); return r; };
+  const novas = unicos([...P].sort(porNovo));
   const vis = vistos();
   const populares = REL.populares.map(x => byId.get(x.id)).filter(Boolean);
   const nFrete = P.filter(p => p.frete_gratis).length;
@@ -208,13 +211,13 @@ function viewHome() {
     <div class="perk">${PERK.shield}<span><b>Compra segura</b>direto no Mercado Livre</span></div>
     <div class="perk">${PERK.truck}<span><b>Frete grátis</b>em ${nFrete} ${nFrete === 1 ? 'oferta' : 'ofertas'}</span></div></div></div>`;
   h += rail('r-novas', 'Acabou de baixar', novas, '?ver=novas', 'Ver todas', 'Entraram no site agora há pouco');
-  if (populares.length >= 6) h += rail('r-pop', 'Mais procurados hoje', populares.slice(0, 14), '', '', 'O que mais gente levou para a loja nas últimas 24 horas', {pop:true});
+  if (populares.length >= 6) h += rail('r-pop', 'Mais procurados hoje', unicos(populares), '', '', 'O que mais gente levou para a loja nas últimas 24 horas', {pop:true});
   if (faixas.length >= 2) h += `<section class="sec wrap" aria-labelledby="preco-t"><div class="sec-head"><h2 id="preco-t">Escolha por preço</h2></div><div class="prices">${faixas.map(f => `<a class="ptile" href="${qs({max:f.m})}" data-nav><span>Até</span><b>R$ ${f.m}</b><small>${f.n} ofertas</small></a>`).join('')}</div></section>`;
   h += `<section class="sec wrap" aria-labelledby="cats-t"><div class="sec-head"><h2 id="cats-t">Compre por categoria</h2></div><div class="tiles">${CATS.map(c => { const e = estilo(c.nome); return `<a class="tile" href="${esc(qs({cat:c.nome}))}" data-nav style="background:${e.bg}">${bolha(c.nome)}<b>${esc(c.nome)}</b><small>${c.n} ${c.n === 1 ? 'oferta' : 'ofertas'}</small></a>`; }).join('')}</div></section>`;
   if (vis.length) h += rail('r-vistos', 'Vistos recentemente', vis.slice(0, 12), '', '', 'Continue de onde parou');
-  if (cs.menor) h += rail('r-menor', 'Menor preço em 30 dias', cs.menor.itens.slice(0, 14), '?ver=menor', 'Ver todas', 'O preço mais baixo que registramos no mês');
-  topCats.forEach((c, i) => { h += rail('r-cat' + i, `Destaques em ${c.nome}`, P.filter(p => p.categoria === c.nome).sort(porDesc).slice(0, 14), qs({cat:c.nome})); });
-  h += rail('r-desc', 'Maiores descontos', [...P].sort(porDesc).slice(0, 14), '?ver=descontos');
+  if (cs.menor) h += rail('r-menor', 'Menor preço em 30 dias', unicos(cs.menor.itens), '?ver=menor', 'Ver todas', 'O preço mais baixo que registramos no mês');
+  topCats.forEach((c, i) => { h += rail('r-cat' + i, `Destaques em ${c.nome}`, unicos(P.filter(p => p.categoria === c.nome).sort(porDesc)), qs({cat:c.nome})); });
+  h += rail('r-desc', 'Maiores descontos', unicos([...P].sort(porDesc)), '?ver=descontos');
   h += `<section class="sec wrap" aria-labelledby="all-t"><div class="sec-head"><h2 id="all-t">Todas as ofertas</h2><div class="arrows"><a href="?ver=todas" data-nav>Ver as ${P.length}</a></div></div><div class="grid">${[...P].sort(porNovo).slice(0, 10).map(p => card(p)).join('')}</div>
     <div class="more"><a class="btn2" href="?ver=todas" data-nav>Ver todas as ofertas</a></div></section>`;
   $('view').innerHTML = h;
@@ -687,8 +690,9 @@ function setasBorda(root = document) {
 function atualizarSetas(el) {
   const box = el.parentElement; if (!box || !box.classList.contains('hs-box')) return;
   const sobra = el.scrollWidth - el.clientWidth > 2;
-  box.querySelector('.l').hidden = !sobra || el.scrollLeft < 4;
-  box.querySelector('.r').hidden = !sobra || el.scrollLeft + el.clientWidth >= el.scrollWidth - 4;
+  const temL = sobra && el.scrollLeft >= 4, temR = sobra && el.scrollLeft + el.clientWidth < el.scrollWidth - 4;
+  box.querySelector('.l').hidden = !temL; box.querySelector('.r').hidden = !temR;
+  box.classList.toggle('fade-l', temL); box.classList.toggle('fade-r', temR);
 }
 addEventListener('resize', () => document.querySelectorAll('[data-hs]').forEach(atualizarSetas), {passive:true});
 // Rodinha do mouse rola para o lado nas faixas curtas (menu e cartões), sem prender a página nas pontas
