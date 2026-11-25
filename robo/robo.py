@@ -160,6 +160,7 @@ def main() -> int:
                 "parcelas": item["parcelas"], "sem_juros": item["sem_juros"],
                 "frete_gratis": item["frete_gratis"], "full": item["full"],
                 "foto": item["foto"], "link": item["link"], "loja": cfg["loja"],
+                "menor_30d": g.menor_preco_periodo(historico.get(item["id"], []), item["preco"]),
                 "verificado_em": carimbo,
                 "novo_em": anteriores.get(item["id"], {}).get("novo_em", carimbo),
             })

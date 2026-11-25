@@ -5,17 +5,18 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex">
 <title>Baixou painel do robô</title>
+<script>try{var t=localStorage.getItem('baixou-tema');if(t==='claro')document.documentElement.dataset.theme='light';if(t==='escuro')document.documentElement.dataset.theme='dark'}catch(e){}</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
-:root{color-scheme:light dark;--bg:light-dark(#ffffff,#0e1018);--ink:light-dark(#14161f,#eef0f6);--mute:light-dark(#5b6072,#a3a8b8);--line:light-dark(#e4e6ee,#262a38);--soft:light-dark(#f4f5f9,#141722);--blue:light-dark(#1f3cff,#1a2fc9);--ok:light-dark(#0b7a3b,#4fd287);--warn:light-dark(#a35b00,#f2b04a);--bad:#e3120b}
+:root{color-scheme:light dark;--bg:light-dark(#ffffff,#0e1018);--ink:light-dark(#14161f,#eef0f6);--mute:light-dark(#5b6072,#a3a8b8);--line:light-dark(#e4e6ee,#262a38);--soft:light-dark(#f4f5f9,#141722);--blue:light-dark(#1f3cff,#2a46ff);--head:light-dark(#1f3cff,#111b7a);--ok:light-dark(#0b7a3b,#4fd287);--warn:light-dark(#a35b00,#f2b04a);--bad:#e3120b}
 :root[data-theme=light]{color-scheme:light}
 :root[data-theme=dark]{color-scheme:dark}
 *{box-sizing:border-box;min-width:0}
 body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 Inter,system-ui,sans-serif;overflow-x:clip}
 .wrap{max-width:1100px;margin:0 auto;padding:0 max(4vw,16px)}
-header{background:var(--blue);color:#fff}
+header{background:var(--head);color:#fff}
 header .wrap{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:10px;padding-block:16px}
 header a{color:#fff;font:800 24px/1 Archivo,sans-serif;text-decoration:none;letter-spacing:-.02em}
 header span{font-size:14px;color:#dfe4ff}

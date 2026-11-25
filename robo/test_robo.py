@@ -69,6 +69,14 @@ class TestGuardiao(unittest.TestCase):
             g.registrar_preco(hist, "MLB1", 229.0, AGORA - timedelta(days=10 - d), 30)
         self.assertEqual(avaliar(item(preco_cheio=260.0), hist["MLB1"])[0], "reprovada")
 
+    def test_menor_preco_do_periodo(self):
+        hist = {"X": []}
+        for d, preco in enumerate([300.0, 280.0, 310.0, 250.0]):
+            g.registrar_preco(hist, "X", preco, AGORA - timedelta(days=4 - d), 30)
+        self.assertTrue(g.menor_preco_periodo(hist["X"], 250.0))
+        self.assertFalse(g.menor_preco_periodo(hist["X"], 260.0))
+        self.assertFalse(g.menor_preco_periodo(hist["X"][:2], 200.0))
+
     def test_historico_descarta_pontos_antigos(self):
         hist = {"X": [["2026-01-01T00:00+00:00", 10.0]]}
         g.registrar_preco(hist, "X", 12.0, AGORA, 30)

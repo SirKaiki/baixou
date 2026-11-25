@@ -117,6 +117,12 @@ def avaliar(item: dict, regras: dict, comissao: float, historico_item: list, exi
     return "aprovada", ""
 
 
+def menor_preco_periodo(pontos: list, preco: float) -> bool:
+    """True quando o preço atual é o menor visto na janela (com pelo menos 3 dias de histórico)."""
+    precos, dias = _janela(pontos)
+    return len(precos) >= 3 and dias >= 3 and preco <= min(precos)
+
+
 def chave_duplicata(item: dict) -> str:
     """Mesmo produto de catálogo, ou mesmo título, conta como duplicata."""
     return item.get("catalogo") or _sem_acento(item.get("titulo", ""))[:60]
