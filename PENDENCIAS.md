@@ -10,6 +10,10 @@ nos *Secrets* do GitHub ou decidir algo). **Nunca cole chaves no chat nem no có
       (já sou afiliado: Sim · problema de login: Não, outras dúvidas · ID de afiliado em /account_setting ·
       tema "dúvidas com cadastro e conta" · cenário "Quero ativar a API").
 - [ ] **Shopee — cadastrar as chaves no GitHub**: Secrets `SHOPEE_APP_ID` e `SHOPEE_APP_SECRET` (a "Senha" da página Open API).
+- [ ] **Mercado Livre — liberar a permissão para criar aplicações** (26/11/2026): em developers.mercadolivre.com.br/devcenter
+      o botão "Criar nova aplicação" está desativado com a mensagem "No tenés permiso para crear aplicaciones. Contactá al
+      equipo de OpenPlatform". Passos: conferir se há dados pendentes de validação em Minha conta → Meu perfil; se não houver,
+      pedir a liberação ao atendimento do Mercado Livre (o suporte de integradores exige já ter uma aplicação).
 - [ ] **Mercado Livre — criar o app de desenvolvedor** com escopo "Somente leitura" e as permissões funcionais
       **"Métricas do negócio"** (mais vendidos) e **"Publicação e sincronização"** (itens e catálogo); cadastrar
       `ML_CLIENT_ID`, `ML_CLIENT_SECRET` (Secrets) e `ML_MATT_WORD`, `ML_MATT_TOOL` (Variables). O diagnóstico
