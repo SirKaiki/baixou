@@ -45,6 +45,14 @@ jobs:
             echo "CONTADOR_TOKEN=$T" >> "$GITHUB_ENV"
           fi
 
+      - name: Diagnóstico da API do Mercado Livre (só com as chaves; no máximo a cada 6 h)
+        continue-on-error: true
+        env:
+          ML_CLIENT_ID: ${{ secrets.ML_CLIENT_ID }}
+          ML_CLIENT_SECRET: ${{ secrets.ML_CLIENT_SECRET }}
+          ML_REFRESH_TOKEN: ${{ secrets.ML_REFRESH_TOKEN }}
+        run: python robo/diagnostico_ml.py
+
       - name: Rodar o robô
         id: robo
         continue-on-error: true

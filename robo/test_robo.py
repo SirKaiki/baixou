@@ -662,5 +662,36 @@ class TestCuradoriaNoRobo(TestRoboShopee):
         self.assertEqual(ofertas["curadoria"], "aplicar")
 
 
+class TestDiagnosticoML(unittest.TestCase):
+    def test_registra_o_que_funciona_sem_vazar_token(self):
+        import diagnostico_ml as d
+        from ml import ClienteML, ErroML
+
+        def falso(self, metodo, caminho, dados=None, autenticar=True, tentativas=3):
+            if caminho == "/oauth/token":
+                return {"access_token": "TOKEN-SECRETO"}
+            if caminho.startswith("/sites/MLB/search"):
+                raise ErroML("HTTP 403 em /sites/MLB/search")
+            if caminho.startswith("/highlights"):
+                return {"content": [{"id": "MLB111", "type": "PRODUCT"}, {"id": "MLB222", "type": "ITEM"}]}
+            if caminho.startswith("/products/MLB111/items"):
+                return {"results": [{"item_id": "MLB333"}]}
+            if caminho.startswith("/products/MLB111"):
+                return {"buy_box_winner": {"item_id": "MLB333", "price": 999}}
+            if caminho.startswith("/items?ids="):
+                return [{"code": 200, "body": {"price": 999, "original_price": 1299}}]
+            if caminho.startswith("/items/"):
+                return {"price": 999, "original_price": 1299, "prices": []}
+            raise ErroML("HTTP 404 em x")
+
+        with mock.patch.object(ClienteML, "_requisicao", falso):
+            r = {x["teste"]: x for x in d.rodar(ClienteML("a", "b"))}
+        self.assertFalse(r["busca por categoria (/sites/MLB/search)"]["ok"])
+        self.assertEqual(r["busca por categoria (/sites/MLB/search)"]["erro"], "HTTP 403")
+        self.assertEqual(r["mais vendidos da categoria (/highlights)"], {"teste": "mais vendidos da categoria (/highlights)", "ok": True, "quantidade": 2, "tipos": ["ITEM", "PRODUCT"]})
+        self.assertTrue(r["vários itens (/items?ids=)"]["tem_preco_original"])
+        self.assertNotIn("TOKEN-SECRETO", json.dumps(list(r.values())))
+
+
 if __name__ == "__main__":
     unittest.main()
