@@ -88,7 +88,9 @@ def pagina(o: dict, base: str, encerrada: bool = False) -> str:
 
 def main() -> int:
     base = endereco_site()
-    ofertas = ler(SITE / "data" / "ofertas.json", {}).get("ofertas", [])
+    dados = ler(SITE / "data" / "ofertas.json", {})
+    ofertas = dados.get("ofertas", [])
+    real = dados.get("modo") == "real"  # na demonstração, produtos simulados ficam fora do sitemap (não vão para o Google)
     encerradas = ler(SITE / "data" / "encerradas.json", {}).get("ofertas", [])
     destino = SITE / "o"
     destino.mkdir(exist_ok=True)
@@ -103,8 +105,11 @@ def main() -> int:
 
     hoje = datetime.now(timezone.utc).date().isoformat()
     urls = [f"{base}/"] + [f"{base}/?{urlencode({'ver': v})}" for v in ("todas", "descontos", "menor", "novas")]
-    urls += [f"{base}/?{urlencode({'cat': c})}" for c in sorted({o["categoria"] for o in ofertas if o.get("categoria")})]
-    urls += [f"{base}/?p={quote(o['id'])}" for o in ofertas]
+    if real:
+        urls += [f"{base}/?{urlencode({'cat': c})}" for c in sorted({o["categoria"] for o in ofertas if o.get("categoria")})]
+        urls += [f"{base}/?p={quote(o['id'])}" for o in ofertas]
+    else:
+        urls = [f"{base}/"]
     corpo = "".join(f"<url><loc>{html.escape(u)}</loc><lastmod>{hoje}</lastmod></url>" for u in urls)
     (SITE / "sitemap.xml").write_text(
         f'<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">{corpo}</urlset>\n',

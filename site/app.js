@@ -106,6 +106,7 @@ let P = [], byId = new Map(), CATS = [], MARCAS = [], REL = {quem_viu:{}, popula
 const vistos = () => ler('baixou-vistos', []).map(id => byId.get(String(id))).filter(Boolean);
 function marcarVisto(id) { const v = ler('baixou-vistos', []).filter(x => x !== id); v.unshift(id); guardar('baixou-vistos', v.slice(0, 16)); }
 let encP = null;
+let DEMO = false;  // modo demonstração: nada de "preço verificado" nem "link de afiliado", que não seriam verdade
 const encerradas = () => encP ??= fetch('data/encerradas.json', {cache:'no-store'}).then(r => r.ok ? r.json() : {}).then(d => d.ofertas || []).catch(() => []);
 const precos = () => precosP ??= fetch('data/precos.json', {cache:'no-store'}).then(r => r.ok ? r.json() : {}).catch(() => ({}));
 
@@ -566,7 +567,7 @@ function viewProduto(id) {
     return;
   }
   marcarVisto(p.id); evento('v', p.id);
-  document.title = `${p.titulo} por ${brl(p.preco)} | Baixou`;
+  document.title = DEMO ? `${p.titulo} (exemplo) | Baixou` : `${p.titulo} por ${brl(p.preco)} | Baixou`;
   const fotos = [...new Set([...(p.fotos || []), p.foto].map(seguro).filter(Boolean))].slice(0, 5);
   const link = seguro(p.link) || '#';
   const e = estilo(p.categoria), fav = favs().has(p.id), pop = POP.get(p.id);
@@ -594,10 +595,12 @@ function viewProduto(id) {
         <div class="verdict" id="verdict" hidden></div>
         ${p.parcelas > 1 ? `<span class="parc" style="font-size:15px">em ${p.parcelas}x de ${brl(p.preco / p.parcelas)}${p.sem_juros ? ' sem juros' : ''}</span>` : ''}
         ${p.frete_gratis ? '<span class="ship">Frete grátis</span>' : ''}
-        <a class="buy" id="buy" href="${esc(link)}" target="_blank" rel="nofollow sponsored noopener" data-buy="${esc(p.id)}">Comprar ${esc(naLoja(lojaDe(p)))} ↗</a>
+        <a class="buy" id="buy" href="${esc(link)}" target="_blank" rel="nofollow sponsored noopener" data-buy="${esc(p.id)}">${DEMO ? 'Ver produtos parecidos' : 'Comprar'} ${esc(naLoja(lojaDe(p)))} ↗</a>
         <button class="share" type="button" data-share="${esc(p.id)}">${SVG_SHARE} Compartilhar oferta</button>
-        <p class="aff"><b>Link de afiliado</b> O Baixou pode receber uma comissão se você comprar por este link, sem custo extra para você. <a href="privacidade.html#afiliado">Saiba mais</a></p>
-        <p class="note">Preço verificado ${ago(p.verificado_em)}. Você conclui a compra ${esc(naLoja(lojaDe(p)))}; preço e estoque podem mudar.</p>
+        ${DEMO ? `<p class="aff"><b>Exemplo</b> Produto de demonstração: o preço é simulado e o botão abre uma busca comum ${esc(naLoja(lojaDe(p)))}, sem link de afiliado.</p>
+        <p class="note">Não é uma oferta real. As ofertas reais aparecem aqui assim que o robô estiver ligado às lojas.</p>`
+        : `<p class="aff"><b>Link de afiliado</b> O Baixou pode receber uma comissão se você comprar por este link, sem custo extra para você. <a href="privacidade.html#afiliado">Saiba mais</a></p>
+        <p class="note">Preço verificado ${ago(p.verificado_em)}. Você conclui a compra ${esc(naLoja(lojaDe(p)))}; preço e estoque podem mudar.</p>`}
       </div>
       ${pop && pop.c >= 3 ? `<div class="proof"><b>${pop.c}</b> pessoas foram à loja por esta oferta nas últimas 24 horas</div>` : ''}
       <ul class="trust"><li>${esc(CONFIANCA[lojaDe(p)] || 'Vendedor bem avaliado na loja')}</li><li>Produto novo, com desconto conferido pelo nosso robô</li><li>Pagamento, entrega e garantia direto com a loja</li></ul>
@@ -655,6 +658,7 @@ function veredito(p, serie) {
   else if (p.preco <= menor + .009) { cls = 'top'; tit = 'Preço excelente: o menor que já registramos'; txt = `Desde ${desde}, variou entre ${brl(menor)} e ${brl(maior)}.`; }
   else if (p.preco - menor <= (maior - menor) * .35) { cls = 'bom'; tit = 'Bom preço: perto do menor registrado'; txt = `O menor desde ${desde} foi ${brl(menor)}; hoje está ${brl(p.preco - menor)} acima.`; }
   else { cls = 'meh'; tit = 'Pode melhorar: já esteve mais barato'; const d = serie.find(s => s[1] === menor); txt = `Chegou a ${brl(menor)} em ${dm(d[0])}. Salve nos favoritos que avisamos se baixar.`; }
+  if (DEMO) tit = 'Exemplo: ' + tit;
   el.className = 'verdict ' + cls; el.innerHTML = `<b>${tit}</b><span>${txt}</span>`; el.hidden = false;
 }
 function grafico(p, pts) {
@@ -939,7 +943,11 @@ Promise.all([
   CATS = Object.entries(cont1).map(([nome, n]) => ({nome, n})).sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
   MARCAS = Object.entries(cont2).map(([nome, n]) => ({nome, n})).sort((a, b) => b.n - a.n || a.nome.localeCompare(b.nome, 'pt-BR'));
   montarMenus(); montarPromo();
-  if (d.modo === 'demonstração') $('demo').hidden = false;
+  DEMO = d.modo !== 'real';
+  if (DEMO) {
+    $('demo').hidden = false;
+    const m = document.createElement('meta'); m.name = 'robots'; m.content = 'noindex,follow'; document.head.append(m);  // produtos simulados não vão para o Google
+  }
   contarFavs(); rota(); avisos();
 }).catch(() => { $('view').innerHTML = '<div class="wrap" style="padding-block:40px"><div class="empty"><strong>Não foi possível carregar as ofertas</strong><p>Tente recarregar a página em instantes.</p></div></div>'; });
 }
