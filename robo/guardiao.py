@@ -13,6 +13,7 @@ from datetime import datetime, timedelta, timezone
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 HOSTS_ML = ("mercadolivre.com.br",)
+HOSTS_SHOPEE = ("shopee.com.br",)
 ID_VALIDO = re.compile(r"[A-Za-z0-9_-]{3,40}")  # vira nome de arquivo e endereço: nada de barras ou pontos
 CAMINHOS_PROIBIDOS = ("/ofertas", "/ofertas-do-dia", "/lista", "/busca")
 
@@ -38,11 +39,11 @@ def link_afiliado(permalink: str, matt_word: str | None, matt_tool: str | None) 
     return urlunsplit((partes.scheme or "https", partes.netloc, partes.path, urlencode(query), ""))
 
 
-HOSTS_FOTO = ("mlstatic.com",)
+HOSTS_FOTO = ("mlstatic.com", "susercontent.com", "shopee.com.br")
 
 
 def foto_segura(url) -> str:
-    """Só fotos do Mercado Livre (https, sem disfarce). Outra URL poderia ser um "rastreador" que revela o IP de quem vê."""
+    """Só fotos das lojas (Mercado Livre e Shopee), em https e sem disfarce. Outra URL poderia ser um "rastreador" que revela o IP de quem vê."""
     if not isinstance(url, str):
         return ""
     try:
@@ -60,19 +61,32 @@ def id_seguro(valor) -> bool:
     return isinstance(valor, str) and ID_VALIDO.fullmatch(valor) is not None
 
 
-def checar_link(link: str, exige_afiliado: bool) -> str | None:
-    """Devolve um motivo de bloqueio, ou None se o link está ok."""
+def _host_ok(link: str, hosts: tuple) -> tuple[bool, object]:
     try:
         partes = urlsplit(link)
         host = (partes.hostname or "").lower()
         porta = partes.port
     except ValueError:
-        return "link fora do Mercado Livre"
+        return False, None
     # Nada de "usuario@" no endereço (truque clássico para disfarçar o destino) nem de porta estranha.
-    if "@" in partes.netloc or "\\" in link or porta not in (None, 443):
+    if "@" in partes.netloc or "\\" in link or porta not in (None, 443) or partes.scheme != "https":
+        return False, partes
+    return any(host == h or host.endswith("." + h) for h in hosts), partes
+
+
+def checar_link(link: str, exige_afiliado: bool, loja: str = "Mercado Livre") -> str | None:
+    """Devolve um motivo de bloqueio, ou None se o link está ok."""
+    if loja == "Shopee":
+        ok, partes = _host_ok(link, HOSTS_SHOPEE)
+        if not ok:
+            return "link fora da Shopee"
+        if partes.path in ("", "/"):
+            return "link não aponta para uma página de produto"
+        return None  # o link vem do campo "offerLink" da API de afiliados, que já traz o código de afiliado
+    ok, partes = _host_ok(link, HOSTS_ML)
+    if not ok:
         return "link fora do Mercado Livre"
-    if partes.scheme != "https" or not any(host == h or host.endswith("." + h) for h in HOSTS_ML):
-        return "link fora do Mercado Livre"
+    host = (partes.hostname or "").lower()
     if host.startswith("lista.") or any(partes.path.startswith(c) for c in CAMINHOS_PROIBIDOS) or partes.path in ("", "/"):
         return "link não aponta para uma página de produto"
     if exige_afiliado:
@@ -122,6 +136,8 @@ def avaliar(item: dict, regras: dict, comissao: float, historico_item: list, exi
     for palavra in regras["palavras_bloqueadas"]:
         if _sem_acento(palavra) in titulo:
             return "reprovada", f"palavra bloqueada: {palavra}"
+    if item.get("comissao") is not None:  # a Shopee informa a comissão de cada produto
+        comissao = item["comissao"]
     if comissao < regras["comissao_minima"]:
         return "reprovada", "categoria sem comissão"
     if preco < regras["preco_minimo"]:
@@ -132,7 +148,9 @@ def avaliar(item: dict, regras: dict, comissao: float, historico_item: list, exi
     if pct < regras["desconto_minimo"]:
         return "reprovada", f"desconto menor que {regras['desconto_minimo']}%"
 
-    motivo_link = checar_link(item.get("link", ""), exige_afiliado) if checar_links else None
+    if checar_links and item.get("loja") == "Shopee" and not item.get("link"):
+        return "quarentena", "link sem código de afiliado"
+    motivo_link = checar_link(item.get("link", ""), exige_afiliado, item.get("loja") or "Mercado Livre") if checar_links else None
     if motivo_link:
         return "quarentena", motivo_link
 

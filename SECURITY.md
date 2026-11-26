@@ -7,14 +7,14 @@ Se encontrar uma falha, abra um aviso privado em *Security → Report a vulnerab
 (ou fale com o dono do projeto). Por favor, não publique detalhes antes de a falha ser corrigida.
 
 O que o projeto já faz:
-- O robô só publica ofertas que passam pelo guardião: link no domínio do Mercado Livre (sem disfarces), com código de afiliado.
+- O robô só publica ofertas que passam pelo guardião: link no domínio da loja (sem disfarces), com código de afiliado.
 - O site tem política de segurança de conteúdo (CSP) que bloqueia scripts que não sejam os do próprio site.
 - Os dois workflows rodam com permissões mínimas e com as ações do GitHub fixadas por versão exata.
 - O wrangler (que publica o contador) tem versão travada no package-lock.json, e o trabalho que o roda
   não pode escrever no repositório; quem salva o endereço do contador é outro trabalho, que confere o endereço.
 - O robô não recebe a chave da Cloudflare: só uma chave derivada, que serve apenas para ler o contador,
   e ele só a envia para um endereço *.workers.dev, sem seguir redirecionamentos.
-- Fotos só do Mercado Livre (https://*.mlstatic.com): nenhuma imagem de terceiros pode virar "rastreador" de IP,
+- Fotos só das lojas (Mercado Livre: *.mlstatic.com; Shopee: *.susercontent.com e *.shopee.com.br): nenhuma imagem de terceiros pode virar "rastreador" de IP,
   nem no site, nem nas páginas de compartilhamento, nem no canal do Telegram.
 - Fontes hospedadas no próprio site; as páginas de compartilhamento também têm CSP.
 - O contador limita envios por visitante (429 acima de 30 por minuto), aceita no máximo 5 eventos por envio,

@@ -54,6 +54,8 @@ jobs:
           ML_REFRESH_TOKEN: ${{ secrets.ML_REFRESH_TOKEN }}
           ML_MATT_WORD: ${{ vars.ML_MATT_WORD }}
           ML_MATT_TOOL: ${{ vars.ML_MATT_TOOL }}
+          SHOPEE_APP_ID: ${{ secrets.SHOPEE_APP_ID }}
+          SHOPEE_APP_SECRET: ${{ secrets.SHOPEE_APP_SECRET }}
         run: python robo/robo.py
 
       - name: Canal de ofertas no Telegram (só liga com os segredos)

@@ -22,6 +22,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 import demo  # noqa: E402
 import guardiao as g  # noqa: E402
 from ml import ClienteML, ErroML, normalizar  # noqa: E402
+import shopee as sp  # noqa: E402
 
 RAIZ = Path(__file__).resolve().parent.parent
 ARQ_CONFIG = RAIZ / "config.json"
@@ -112,7 +113,7 @@ def coletar_real(cfg: dict, anteriores: dict, alertas: list) -> tuple[list[dict]
             alertas.append(f"Falha ao buscar a categoria {cat['nome']} ({e}).")
 
     # Rechecagem: tudo que estava no site é consultado de novo, mesmo que não tenha vindo na busca.
-    faltando = [i for i in anteriores if i not in itens]
+    faltando = [i for i, o in anteriores.items() if i not in itens and (o.get("loja") or "Mercado Livre") == "Mercado Livre"]
     if faltando:
         try:
             for bruto in cliente.itens(faltando):
@@ -132,6 +133,37 @@ def coletar_real(cfg: dict, anteriores: dict, alertas: list) -> tuple[list[dict]
     mw, mt = os.environ.get("ML_MATT_WORD"), os.environ.get("ML_MATT_TOOL")
     for item in itens.values():
         item["link"] = g.link_afiliado(item["permalink"], mw, mt)
+    return list(itens.values()), cliente
+
+
+def coletar_shopee(cfg: dict, anteriores: dict, alertas: list) -> tuple[list[dict], sp.ClienteShopee]:
+    cliente = sp.ClienteShopee(os.environ["SHOPEE_APP_ID"], os.environ["SHOPEE_APP_SECRET"])
+    opc = cfg.get("shopee", {})
+    itens: dict[str, dict] = {}
+    for cat in cfg["categorias"]:
+        for palavra in cat.get("shopee", []):
+            try:
+                for bruto in cliente.buscar(palavra, opc.get("paginas_por_busca", 1), opc.get("itens_por_pagina", 50)):
+                    item = sp.normalizar(bruto, cat["nome"])
+                    if item["id"] and item["id"] not in itens:
+                        itens[item["id"]] = item
+            except sp.ErroShopee as e:
+                alertas.append(f"Shopee: falha ao buscar \"{palavra}\" ({e}).")
+                if not itens and cliente.chamadas <= 2:
+                    raise  # o primeiro pedido já falhou (chave errada, sem acesso...): não adianta insistir
+
+    # Rechecagem: o que estava no site e não veio nas buscas é consultado de novo, um a um (com limite).
+    faltando = [o for i, o in anteriores.items() if i not in itens and o.get("loja") == sp.LOJA and i[len(sp.PREFIXO):].isdigit()]
+    for ant in faltando[: opc.get("rechecar_no_maximo", 80)]:
+        try:
+            bruto = cliente.item(int(ant["id"][len(sp.PREFIXO):]))
+        except sp.ErroShopee as e:
+            alertas.append(f"Shopee: falha ao rechecar ofertas publicadas ({e}).")
+            break
+        if bruto:
+            item = sp.normalizar(bruto, ant["categoria"])
+            if item["id"]:
+                itens[item["id"]] = item
     return list(itens.values()), cliente
 
 
@@ -163,26 +195,43 @@ def main() -> int:
     status_ant = ler(ARQ_STATUS, {})
     anteriores = {o["id"]: o for o in ofertas_ant.get("ofertas", [])}
 
-    real = bool(os.environ.get("ML_CLIENT_ID") and os.environ.get("ML_CLIENT_SECRET"))
-    afiliado_ok = bool(os.environ.get("ML_MATT_WORD") and os.environ.get("ML_MATT_TOOL"))
+    ml_ativo = bool(os.environ.get("ML_CLIENT_ID") and os.environ.get("ML_CLIENT_SECRET"))
+    shopee_ativa = bool(os.environ.get("SHOPEE_APP_ID") and os.environ.get("SHOPEE_APP_SECRET"))
+    real = ml_ativo or shopee_ativa
+    afiliado_ok = not ml_ativo or bool(os.environ.get("ML_MATT_WORD") and os.environ.get("ML_MATT_TOOL"))
     modo = "real" if real else "demonstração"
+    # Saindo da demonstração para o modo real: as ofertas simuladas não contam como "anteriores"
+    # (senão o freio de "queda brusca" seguraria o site na demonstração para sempre).
+    estreia = real and ofertas_ant.get("modo") != "real"
+    if estreia:
+        anteriores = {}
     alertas: list[str] = []
     freio = None
-    cliente = None
+    cliente = None  # cliente do Mercado Livre (fotos extras e subcategorias)
+    clientes = []
 
-    # 1. Coleta
-    try:
-        if real:
-            itens, cliente = coletar_real(cfg, anteriores, alertas)
-        else:
-            itens = demo.gerar(agora)
-            for item in itens:
-                item["link"] = item["permalink"]
-    except ErroML as e:
-        itens = []
-        freio = f"Não foi possível falar com o Mercado Livre: {e}."
+    # 1. Coleta (cada loja configurada; se uma loja falhar por completo, o freio segura o site como estava)
+    itens = []
+    if not real:
+        itens = demo.gerar(agora)
+        for item in itens:
+            item["link"] = item["permalink"]
+    if ml_ativo:
+        try:
+            ml_itens, cliente = coletar_real(cfg, anteriores, alertas)
+            itens += ml_itens
+            clientes.append(cliente)
+        except ErroML as e:
+            freio = f"Não foi possível falar com o Mercado Livre: {e}."
+    if shopee_ativa:
+        try:
+            sp_itens, cliente_sp = coletar_shopee(cfg, anteriores, alertas)
+            itens += sp_itens
+            clientes.append(cliente_sp)
+        except sp.ErroShopee as e:
+            freio = freio or f"Não foi possível falar com a Shopee: {e}."
 
-    if real and not afiliado_ok:
+    if ml_ativo and not afiliado_ok:
         alertas.append("Código de afiliado não configurado (ML_MATT_WORD / ML_MATT_TOOL): nenhuma oferta é publicada sem ele.")
 
     # 2. Guardião
@@ -213,8 +262,10 @@ def main() -> int:
     aprovadas = sorted(melhores.values(), key=lambda i: -g.desconto(i["preco"], i["preco_cheio"]))[: regras["max_ofertas"]]
 
     # 4. Freio de emergência
-    if cliente and cliente.chamadas and cliente.erros / cliente.chamadas > regras["freio_taxa_erro"]:
-        freio = freio or f"Muitas falhas na API ({cliente.erros} de {cliente.chamadas} chamadas)."
+    chamadas = sum(c.chamadas for c in clientes)
+    erros = sum(c.erros for c in clientes)
+    if chamadas and erros / chamadas > regras["freio_taxa_erro"]:
+        freio = freio or f"Muitas falhas na API ({erros} de {chamadas} chamadas)."
     if len(anteriores) >= 20 and len(aprovadas) < len(anteriores) * regras["freio_queda"]:
         freio = freio or f"Queda brusca de ofertas aprovadas ({len(anteriores)} → {len(aprovadas)})."
     if cliente and cliente.novo_refresh_token:
@@ -225,7 +276,7 @@ def main() -> int:
     marcas: dict[str, str] = {}
     if cliente and aprovadas and not freio:
         try:
-            for bruto in cliente.itens([i["id"] for i in aprovadas]):
+            for bruto in cliente.itens([i["id"] for i in aprovadas if (i.get("loja") or "Mercado Livre") == "Mercado Livre"]):
                 urls = [(f.get("secure_url") or f.get("url") or "").replace("http://", "https://") for f in bruto.get("pictures", [])]
                 fotos[bruto["id"]] = [u for u in urls if u][:4]
                 marca = next((a.get("value_name") for a in bruto.get("attributes", []) if a.get("id") == "BRAND"), None)
@@ -260,7 +311,7 @@ def main() -> int:
                 "frete_gratis": item["frete_gratis"], "full": item["full"],
                 "foto": g.foto_segura(item["foto"]), "fotos": [f for f in map(g.foto_segura, fotos.get(item["id"], [])) if f],
                 "marca": marcas.get(item["id"]) or item.get("marca"),
-                "link": item["link"], "loja": cfg["loja"],
+                "link": item["link"], "loja": item.get("loja") or cfg["loja"],
                 "menor_30d": g.menor_preco_periodo(historico.get(item["id"], []), item["preco"]),
                 "verificado_em": carimbo,
                 "novo_em": anteriores.get(item["id"], {}).get("novo_em", carimbo),
@@ -270,7 +321,7 @@ def main() -> int:
             if id_ant not in ids_novos:
                 motivo = avaliacao.get(id_ant, ("", "anúncio não encontrado ou encerrado"))[1] or "substituída por oferta melhor"
                 removidas.append({"titulo": ant["titulo"], "motivo": motivo})
-        gravar(ARQ_ENCERRADAS, atualizar_encerradas(ler(ARQ_ENCERRADAS, {}), anteriores, ids_novos, avaliacao, historico, agora), compacto=True)
+        gravar(ARQ_ENCERRADAS, atualizar_encerradas({} if estreia else ler(ARQ_ENCERRADAS, {}), anteriores, ids_novos, avaliacao, historico, agora), compacto=True)
         gravar(ARQ_OFERTAS, {"gerado_em": carimbo, "modo": modo, "ofertas": publicadas}, compacto=True)
         gravar(ARQ_PRECOS, {o["id"]: g.precos_diarios(historico.get(o["id"], [])) for o in publicadas}, compacto=True)
         export = ler_contador(alertas)
@@ -295,7 +346,8 @@ def main() -> int:
         "quarentena": [{"titulo": q["titulo"], "preco": q["preco"], "preco_cheio": q["preco_cheio"],
                         "desconto": q["desconto"], "motivo": q["motivo"], "link": q.get("link", "")} for q in quarentena],
         "removidas": removidas[:50],
-        "api": {"chamadas": cliente.chamadas, "erros": cliente.erros} if cliente else None,
+        "api": {"chamadas": chamadas, "erros": erros} if clientes else None,
+        "lojas": [n for n, ativa in (("Mercado Livre", ml_ativo), ("Shopee", shopee_ativa)) if ativa],
         "produtos_no_historico": len(historico),
         "execucoes": execucoes,
     })

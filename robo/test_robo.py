@@ -363,5 +363,168 @@ class TestRoboReal(unittest.TestCase):
         self.assertTrue(status["alertas"][0].startswith("FREIO ACIONADO"))
 
 
+# ---------------------------------------------------------------- Shopee
+
+import shopee as sp  # noqa: E402
+
+
+def no_shopee(n, desconto=40, tipo=(1,), preco="59.90"):
+    return {"itemId": 22000000000 + n, "productName": f"Fone Bluetooth modelo {n}", "priceMin": preco, "priceMax": preco,
+            "priceDiscountRate": desconto, "commissionRate": "0.08", "shopType": list(tipo), "ratingStar": "4.8", "sales": 900,
+            "imageUrl": f"https://down-br.img.susercontent.com/file/br-{n}", "productLink": f"https://shopee.com.br/product/1/{22000000000 + n}",
+            "offerLink": f"https://s.shopee.com.br/Ab{n}Cd", "shopName": "Loja X", "shopId": 1}
+
+
+class TestShopeeCliente(unittest.TestCase):
+    def _resposta(self, corpo):
+        r = mock.MagicMock()
+        r.__enter__.return_value.read.return_value = json.dumps(corpo).encode()
+        return r
+
+    def test_assinatura_bate_com_o_corpo_enviado(self):
+        c = sp.ClienteShopee("123", "segredo")
+        with mock.patch("urllib.request.urlopen", return_value=self._resposta({"data": {"productOfferV2": {"nodes": [no_shopee(1)], "pageInfo": {"hasNextPage": False}}}})) as abrir:
+            itens = c.buscar("fone", 3)
+        self.assertEqual(len(itens), 1)
+        req = abrir.call_args[0][0]
+        cab = req.get_header("Authorization")
+        import re
+        m = re.fullmatch(r"SHA256 Credential=123, Timestamp=(\d+), Signature=([0-9a-f]{64})", cab)
+        self.assertIsNotNone(m, cab)
+        import hashlib
+        esperado = hashlib.sha256(b"123" + m.group(1).encode() + req.data + b"segredo").hexdigest()
+        self.assertEqual(m.group(2), esperado)
+        self.assertEqual(req.full_url, "https://open-api.affiliate.shopee.com.br/graphql")
+
+    def test_erro_de_assinatura_vira_mensagem_clara(self):
+        c = sp.ClienteShopee("123", "errado")
+        with mock.patch("urllib.request.urlopen", return_value=self._resposta({"errors": [{"extensions": {"code": 10020}}]})):
+            with self.assertRaises(sp.ErroShopee) as ctx:
+                c.buscar("fone", 1)
+        self.assertIn("SHOPEE_APP_SECRET", str(ctx.exception))
+
+    def test_consulta_de_um_item_so_aceita_numero(self):
+        c = sp.ClienteShopee("1", "2")
+        self.assertIsNone(c.item("1){nodes"))
+        self.assertIsNone(c.item(-5))
+
+
+class TestShopeeDados(unittest.TestCase):
+    def test_normalizar(self):
+        i = sp.normalizar(no_shopee(7), "Eletrônicos")
+        self.assertEqual(i["id"], "SHP22000000007")
+        self.assertEqual(i["preco"], 59.9)
+        self.assertAlmostEqual(i["preco_cheio"], 99.83, places=2)
+        self.assertEqual(g.desconto(i["preco"], i["preco_cheio"]), 40)
+        self.assertEqual((i["comissao"], i["loja"], i["reputacao"]), (8.0, "Shopee", "shopee_oficial"))
+        self.assertEqual(i["link"], "https://s.shopee.com.br/Ab7Cd")
+
+    def test_reputacao_por_tipo_de_loja_e_nota(self):
+        self.assertEqual(sp.reputacao({"shopType": [2]}), "shopee_indicada")
+        self.assertEqual(sp.reputacao({"shopType": [], "ratingStar": "4.9", "sales": 500}), "shopee_bem_avaliada")
+        self.assertIsNone(sp.reputacao({"shopType": [], "ratingStar": "4.9", "sales": 3}))
+
+    def test_id_estranho_nao_vira_oferta(self):
+        self.assertEqual(sp.normalizar(no_shopee(1) | {"itemId": "../x"}, "x")["id"], "")
+
+    def test_links_e_fotos_da_shopee(self):
+        self.assertIsNone(g.checar_link("https://s.shopee.com.br/Ab1Cd", True, "Shopee"))
+        for ruim in ("https://shopee.com.br.golpe.com/x", "https://golpe.com@s.shopee.com.br/x", "http://s.shopee.com.br/x",
+                     "https://produto.mercadolivre.com.br/MLB-1", "https://s.shopee.com.br/"):
+            self.assertIsNotNone(g.checar_link(ruim, True, "Shopee"), ruim)
+        self.assertIsNotNone(g.checar_link("https://s.shopee.com.br/Ab1Cd", True, "Mercado Livre"))
+        self.assertTrue(g.foto_segura("https://down-br.img.susercontent.com/file/br-1"))
+        self.assertEqual(g.foto_segura("https://susercontent.com.golpe.com/x.png"), "")
+
+    def test_guardiao_aprova_oferta_boa_da_shopee(self):
+        regras = json.loads((Path(__file__).resolve().parent.parent / "config.json").read_text())["guardiao"]
+        self.assertEqual(g.avaliar(sp.normalizar(no_shopee(1), "Eletrônicos"), regras, 0, [], True)[0], "aprovada")
+        sem_link = sp.normalizar(no_shopee(1) | {"offerLink": ""}, "Eletrônicos")
+        self.assertEqual(g.avaliar(sem_link, regras, 0, [], True), ("quarentena", "link sem código de afiliado"))
+        fraca = sp.normalizar(no_shopee(1, tipo=()) | {"sales": 2}, "Eletrônicos")
+        self.assertEqual(g.avaliar(fraca, regras, 0, [], True)[0], "reprovada")
+
+
+class FakeShopee:
+    """Imita a API de afiliados da Shopee."""
+    falhar_tudo = False
+    vazia = False
+
+    def __init__(self, *a, **k):
+        self.chamadas, self.erros = 0, 0
+
+    def buscar(self, palavra, paginas, limite=50):
+        self.chamadas += 1
+        if FakeShopee.falhar_tudo:
+            self.erros += 1
+            raise sp.ErroShopee("assinatura inválida (confira SHOPEE_APP_ID e SHOPEE_APP_SECRET)")
+        if FakeShopee.vazia or palavra != "fone bluetooth":
+            return []
+        return [no_shopee(n) for n in range(12)]
+
+    def item(self, item_id):
+        self.chamadas += 1
+        return no_shopee(item_id - 22000000000)
+
+
+class TestRoboShopee(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        raiz = Path(self.tmp.name)
+        self.patches = [mock.patch.object(robo, n, raiz / f) for n, f in (
+            ("ARQ_HIST", "historico.json"), ("ARQ_OFERTAS", "ofertas.json"), ("ARQ_STATUS", "status.json"),
+            ("ARQ_PRECOS", "precos.json"), ("ARQ_CATS", "categorias.json"), ("ARQ_ENCERRADAS", "encerradas.json"),
+            ("ARQ_RELACIONADOS", "relacionados.json"), ("ARQ_CONTADOR", "contador.json"))]
+        self.patches += [mock.patch.object(robo.sp, "ClienteShopee", FakeShopee),
+                         mock.patch.dict(os.environ, {"SHOPEE_APP_ID": "1", "SHOPEE_APP_SECRET": "2"}, clear=True)]
+        for p in self.patches:
+            p.start()
+        FakeShopee.falhar_tudo = FakeShopee.vazia = False
+        self.raiz = raiz
+
+    def tearDown(self):
+        for p in self.patches:
+            p.stop()
+        self.tmp.cleanup()
+
+    def ler(self, nome):
+        return json.loads((self.raiz / nome).read_text())
+
+    def test_publica_ofertas_da_shopee(self):
+        self.assertEqual(robo.main(), 0)
+        ofertas = self.ler("ofertas.json")
+        self.assertEqual(ofertas["modo"], "real")
+        self.assertEqual(len(ofertas["ofertas"]), 12)
+        o = ofertas["ofertas"][0]
+        self.assertEqual((o["loja"], o["desconto"], o["categoria"]), ("Shopee", 40, "Eletrônicos"))
+        self.assertTrue(o["link"].startswith("https://s.shopee.com.br/") and "susercontent.com" in o["foto"])
+        status = self.ler("status.json")
+        self.assertEqual(status["lojas"], ["Shopee"])
+        self.assertTrue(status["afiliado_configurado"])
+
+    def test_oferta_que_some_da_busca_e_rechecada(self):
+        robo.main()
+        FakeShopee.vazia = True
+        robo.main()
+        self.assertEqual(len(self.ler("ofertas.json")["ofertas"]), 12)
+
+    def test_estreia_depois_da_demonstracao_nao_trava_no_freio(self):
+        with mock.patch.dict(os.environ, {}, clear=True):
+            robo.main()  # demonstração: 20+ ofertas simuladas
+        self.assertGreaterEqual(len(self.ler("ofertas.json")["ofertas"]), 20)
+        self.assertEqual(robo.main(), 0)  # estreia com 12 ofertas reais: não pode acionar "queda brusca"
+        ofertas = self.ler("ofertas.json")
+        self.assertEqual((ofertas["modo"], len(ofertas["ofertas"])), ("real", 12))
+        self.assertFalse(any(o["id"].startswith("DEMO") for o in self.ler("encerradas.json")["ofertas"]))
+
+    def test_chave_errada_aciona_o_freio(self):
+        robo.main()
+        antes = self.ler("ofertas.json")
+        FakeShopee.falhar_tudo = True
+        self.assertEqual(robo.main(), 2)
+        self.assertEqual(self.ler("ofertas.json"), antes)
+        self.assertIn("Shopee", self.ler("status.json")["alertas"][0])
+
+
 if __name__ == "__main__":
     unittest.main()

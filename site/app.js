@@ -1,7 +1,7 @@
 {
 /* =========================================================
    Baixou: loja de ofertas (página única, roteada por ?parâmetros)
-   ?p=ID produto · ?cat= categoria · ?marca= marca · ?q= busca · ?max= preço · ?ver= vitrines
+   ?p=ID produto · ?cat= categoria · ?marca= marca · ?loja= loja · ?q= busca · ?max= preço · ?ver= vitrines
    ========================================================= */
 
 /* ---------- utilidades ---------- */
@@ -10,7 +10,7 @@ const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt
 const norm = s => String(s ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 const brl = v => Number(v).toLocaleString('pt-BR', {style:'currency', currency:'BRL'});
 const brl0 = v => 'R$ ' + Math.round(Number(v)).toLocaleString('pt-BR');
-const seguro = u => /^https:\/\/([a-z0-9-]+\.)*(mercadolivre\.com\.br|mlstatic\.com)\//i.test(String(u)) ? String(u) : '';
+const seguro = u => /^https:\/\/([a-z0-9-]+\.)*(mercadolivre\.com\.br|mlstatic\.com|shopee\.com\.br|susercontent\.com)\//i.test(String(u)) ? String(u) : '';
 const minutos = iso => (Date.now() - new Date(iso)) / 60000;
 const ago = iso => { const m = Math.max(0, Math.round(minutos(iso))); return m < 1 ? 'agora' : m < 60 ? `há ${m} min` : m < 1440 ? `há ${Math.round(m/60)} h` : `há ${Math.round(m/1440)} d`; };
 const dm = d => { const [, m, dd] = String(d).split('-'); return `${dd}/${m}`; };
@@ -176,6 +176,9 @@ const LOJAS = {
   'Netshoes': {dom: 'netshoes.com.br', bg: '#ead9ff'}, 'Centauro': {dom: 'centauro.com.br', bg: '#ffd6d6'}, 'Kabum': {dom: 'kabum.com.br', bg: '#ffe2c7'},
 };
 const lojaDe = p => p.loja || 'Mercado Livre';
+const NA_LOJA = new Set(['Amazon', 'Shopee', 'Magalu', 'Netshoes', 'Centauro', 'Kabum']);
+const naLoja = nome => `${NA_LOJA.has(nome) ? 'na' : 'no'} ${nome}`;
+const CONFIANCA = {'Mercado Livre': 'Vendedor com boa reputação no Mercado Livre', 'Shopee': 'Loja oficial, indicada ou muito bem avaliada na Shopee'};
 function seloLoja(nome, grande) {
   const l = LOJAS[nome], ic = l ? `<img src="https://www.google.com/s2/favicons?domain=${l.dom}&sz=64" alt="" width="16" height="16" loading="lazy" referrerpolicy="no-referrer" data-rm>` : '';
   return `<span class="loja${grande ? ' g' : ''}" style="--lj:${l ? l.bg : 'var(--soft)'}">${ic}${esc(nome)}</span>`;
@@ -293,7 +296,7 @@ function viewHome() {
   h += `<div class="perks"><div class="wrap">
     <div class="perk">${PERK.clock}<span><b>A cada 15 min</b>preços conferidos pelo robô</span></div>
     <div class="perk">${PERK.chart}<span><b>Desconto real</b>comparado com o histórico</span></div>
-    <div class="perk">${PERK.shield}<span><b>Compra segura</b>direto no Mercado Livre</span></div>
+    <div class="perk">${PERK.shield}<span><b>Compra segura</b>direto na loja</span></div>
     <div class="perk">${PERK.truck}<span><b>Frete grátis</b>em ${nFrete} ${nFrete === 1 ? 'oferta' : 'ofertas'}</span></div></div></div>`;
   h += rail('r-novas', 'Acabou de baixar', novas, '?ver=novas', 'Ver todas', 'Entraram no site agora há pouco');
   if (populares.length >= 6) h += rail('r-pop', 'Mais procurados hoje', unicos(populares), '', '', 'O que mais gente levou para a loja nas últimas 24 horas', {pop:true});
@@ -334,19 +337,19 @@ const naFaixa = (p, f) => f[2] === 0 ? p.preco <= f[3] : p.preco > f[2] && p.pre
 const lista = v => (v || '').split(',').map(s => s.trim()).filter(Boolean);
 function viewLista(ps) {
   let ver = VITRINES[ps.get('ver')] ? ps.get('ver') : '';
-  const temAlgo = ['cat', 'q', 'marca', 'sub', 'max', 'min', 'preco', 'desc', 'frete', 'full', 'menor'].some(k => ps.get(k));
+  const temAlgo = ['cat', 'q', 'marca', 'loja', 'sub', 'max', 'min', 'preco', 'desc', 'frete', 'full', 'menor'].some(k => ps.get(k));
   if (!ver && !temAlgo) ver = 'todas';
   const v = VITRINES[ver] || {};
   const max = /^\d+$/.test(ps.get('max') || '') ? ps.get('max') : '';
   const min = /^\d+$/.test(ps.get('min') || '') ? ps.get('min') : '';
   L = {
     ver, fav: !!v.fav, q: ps.get('q') || '', catFixa: ps.get('cat') || '',
-    cats: new Set(), subs: new Set(lista(ps.get('sub'))), marcas: new Set(lista(ps.get('marca'))),
+    cats: new Set(), subs: new Set(lista(ps.get('sub'))), marcas: new Set(lista(ps.get('marca'))), lojas: new Set(lista(ps.get('loja'))),
     faixa: FAIXAS.some(f => f[0] === ps.get('preco')) ? ps.get('preco') : '', min, max,
     disc: DESCONTOS.includes(+ps.get('desc')) ? +ps.get('desc') : 0,
     frete: !!v.frete || ps.get('frete') === '1', full: !!v.full || ps.get('full') === '1', low: !!v.low || ps.get('menor') === '1',
     sort: ['new', 'disc', 'low', 'high'].includes(ps.get('ordem')) ? ps.get('ordem') : v.sort || (ps.get('q') ? 'disc' : 'new'),
-    pagina: Math.max(1, parseInt(ps.get('pagina'), 10) || 1), ui: {open: new Set(['sub', 'marca', 'preco', 'entrega']), more: new Set(), mq: ''},
+    pagina: Math.max(1, parseInt(ps.get('pagina'), 10) || 1), ui: {open: new Set(['sub', 'marca', 'loja', 'preco', 'entrega']), more: new Set(), mq: ''},
   };
   if (L.catFixa && !CATS.some(c => c.nome === L.catFixa)) L.catFixa = '';
   if (!L.catFixa) L.ui.open.add('cat');
@@ -371,7 +374,7 @@ function viewLista(ps) {
   const fp = $('fpanel');
   fp.addEventListener('change', e => {
     const t = e.target, f = t.dataset.f; if (!f) return;
-    if (f === 'cats' || f === 'subs' || f === 'marcas') { t.checked ? L[f].add(t.value) : L[f].delete(t.value); }
+    if (f === 'cats' || f === 'subs' || f === 'marcas' || f === 'lojas') { t.checked ? L[f].add(t.value) : L[f].delete(t.value); }
     else if (f === 'faixa') { L.faixa = t.checked ? t.value : ''; L.min = L.max = ''; }
     else if (f === 'disc') L.disc = +t.value;
     else L[f] = t.checked;
@@ -387,7 +390,7 @@ function viewLista(ps) {
   $('faside').addEventListener('click', e => { if (e.target.closest('[data-fclose]')) abrirFiltros(false); if (e.target.closest('[data-flimpar]')) limparFiltros(); });
   $('active').addEventListener('click', e => { const b = e.target.closest('[data-x]'); if (!b) return; const [k, val] = b.dataset.x.split('|');
     if (k === 'tudo') return limparFiltros();
-    if (k === 'cats' || k === 'subs' || k === 'marcas') L[k].delete(val);
+    if (k === 'cats' || k === 'subs' || k === 'marcas' || k === 'lojas') L[k].delete(val);
     else if (k === 'preco') { L.faixa = ''; L.min = L.max = ''; }
     else if (k === 'disc') L.disc = 0;
     else L[k] = false;
@@ -410,7 +413,7 @@ function abrirFiltros(on) {
 }
 function limparFiltros() {
   Object.assign(L, {faixa:'', min:'', max:'', disc:0, frete:false, full:false, low:false});
-  L.cats.clear(); L.subs.clear(); L.marcas.clear(); L.ui.mq = '';
+  L.cats.clear(); L.subs.clear(); L.marcas.clear(); L.lojas.clear(); L.ui.mq = '';
   listar();
 }
 /* Cada filtro conta as ofertas considerando todos os OUTROS filtros (contagem facetada). */
@@ -422,6 +425,7 @@ function passa(p, sem) {
   if (sem !== 'cats' && L.cats.size && !L.cats.has(p.categoria)) return false;
   if (sem !== 'subs' && L.subs.size && !L.subs.has(p.subcategoria)) return false;
   if (sem !== 'marcas' && L.marcas.size && !L.marcas.has(p.marca)) return false;
+  if (sem !== 'lojas' && L.lojas.size && !L.lojas.has(lojaDe(p))) return false;
   if (sem !== 'faixa') {
     const f = FAIXAS.find(x => x[0] === L.faixa);
     if (f && !naFaixa(p, f)) return false;
@@ -461,14 +465,15 @@ function painel() {
   const nb = (f, fn) => P.filter(p => passa(p, f) && fn(p)).length;
   h += faceta('entrega', 'Entrega e preço', [['frete', 'Frete grátis', p => p.frete_gratis], ['full', 'Entrega Full', p => p.full], ['low', 'Menor preço em 30 dias', p => p.menor_30d]]
     .map(([f, l, fn]) => { const n = nb(f, fn); return `<label class="fopt${n ? '' : ' zero'}"><input type="checkbox" data-f="${f}"${L[f] ? ' checked' : ''}><span>${l}</span><small>${n}</small></label>`; }).join(''), [L.frete, L.full, L.low].filter(Boolean).length);
-  h += faceta('loja', 'Loja', `<label class="fopt"><input type="checkbox" checked disabled><span>${seloLoja('Mercado Livre')}</span></label><label class="fopt zero"><input type="checkbox" disabled><span>Amazon</span><small>em breve</small></label><label class="fopt zero"><input type="checkbox" disabled><span>Shopee</span><small>em breve</small></label>`, 0);
+  const lojas = ord(comSel(contar('lojas', lojaDe), L.lojas), L.lojas);
+  if (lojas.length > 1 || L.lojas.size) h += faceta('loja', 'Loja', opcoes('lojas', lojas, 8), L.lojas.size);
   const fp = $('fpanel'), y = fp.scrollTop, foco = document.activeElement && document.activeElement.id === 'fmq';
   fp.innerHTML = h; fp.scrollTop = y;
   if (foco) { const i = $('fmq'); i.focus(); i.setSelectionRange(i.value.length, i.value.length); }
   if (L.ui.mq) $('fmq')?.dispatchEvent(new Event('input', {bubbles:true}));
 }
 function syncLista() {
-  const u = {cat:L.catFixa, q:L.q, ver:L.ver !== 'todas' ? L.ver : '', sub:[...L.subs].join(','), marca:[...L.marcas].join(','), preco:L.faixa, min:L.min, max:L.max, desc:L.disc || '',
+  const u = {cat:L.catFixa, q:L.q, ver:L.ver !== 'todas' ? L.ver : '', sub:[...L.subs].join(','), marca:[...L.marcas].join(','), loja:[...L.lojas].join(','), preco:L.faixa, min:L.min, max:L.max, desc:L.disc || '',
     frete: L.frete && !VITRINES[L.ver]?.frete ? 1 : '', full: L.full && !VITRINES[L.ver]?.full ? 1 : '', menor: L.low && !VITRINES[L.ver]?.low ? 1 : '', ordem: L.sort !== (VITRINES[L.ver]?.sort || (L.q ? 'disc' : 'new')) ? L.sort : '', pagina: L.pagina > 1 ? L.pagina : ''};
   const url = qs(u); try { history.replaceState(null, '', url === './' ? '?ver=todas' : url); } catch (e) {}
 }
@@ -490,6 +495,7 @@ function listar(reset = true) {
   L.cats.forEach(c => a.push(['cats|' + c, c]));
   L.subs.forEach(c => a.push(['subs|' + c, c]));
   L.marcas.forEach(c => a.push(['marcas|' + c, c]));
+  L.lojas.forEach(c => a.push(['lojas|' + c, c]));
   const f = FAIXAS.find(x => x[0] === L.faixa);
   if (f) a.push(['preco', f[1]]); else if (L.min || L.max) a.push(['preco', L.min && L.max ? `${brl0(L.min)} a ${brl0(L.max)}` : L.min ? `A partir de ${brl0(L.min)}` : `Até ${brl0(L.max)}`]);
   if (L.disc) a.push(['disc', `${L.disc}% ou mais`]);
@@ -594,13 +600,13 @@ function viewProduto(id) {
         <div class="verdict" id="verdict" hidden></div>
         ${p.parcelas > 1 ? `<span class="parc" style="font-size:15px">em ${p.parcelas}x de ${brl(p.preco / p.parcelas)}${p.sem_juros ? ' sem juros' : ''}</span>` : ''}
         ${p.frete_gratis ? '<span class="ship">Frete grátis</span>' : ''}
-        <a class="buy" id="buy" href="${esc(link)}" target="_blank" rel="nofollow sponsored noopener" data-buy="${esc(p.id)}">Comprar ${lojaDe(p) === 'Amazon' ? 'na' : 'no'} ${esc(lojaDe(p))} ↗</a>
+        <a class="buy" id="buy" href="${esc(link)}" target="_blank" rel="nofollow sponsored noopener" data-buy="${esc(p.id)}">Comprar ${esc(naLoja(lojaDe(p)))} ↗</a>
         <button class="share" type="button" data-share="${esc(p.id)}">${SVG_SHARE} Compartilhar oferta</button>
         <p class="aff"><b>Link de afiliado</b> O Baixou pode receber uma comissão se você comprar por este link, sem custo extra para você. <a href="privacidade.html#afiliado">Saiba mais</a></p>
-        <p class="note">Preço verificado ${ago(p.verificado_em)}. Você conclui a compra no Mercado Livre; preço e estoque podem mudar.</p>
+        <p class="note">Preço verificado ${ago(p.verificado_em)}. Você conclui a compra ${esc(naLoja(lojaDe(p)))}; preço e estoque podem mudar.</p>
       </div>
       ${pop && pop.c >= 3 ? `<div class="proof"><b>${pop.c}</b> pessoas foram à loja por esta oferta nas últimas 24 horas</div>` : ''}
-      <ul class="trust"><li>Vendedor com boa reputação no Mercado Livre</li><li>Produto novo, com desconto conferido pelo nosso robô</li><li>Pagamento, entrega e garantia direto com a loja</li></ul>
+      <ul class="trust"><li>${esc(CONFIANCA[lojaDe(p)] || 'Vendedor bem avaliado na loja')}</li><li>Produto novo, com desconto conferido pelo nosso robô</li><li>Pagamento, entrega e garantia direto com a loja</li></ul>
       ${canaisHTML()}
     </div>
   </div>
@@ -856,7 +862,7 @@ function rota() {
   const id = ps.get('p') || ps.get('oferta');
   if (ps.get('oferta')) history.replaceState(null, '', qs({p:id}));
   if (id) viewProduto(id);
-  else if (['cat', 'q', 'ver', 'marca', 'sub', 'max', 'min', 'preco', 'desc', 'frete', 'full', 'menor', 'pagina', 'ordem'].some(k => ps.get(k))) viewLista(ps);
+  else if (['cat', 'q', 'ver', 'marca', 'loja', 'sub', 'max', 'min', 'preco', 'desc', 'frete', 'full', 'menor', 'pagina', 'ordem'].some(k => ps.get(k))) viewLista(ps);
   else viewHome();
   $('q').value = ps.get('q') || '';
   const atual = id ? null : ps.get('cat') ? 'cat:' + ps.get('cat') : ps.get('ver') ? 'ver:' + ps.get('ver') : ps.toString() ? null : 'home';

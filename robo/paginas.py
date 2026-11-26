@@ -64,7 +64,7 @@ def pagina(o: dict, base: str, encerrada: bool = False) -> str:
     return f"""<!doctype html>
 <html lang="pt-BR"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src {csp_script}; style-src 'unsafe-inline'; img-src 'self' https://*.mlstatic.com; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src {csp_script}; style-src 'unsafe-inline'; img-src 'self' https://*.mlstatic.com https://*.susercontent.com https://*.shopee.com.br; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
 <title>{e(titulo)} | Baixou</title>
 <meta name="description" content="{e(descricao)}">

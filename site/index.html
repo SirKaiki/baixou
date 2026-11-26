@@ -3,12 +3,12 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-f9yPDgoX8L9HH8PQwqVjDUjOVEeictzlBf3QnTuVumk='; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: https://*.mlstatic.com https://*.mercadolivre.com.br https://images.unsplash.com https://www.google.com https://*.gstatic.com; connect-src 'self' https://*.workers.dev; manifest-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'; frame-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-f9yPDgoX8L9HH8PQwqVjDUjOVEeictzlBf3QnTuVumk='; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: https://*.mlstatic.com https://*.mercadolivre.com.br https://*.susercontent.com https://*.shopee.com.br https://images.unsplash.com https://www.google.com https://*.gstatic.com; connect-src 'self' https://*.workers.dev; manifest-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'; frame-src 'none'">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <title>Baixou ofertas</title>
 <meta name="description" content="Só produtos em promoção de verdade, conferidos a cada 15 minutos.">
 <meta property="og:title" content="Baixou: só o que está em promoção de verdade">
-<meta property="og:description" content="Ofertas do Mercado Livre conferidas a cada 15 minutos, com histórico de preço.">
+<meta property="og:description" content="Ofertas do Mercado Livre e da Shopee conferidas a cada 15 minutos, com histórico de preço.">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Baixou">
 <meta property="og:locale" content="pt_BR">
@@ -55,7 +55,7 @@
 <div class="scrim" id="scrim" hidden></div>
 <aside class="drawer" id="drawer" aria-label="Categorias" aria-hidden="true" inert></aside>
 <div class="aviso" id="aviso" role="status" hidden></div>
-<div class="demo" id="demo" hidden><div class="wrap">Modo demonstração: produtos e preços simulados enquanto o robô ainda não está ligado ao Mercado Livre.</div></div>
+<div class="demo" id="demo" hidden><div class="wrap">Modo demonstração: produtos e preços simulados enquanto o robô ainda não está ligado às lojas.</div></div>
 
 <main id="view" tabindex="-1"></main>
 
@@ -63,13 +63,13 @@
   <div class="wrap">
     <div><h2>Garimpo a cada 15 min</h2><p>Um robô confere as promoções o dia todo e tira do ar o que encareceu ou esgotou.</p></div>
     <div><h2>Só desconto de verdade</h2><p>Comparamos com o histórico de preços: promoção inflada, produto usado ou vendedor mal avaliado não entram.</p></div>
-    <div><h2>Você compra na loja</h2><p>O botão leva ao anúncio no Mercado Livre. Pagamento, entrega e garantia são com a loja.</p></div>
+    <div><h2>Você compra na loja</h2><p>O botão leva ao anúncio na loja (Mercado Livre ou Shopee). Pagamento, entrega e garantia são com a loja.</p></div>
   </div>
 </section>
 <footer>
   <div class="wrap">
     <div><b class="flogo"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x=".5" y=".5" width="23" height="23" rx="6" fill="#ffd000"/><path d="M11.00 1.00 L16.60 1.00 L13.08 7.40 L17.88 7.40 L14.47 13.60 L18.00 13.60 L12.00 23.00 L6.00 13.60 L8.87 13.60 L10.52 10.60 L5.72 10.60Z" transform="translate(12 12) scale(.8) translate(-12 -12)" fill="#111"/></svg>baixou</b><p>Só produtos em promoção, conferidos o tempo todo.</p></div>
-    <div><b>Transparência</b><p>Somos afiliados do Mercado Livre: podemos receber uma comissão quando você compra pelos nossos links, sem custo extra para você. Preços e estoque mudam a qualquer momento; vale o que aparece na loja.</p></div>
+    <div><b>Transparência</b><p>Somos afiliados do Mercado Livre e da Shopee: podemos receber uma comissão quando você compra pelos nossos links, sem custo extra para você. Preços e estoque mudam a qualquer momento; vale o que aparece na loja.</p></div>
     <div class="fcanais" id="fcanais" hidden></div>
     <div><b>Links</b><p><a href="?ver=todas" data-nav>Todas as ofertas</a><br><a href="?ver=favoritos" data-nav>Meus favoritos</a><br><a href="privacidade.html">Privacidade</a><br><a href="painel.html">Status do robô</a></p></div>
   </div>

@@ -3,30 +3,149 @@
   "site_id": "MLB",
   "paginas_por_categoria": 2,
   "categorias": [
-    {"id": "MLB1246", "nome": "Beleza", "comissao": 16},
-    {"id": "MLB1276", "nome": "Esportes e fitness", "comissao": 16},
-    {"id": "MLB1430", "nome": "Moda e calçados", "comissao": 16},
-    {"id": "MLB1574", "nome": "Casa e decoração", "comissao": 12},
-    {"id": "MLB1132", "nome": "Brinquedos", "comissao": 12},
-    {"id": "MLB1384", "nome": "Bebês", "comissao": 12},
-    {"id": "MLB1144", "nome": "Games", "comissao": 12},
-    {"id": "MLB263532", "nome": "Ferramentas", "comissao": 12},
-    {"id": "MLB1051", "nome": "Celulares", "comissao": 5},
-    {"id": "MLB1648", "nome": "Informática", "comissao": 5},
-    {"id": "MLB1000", "nome": "Eletrônicos", "comissao": 5},
-    {"id": "MLB5726", "nome": "Eletrodomésticos", "comissao": 5}
+    {
+      "id": "MLB1246",
+      "nome": "Beleza",
+      "comissao": 16,
+      "shopee": [
+        "perfume",
+        "maquiagem"
+      ]
+    },
+    {
+      "id": "MLB1276",
+      "nome": "Esportes e fitness",
+      "comissao": 16,
+      "shopee": [
+        "tênis corrida",
+        "garrafa térmica"
+      ]
+    },
+    {
+      "id": "MLB1430",
+      "nome": "Moda e calçados",
+      "comissao": 16,
+      "shopee": [
+        "tênis",
+        "mochila"
+      ]
+    },
+    {
+      "id": "MLB1574",
+      "nome": "Casa e decoração",
+      "comissao": 12,
+      "shopee": [
+        "jogo de cama",
+        "organizador"
+      ]
+    },
+    {
+      "id": "MLB1132",
+      "nome": "Brinquedos",
+      "comissao": 12,
+      "shopee": [
+        "lego",
+        "brinquedo educativo"
+      ]
+    },
+    {
+      "id": "MLB1384",
+      "nome": "Bebês",
+      "comissao": 12,
+      "shopee": [
+        "fralda",
+        "carrinho de bebê"
+      ]
+    },
+    {
+      "id": "MLB1144",
+      "nome": "Games",
+      "comissao": 12,
+      "shopee": [
+        "controle sem fio",
+        "headset gamer"
+      ]
+    },
+    {
+      "id": "MLB263532",
+      "nome": "Ferramentas",
+      "comissao": 12,
+      "shopee": [
+        "parafusadeira",
+        "jogo de ferramentas"
+      ]
+    },
+    {
+      "id": "MLB1051",
+      "nome": "Celulares",
+      "comissao": 5,
+      "shopee": [
+        "smartphone",
+        "capinha celular"
+      ]
+    },
+    {
+      "id": "MLB1648",
+      "nome": "Informática",
+      "comissao": 5,
+      "shopee": [
+        "mouse sem fio",
+        "teclado mecânico"
+      ]
+    },
+    {
+      "id": "MLB1000",
+      "nome": "Eletrônicos",
+      "comissao": 5,
+      "shopee": [
+        "fone bluetooth",
+        "smartwatch"
+      ]
+    },
+    {
+      "id": "MLB5726",
+      "nome": "Eletrodomésticos",
+      "comissao": 5,
+      "shopee": [
+        "air fryer",
+        "aspirador"
+      ]
+    }
   ],
   "guardiao": {
     "desconto_minimo": 15,
     "desconto_quarentena": 80,
     "preco_minimo": 20,
     "comissao_minima": 1,
-    "reputacoes_aceitas": ["5_green", "4_light_green", "3_yellow"],
-    "palavras_bloqueadas": ["réplica", "replica", "similar", "1ª linha", "primeira linha", "usado", "seminovo", "recondicionado", "vitrine", "mostruário"],
+    "reputacoes_aceitas": [
+      "5_green",
+      "4_light_green",
+      "3_yellow",
+      "shopee_oficial",
+      "shopee_indicada",
+      "shopee_bem_avaliada"
+    ],
+    "palavras_bloqueadas": [
+      "réplica",
+      "replica",
+      "similar",
+      "1ª linha",
+      "primeira linha",
+      "usado",
+      "seminovo",
+      "recondicionado",
+      "vitrine",
+      "mostruário"
+    ],
     "historico_dias": 30,
     "inflacao_maxima": 1.25,
     "max_ofertas": 300,
     "freio_taxa_erro": 0.4,
     "freio_queda": 0.5
+  },
+  "shopee": {
+    "paginas_por_busca": 1,
+    "itens_por_pagina": 50,
+    "rechecar_no_maximo": 80
   }
 }
