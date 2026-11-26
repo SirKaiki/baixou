@@ -67,6 +67,17 @@ Para ligar, em `config.json`:
 - `"curadoria": {"modo": "aplicar"}` → só publica os níveis de `"publicar"` (padrão: excepcional e boa). Os números de cada nível ficam em `"niveis"`.
 - `"aprendiz": {"modo": "ajudar"}` → a nota passa a ajudar a **ordenar** as ofertas, e só se a nota do teste for pelo menos `auc_minima`. Ele nunca publica nem barra nada sozinho.
 
+## Regras dos programas de afiliados (o que o site já respeita)
+
+- **Sem logotipo nem identidade visual das lojas:** o site mostra só o nome da loja em texto.
+- **Aviso de afiliado** em toda página de produto, no rodapé, na página de privacidade e nos posts do Telegram.
+- **O botão de compra diz para onde vai** ("Comprar no Mercado Livre", "Comprar na Shopee"); nenhum encurtador ou disfarce.
+- **Só produtos novos, ativos e de vendedores com reputação verde** (Mercado Livre) ou lojas oficiais/indicadas/bem avaliadas (Shopee).
+- **Preço com data da conferência** e aviso de que pode mudar.
+
+Cabe ao dono: cadastrar o site como mídia/canal no perfil de afiliado; nunca comprar pelos próprios links (nem pedir a amigos e familiares);
+não anunciar em buscadores (Google Ads, Shopping, Bing) nem usar o nome da loja como palavra-chave.
+
 ## Ajustar as regras
 
 Edite o `config.json` direto no GitHub (ícone de lápis):

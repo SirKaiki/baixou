@@ -168,20 +168,14 @@ function evento(tipo, id) {
 }
 
 /* ---------- componentes ---------- */
-/* Lojas: ícone oficial do site da loja (o mesmo que aparece na aba do navegador) + nome */
-const LOJAS = {
-  'Mercado Livre': {dom: 'mercadolivre.com.br', bg: '#fff159'}, 'Amazon': {dom: 'amazon.com.br', bg: '#ffd8a8'},
-  'Shopee': {dom: 'shopee.com.br', bg: '#ffd9cf'}, 'Magalu': {dom: 'magazineluiza.com.br', bg: '#d6ebff'},
-  'AliExpress': {dom: 'aliexpress.com', bg: '#ffd6d2'}, 'Casas Bahia': {dom: 'casasbahia.com.br', bg: '#d9e4ff'},
-  'Netshoes': {dom: 'netshoes.com.br', bg: '#ead9ff'}, 'Centauro': {dom: 'centauro.com.br', bg: '#ffd6d6'}, 'Kabum': {dom: 'kabum.com.br', bg: '#ffe2c7'},
-};
+/* Lojas: só o NOME da loja, em texto. Os programas de afiliados proíbem usar logotipos e a identidade visual
+   das lojas (por isso nada de ícone oficial nem a cor da marca). */
 const lojaDe = p => p.loja || 'Mercado Livre';
 const NA_LOJA = new Set(['Amazon', 'Shopee', 'Magalu', 'Netshoes', 'Centauro', 'Kabum']);
 const naLoja = nome => `${NA_LOJA.has(nome) ? 'na' : 'no'} ${nome}`;
 const CONFIANCA = {'Mercado Livre': 'Vendedor com boa reputação no Mercado Livre', 'Shopee': 'Loja oficial, indicada ou muito bem avaliada na Shopee'};
 function seloLoja(nome, grande) {
-  const l = LOJAS[nome], ic = l ? `<img src="https://www.google.com/s2/favicons?domain=${l.dom}&sz=64" alt="" width="16" height="16" loading="lazy" referrerpolicy="no-referrer" data-rm>` : '';
-  return `<span class="loja${grande ? ' g' : ''}" style="--lj:${l ? l.bg : 'var(--soft)'}">${ic}${esc(nome)}</span>`;
+  return `<span class="loja${grande ? ' g' : ''}">${esc(nome)}</span>`;
 }
 function card(p, opts = {}) {
   const e = estilo(p.categoria), foto = seguro(p.foto), fav = favs().has(p.id);

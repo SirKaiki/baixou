@@ -14,7 +14,7 @@ import robo  # noqa: E402
 
 REGRAS = json.loads((Path(__file__).parent.parent / "config.json").read_text())["guardiao"]
 AGORA = datetime(2026, 11, 24, 12, 0, tzinfo=timezone.utc)
-LINK_OK = "https://produto.mercadolivre.com.br/MLB-123-fone?matt_word=cesar&matt_tool=999"
+LINK_OK = "https://produto.mercadolivre.com.br/MLB-123-fone?matt_word=afiliado&matt_tool=999"
 
 
 def item(**mudancas):
@@ -67,9 +67,9 @@ class TestGuardiao(unittest.TestCase):
         self.assertTrue(g.id_seguro("MLB123456") and g.id_seguro("DEMO0001"))
 
     def test_link_afiliado_preserva_e_substitui(self):
-        url = g.link_afiliado("https://produto.mercadolivre.com.br/MLB-1-x?matt_word=velho&foo=1", "cesar", "999")
+        url = g.link_afiliado("https://produto.mercadolivre.com.br/MLB-1-x?matt_word=velho&foo=1", "afiliado", "999")
         self.assertIn("foo=1", url)
-        self.assertIn("matt_word=cesar", url)
+        self.assertIn("matt_word=afiliado", url)
         self.assertNotIn("velho", url)
         self.assertIsNone(g.checar_link(url, True))
 
@@ -167,9 +167,9 @@ class TestContadorNoRobo(unittest.TestCase):
             self.assertTrue(alertas, ruim)
 
     def test_endereco_certo_usa_a_chave_pronta(self):
-        abrir, _ = self._ler("https://baixou-contador.cesar.workers.dev", {"CONTADOR_TOKEN": "chave-pronta"})
+        abrir, _ = self._ler("https://baixou-contador.exemplo.workers.dev", {"CONTADOR_TOKEN": "chave-pronta"})
         req = abrir.call_args[0][0]
-        self.assertEqual(req.full_url, "https://baixou-contador.cesar.workers.dev/export")
+        self.assertEqual(req.full_url, "https://baixou-contador.exemplo.workers.dev/export")
         self.assertEqual(req.get_header("Authorization"), "Bearer chave-pronta")
 
     def test_nao_segue_redirecionamento(self):
@@ -320,7 +320,7 @@ class TestRoboReal(unittest.TestCase):
             mock.patch.object(robo, "ARQ_APRENDIZ", raiz / "aprendiz.json"),
             mock.patch.object(robo, "ClienteML", FakeCliente),
             mock.patch.dict(os.environ, {"ML_CLIENT_ID": "x", "ML_CLIENT_SECRET": "y",
-                                         "ML_MATT_WORD": "cesar", "ML_MATT_TOOL": "999"}),
+                                         "ML_MATT_WORD": "afiliado", "ML_MATT_TOOL": "999"}),
         ]
         for p in self.patches:
             p.start()
@@ -339,7 +339,7 @@ class TestRoboReal(unittest.TestCase):
         self.assertEqual(robo.main(), 0)
         ofertas = self.ler("ofertas.json")["ofertas"]
         self.assertEqual(len(ofertas), 30)
-        self.assertTrue(all("matt_word=cesar" in o["link"] and o["foto"].startswith("https://") for o in ofertas))
+        self.assertTrue(all("matt_word=afiliado" in o["link"] and o["foto"].startswith("https://") for o in ofertas))
         self.assertTrue(ofertas[0]["full"] and ofertas[0]["frete_gratis"])
         self.assertEqual(len(ofertas[0]["fotos"]), 4)
         self.assertEqual(ofertas[0]["marca"], "JBL")

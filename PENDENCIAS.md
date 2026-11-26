@@ -22,6 +22,17 @@ nos *Secrets* do GitHub ou decidir algo). **Nunca cole chaves no chat nem no có
       (`dados/diagnostico_ml.json`) mostra o que a conta consegue consultar. A busca geral (`/sites/MLB/search`)
       não aparece mais na documentação; o caminho é mais vendidos (`/highlights`) + catálogo (`/products/ID`).
 
+## Regras dos programas de afiliados (cabe ao dono)
+
+- [ ] **Cadastrar o site como mídia/canal** no perfil de afiliado do Mercado Livre e da Shopee (`https://sirkaiki.github.io/baixou/`):
+      vendas vindas de canais não cadastrados podem não gerar comissão.
+- [ ] Criar a etiqueta **`baixou`** no painel de afiliados do Mercado Livre e usar os valores do link gerado com ela.
+- [ ] **Nunca comprar pelos próprios links** (nem pedir a amigos e familiares que comprem): é motivo de suspensão.
+- [ ] Não anunciar em buscadores (Google Ads, Shopping, Bing) nem usar o nome da loja como palavra-chave.
+- [ ] Quando o Mercado Livre estiver ligado: conferir no painel de afiliados se os cliques e vendas vindos do Baixou aparecem.
+      O robô monta o link com os mesmos parâmetros (`matt_word`/`matt_tool`) do link gerado pelo painel, já que o Mercado Livre
+      não tem API para gerar links; se o programa reclamar disso, parar e rever.
+
 ## Contador anônimo e aprendiz
 
 - [ ] **Cloudflare — criar conta grátis** (plano Free; não aceitar plano pago nem cartão sem conferir antes).

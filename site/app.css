@@ -548,9 +548,8 @@ header .hs-box::after,.mega .hs-box::after,.drawer .hs-box::after{background:lin
 @media(max-width:640px){.ended{grid-template-columns:1fr;padding:14px}.ended .pic{max-width:220px;margin:auto}}
 
 /* Selo da loja (quem vende) */
-.loja{display:inline-flex;align-items:center;gap:5px;background:var(--lj);color:#16171b;border-radius:999px;padding:2px 8px 2px 3px;font:600 12px/1.4 Inter,sans-serif;white-space:nowrap}
-.loja img{width:16px;height:16px;border-radius:50%;background:#fff;object-fit:contain;padding:1px}
-.loja.g{font-size:13px;padding:3px 10px 3px 4px}.loja.g img{width:18px;height:18px}
+.loja{display:inline-flex;align-items:center;background:var(--soft);color:var(--ink);border:1px solid var(--line);border-radius:999px;padding:1px 8px;font:600 12px/1.4 Inter,sans-serif;white-space:nowrap}
+.loja.g{font-size:13px;padding:3px 11px}
 .vend{display:flex;align-items:center;gap:6px;margin-top:8px;padding-top:8px;border-top:1px dashed var(--line);font-size:12px;color:var(--mute)}
 
 .flogo{display:inline-flex;align-items:center;gap:8px;font:800 22px/1 var(--disp)}.flogo svg{width:26px;height:26px}
