@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-f9yPDgoX8L9HH8PQwqVjDUjOVEeictzlBf3QnTuVumk=' 'sha256-B0CkvUkmzHo84+cfsimzqhaW28q4PqrERFQyE6NEZiM='; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: https://*.mlstatic.com https://*.mercadolivre.com.br https://*.susercontent.com https://*.shopee.com.br https://images.unsplash.com https://www.google.com https://*.gstatic.com; connect-src 'self' https://*.workers.dev; manifest-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'; frame-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-f9yPDgoX8L9HH8PQwqVjDUjOVEeictzlBf3QnTuVumk=' 'sha256-xIrN7xwpxFtX6/PScIp1qWKTr9mu0uHpZxa2ILsRyOY='; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: https://*.mlstatic.com https://*.mercadolivre.com.br https://*.susercontent.com https://*.shopee.com.br https://images.unsplash.com https://www.google.com https://*.gstatic.com; connect-src 'self' https://*.workers.dev; manifest-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'; frame-src 'none'">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <meta name="robots" content="noindex">
 <title>Baixou painel do robô</title>
@@ -45,6 +45,8 @@ h2{font:800 20px/1.2 Barlow,sans-serif;margin:0 0 12px}
 .bar .t span{position:relative}
 .bar b{text-align:right;font-variant-numeric:tabular-nums}
 .scroll{overflow-x:auto}
+.h3{font-size:15px;margin:18px 0 4px}
+.meter{height:10px;border-radius:5px;background:var(--line,#e5e5e5);overflow:hidden;margin:6px 0 4px}.meter i{display:block;height:100%;background:#ffd000}
 table{width:100%;border-collapse:collapse;font-size:14px}
 th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top}
 th{color:var(--mute);font-weight:500}
@@ -68,6 +70,8 @@ footer .wrap{padding-block:18px}
   </div>
   <section><h2>Alertas</h2><ul class="alerts" id="alertas"></ul></section>
   <section><h2>Últimas execuções</h2><div class="runs" id="runs" aria-label="Ofertas publicadas por execução"></div><p class="sub" id="runs-leg"></p></section>
+  <section><h2>Curadoria por dados</h2><p class="sub" style="margin:0 0 10px" id="cur-sub"></p><div class="bars" id="cur-niveis"></div><h3 class="h3">Quantas ofertas passariam em cada régua</h3><p class="sub" style="margin:0 0 8px">Queda real em relação ao preço típico do próprio produto, entre os 10% de dias mais baratos.</p><div class="bars" id="cur-reguas"></div><div class="scroll" id="cur-exemplos"></div></section>
+  <section><h2>Aprendiz (inteligência que aprende com o público)</h2><p class="sub" style="margin:0 0 10px" id="ap-sub"></p><div id="ap-corpo"></div></section>
   <section><h2>O que o guardião barrou</h2><div class="bars" id="motivos"></div></section>
   <section><h2>Quarentena</h2><p class="sub" style="margin:0 0 10px">Ofertas suspeitas que ficaram fora do site. Não precisa fazer nada; está aqui só para você conferir se quiser.</p><div class="scroll" id="quarentena"></div></section>
   <section><h2>Saíram do site nesta rodada</h2><div class="scroll" id="removidas"></div></section>
@@ -77,6 +81,36 @@ footer .wrap{padding-block:18px}
 {
 const $=id=>document.getElementById(id);
 const esc=s=>String(s??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+const NOMES={excepcional:'Excepcional',boa:'Boa oferta',comum:'Preço comum',sem_historico:'Ainda sem histórico'};
+const pct=v=>(Number(v)*100).toLocaleString('pt-BR',{maximumFractionDigits:1})+'%';
+function curadoria(c){
+  if(!c){$('cur-sub').textContent='Aparece na próxima execução do robô.';return}
+  $('cur-sub').innerHTML=c.modo==='aplicar'
+    ?`<b>Aplicando:</b> só entram no site ofertas de nível ${c.publicar.map(n=>esc(NOMES[n]||n)).join(' ou ')}.`
+    :'<b>Observando:</b> o modelo mede cada oferta, mas ainda não muda o que é publicado. Use os números abaixo para escolher a régua.';
+  const n=Object.entries(c.contagem),mx=Math.max(1,...n.map(x=>x[1]));
+  $('cur-niveis').innerHTML=n.map(([k,v])=>`<div class="bar"><div class="t"><i style="width:${v/mx*100}%"></i><span>${esc(NOMES[k]||k)}</span></div><b>${Number(v)}</b></div>`).join('');
+  const r=c.reguas,mr=Math.max(1,...r.map(x=>x.ofertas));
+  $('cur-reguas').innerHTML=r.map(x=>`<div class="bar"><div class="t"><i style="width:${x.ofertas/mr*100}%"></i><span>${Number(x.queda_min)}% ou mais abaixo do típico</span></div><b>${Number(x.ofertas)}</b></div>`).join('');
+  const ex=[].concat(...['excepcional','boa','comum'].map(k=>(c.exemplos[k]||[]).map(e=>({...e,k}))));
+  $('cur-exemplos').innerHTML=ex.length?`<h3 class="h3">Exemplos reais</h3><table><thead><tr><th>Produto</th><th>Nível</th><th style="text-align:right">Agora</th><th style="text-align:right">Típico</th><th style="text-align:right">Queda</th><th style="text-align:right">Dias</th></tr></thead><tbody>${ex.map(e=>`<tr><td>${esc(e.titulo)}</td><td>${esc(NOMES[e.k])}</td><td class="n">${brl(e.preco)}</td><td class="n">${brl(e.mediana)}</td><td class="n">${Number(e.queda).toLocaleString('pt-BR')}%</td><td class="n">${Number(e.dias)}</td></tr>`).join('')}</tbody></table>`:'<p class="empty">Ainda não há produtos com histórico suficiente (mínimo de 7 dias acompanhados).</p>';
+}
+function aprendizPainel(a){
+  if(!a){$('ap-sub').textContent='Aparece na próxima execução do robô.';return}
+  const modo=a.ajudando?'<b>Ajudando:</b> a nota dele já ajuda a ordenar as ofertas.':a.modo==='ajudar'?'<b>Pronto para ajudar</b> assim que passar no teste de acerto.':'<b>Modo sombra:</b> ele observa e dá notas, mas não muda nada no site.';
+  $('ap-sub').innerHTML=modo;
+  let h='';
+  if(a.estado!=='treinado'){
+    const r=Math.min(1,a.rotulados/Math.max(1,a.precisa));
+    h+=`<p>Aprendendo: <b>${Number(a.rotulados)}</b> de <b>${Number(a.precisa)}</b> exemplos com visitas suficientes (${Number(a.exemplos)} ofertas guardadas).</p><div class="meter"><i style="width:${r*100}%"></i></div><p class="sub">Os exemplos ganham "resposta certa" com as visitas e idas à loja registradas pelo contador anônimo. Sem o contador ligado, ele guarda as ofertas mas não aprende.</p>`;
+  }else{
+    const ok=(a.auc||0)>=a.auc_minima;
+    h+=`<p>Nota no teste de acerto: <b>${a.auc==null?'–':Number(a.auc).toLocaleString('pt-BR')}</b> (0,5 = chute; 1,0 = perfeito; mínimo para ajudar: ${Number(a.auc_minima).toLocaleString('pt-BR')}). ${ok?'✅ Passou.':'Ainda não passou.'}</p>`;
+    if(a.importancia&&a.importancia.length)h+=`<h3 class="h3">O que mais pesa para ele</h3><div class="bars">${a.importancia.map(([k,v])=>`<div class="bar"><div class="t"><i style="width:${Math.min(100,Math.abs(v)*60)}%"></i><span>${esc(k)} ${v>0?'(a favor)':'(contra)'}</span></div><b>${Number(v).toLocaleString('pt-BR')}</b></div>`).join('')}</div>`;
+    if(a.notas&&a.notas.length)h+=`<h3 class="h3">Notas das ofertas no ar</h3><table><tbody>${a.notas.map(x=>`<tr><td>${esc(x.titulo)}</td><td class="n">${pct(x.nota)}</td></tr>`).join('')}</tbody></table>`;
+  }
+  $('ap-corpo').innerHTML=h;
+}
 const brl=v=>v==null?'–':Number(v).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
 const hora=iso=>new Date(iso).toLocaleString('pt-BR',{dateStyle:'short',timeStyle:'short'});
 const minutos=iso=>Math.round((Date.now()-new Date(iso))/60000);
@@ -99,6 +133,7 @@ fetch('data/status.json',{cache:'no-store'}).then(r=>r.json()).then(s=>{
   $('runs-leg').textContent=`${ex.length} execuções recentes; barras em amarelo tiveram avisos.`;
   const m=Object.entries(s.motivos),mm=Math.max(1,...m.map(x=>x[1]));
   $('motivos').innerHTML=m.length?m.map(([k,v])=>`<div class="bar"><div class="t"><i style="width:${v/mm*100}%"></i><span>${esc(k)}</span></div><b>${Number(v)}</b></div>`).join(''):'<p class="empty">Nada foi barrado nesta execução.</p>';
+  curadoria(s.curadoria); aprendizPainel(s.aprendiz);
   $('quarentena').innerHTML=s.quarentena.length?`<table><thead><tr><th>Produto</th><th>Motivo</th><th style="text-align:right">Preço</th><th style="text-align:right">Desc.</th></tr></thead><tbody>${s.quarentena.map(q=>{const l=seguro(q.link);return `<tr><td>${l?`<a href="${esc(l)}" target="_blank" rel="noopener">${esc(q.titulo)}</a>`:esc(q.titulo)}</td><td>${esc(q.motivo)}</td><td class="n">${brl(q.preco)}</td><td class="n">${Number(q.desconto)}%</td></tr>`}).join('')}</tbody></table>`:'<p class="empty">Quarentena vazia.</p>';
   $('removidas').innerHTML=s.removidas.length?`<table><thead><tr><th>Produto</th><th>Motivo</th></tr></thead><tbody>${s.removidas.map(r=>`<tr><td>${esc(r.titulo)}</td><td>${esc(r.motivo)}</td></tr>`).join('')}</tbody></table>`:'<p class="empty">Nenhuma oferta saiu nesta rodada.</p>';
 }).catch(()=>{$('titulo').textContent='Painel indisponível';$('sub').textContent='O robô ainda não rodou ou o arquivo de status não foi encontrado.';$('state').className='state bad'});

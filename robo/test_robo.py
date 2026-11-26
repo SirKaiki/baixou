@@ -317,6 +317,7 @@ class TestRoboReal(unittest.TestCase):
             mock.patch.object(robo, "ARQ_ENCERRADAS", raiz / "encerradas.json"),
             mock.patch.object(robo, "ARQ_RELACIONADOS", raiz / "relacionados.json"),
             mock.patch.object(robo, "ARQ_CONTADOR", raiz / "contador.json"),
+            mock.patch.object(robo, "ARQ_APRENDIZ", raiz / "aprendiz.json"),
             mock.patch.object(robo, "ClienteML", FakeCliente),
             mock.patch.dict(os.environ, {"ML_CLIENT_ID": "x", "ML_CLIENT_SECRET": "y",
                                          "ML_MATT_WORD": "cesar", "ML_MATT_TOOL": "999"}),
@@ -474,7 +475,8 @@ class TestRoboShopee(unittest.TestCase):
         self.patches = [mock.patch.object(robo, n, raiz / f) for n, f in (
             ("ARQ_HIST", "historico.json"), ("ARQ_OFERTAS", "ofertas.json"), ("ARQ_STATUS", "status.json"),
             ("ARQ_PRECOS", "precos.json"), ("ARQ_CATS", "categorias.json"), ("ARQ_ENCERRADAS", "encerradas.json"),
-            ("ARQ_RELACIONADOS", "relacionados.json"), ("ARQ_CONTADOR", "contador.json"))]
+            ("ARQ_RELACIONADOS", "relacionados.json"), ("ARQ_CONTADOR", "contador.json"),
+            ("ARQ_APRENDIZ", "aprendiz.json"))]
         self.patches += [mock.patch.object(robo.sp, "ClienteShopee", FakeShopee),
                          mock.patch.dict(os.environ, {"SHOPEE_APP_ID": "1", "SHOPEE_APP_SECRET": "2"}, clear=True)]
         for p in self.patches:
@@ -524,6 +526,140 @@ class TestRoboShopee(unittest.TestCase):
         self.assertEqual(robo.main(), 2)
         self.assertEqual(self.ler("ofertas.json"), antes)
         self.assertIn("Shopee", self.ler("status.json")["alertas"][0])
+
+
+# ---------------------------------------------------------------- curadoria por dados
+
+import modelo  # noqa: E402
+import aprendiz  # noqa: E402
+
+AGORA_C = datetime(2026, 11, 26, 15, 0, tzinfo=timezone.utc)
+
+
+def serie(precos, agora=AGORA_C):
+    return [[(agora - timedelta(days=len(precos) - i)).isoformat(timespec="minutes"), p] for i, p in enumerate(precos)]
+
+
+class TestModeloEstatistico(unittest.TestCase):
+    def test_o_exemplo_dos_dois_celulares(self):
+        import random
+        random.seed(1)
+        estavel = serie([1500 + random.uniform(-20, 20) for _ in range(60)])
+        oscila = serie([random.uniform(1200, 1600) for _ in range(60)])
+        self.assertIn(modelo.perfil(estavel, 1300, AGORA_C)["nivel"], ("boa", "excepcional"))
+        self.assertEqual(modelo.perfil(oscila, 1300, AGORA_C)["nivel"], "comum")
+        p = modelo.perfil(serie([1500 + random.uniform(-40, 40) for _ in range(60)]), 1100, AGORA_C)
+        self.assertEqual(p["nivel"], "excepcional")
+        self.assertTrue(p["menor_da_janela"])
+        self.assertRegex(modelo.explicar(p), r"^2\d% abaixo do preço típico \(R\$ 1\.?\d{3},\d\d\) · o menor preço em 60 dias")
+
+    def test_sem_historico_suficiente(self):
+        self.assertEqual(modelo.perfil(serie([100] * 3), 50, AGORA_C), {"nivel": "sem_historico", "dias": 3})
+
+    def test_hoje_nao_conta_como_historico(self):
+        h = serie([100] * 10) + [[AGORA_C.isoformat(), 10]] * 5  # vários pontos de hoje a R$ 10 não "puxam" o típico
+        self.assertEqual(modelo.perfil(h, 80, AGORA_C)["mediana"], 100)
+
+    def test_calibragem_conta_reguas_e_exemplos(self):
+        itens = [({"id": f"X{n}", "titulo": "t", "preco": 100 - n}, modelo.perfil(serie([100] * 20), 100 - n, AGORA_C)) for n in range(0, 40, 5)]
+        r = modelo.calibragem(itens)
+        self.assertEqual(sum(r["contagem"].values()), len(itens))
+        self.assertEqual([x["ofertas"] for x in r["reguas"]], sorted([x["ofertas"] for x in r["reguas"]], reverse=True))
+        self.assertTrue(r["exemplos"]["excepcional"])
+
+
+class TestMemoriaDePrecos(unittest.TestCase):
+    def test_compacta_pontos_antigos_em_um_por_dia(self):
+        hist = {}
+        for h in range(0, 24 * 10, 1):  # 10 dias, preço mudando de hora em hora
+            g.registrar_preco(hist, "A", 100 + (h % 7), AGORA_C - timedelta(hours=24 * 10 - h), 90)
+        pts = hist["A"]
+        ultima = AGORA_C - timedelta(hours=1)  # a última chamada foi 1 h antes de AGORA_C
+        antigos = [p for p in pts if datetime.fromisoformat(p[0]) < ultima - timedelta(hours=48)]
+        self.assertEqual(len(antigos), len({p[0][:10] for p in antigos}))  # um por dia
+        self.assertTrue(all(p[1] == 100 for p in antigos))                  # o menor do dia
+        self.assertLess(len(pts), 80)
+
+    def test_poda_produtos_sumidos(self):
+        hist = {"velho": serie([10] * 3, AGORA_C - timedelta(days=200)), "novo": serie([10] * 3)}
+        g.podar_historico(hist, AGORA_C, 90)
+        self.assertEqual(list(hist), ["novo"])
+
+    def test_menor_30d_olha_so_30_dias(self):
+        h = serie([50] + [100] * 59)  # o R$ 50 foi há 60 dias
+        self.assertTrue(g.menor_preco_periodo(h, 90))
+
+
+class TestAprendiz(unittest.TestCase):
+    def _dados(self, sinal=True, n=800):
+        import random
+        random.seed(7)
+        dados = []
+        for i in range(n):
+            queda, infl = random.uniform(-5, 40), random.uniform(0, 40)
+            x = {"queda": queda, "z": queda / 5, "percentil": 0.3, "desconto_anunciado": queda + infl, "inflacao": infl,
+                 "log_preco": random.uniform(1, 4), "dias": 30.0, "frete": 0.0, "shopee": 1.0, "rep_forte": 1.0, "categoria": "A", "n": i}
+            y = (1 if random.random() < aprendiz._sig(0.15 * queda - 0.08 * infl - 1) else 0) if sinal else random.choice([0, 1])
+            dados.append((x, y))
+        return dados
+
+    def test_aprende_sinal_real(self):
+        m = aprendiz.treinar(self._dados(), "2026-11-26")
+        self.assertGreater(m["auc"], 0.75)
+        pesos = dict(m["importancia"])
+        self.assertLess(pesos["inflacao"], 0)  # "de" inflado pesa contra
+        self.assertGreater(pesos["queda"], 0)  # queda real pesa a favor
+
+    def test_nao_inventa_sinal(self):
+        self.assertLess(aprendiz.treinar(self._dados(sinal=False), "x")["auc"], 0.62)
+
+    def test_espera_dados_e_nao_ajuda_sem_provar(self):
+        m = aprendiz.treinar(self._dados()[:50], "x")
+        self.assertEqual(m["estado"], "aguardando dados")
+        self.assertIsNone(aprendiz.nota(m, self._dados()[0][0]))
+        bom = aprendiz.treinar(self._dados(), "x")
+        self.assertFalse(aprendiz.pode_ajudar(bom, {"modo": "sombra"}))
+        self.assertTrue(aprendiz.pode_ajudar(bom, {"modo": "ajudar"}))
+        self.assertFalse(aprendiz.pode_ajudar(bom | {"auc": 0.55}, {"modo": "ajudar"}))
+
+    def test_rotula_pelas_idas_a_loja(self):
+        base = {}
+        ofertas = [{"id": f"S{n}", "preco": 50, "desconto": 20, "categoria": "A", "loja": "Shopee"} for n in range(4)]
+        perfis = {o["id"]: {"nivel": "boa", "queda": 20, "z": 3, "percentil": 0.01, "dias": 30} for o in ofertas}
+        pops = [{"id": "S0", "v": 100, "c": 30}, {"id": "S1", "v": 100, "c": 2}, {"id": "S2", "v": 5, "c": 5}]
+        aprendiz.registrar(base, ofertas, perfis, pops, "2026-11-26")
+        rot = aprendiz.rotulados(base)
+        self.assertEqual(sorted(y for _, y in rot), [0, 1])  # S2 tem poucas visitas; S3 nenhuma
+
+
+class TestCuradoriaNoRobo(TestRoboShopee):
+    def _historico(self, tipicos: dict):
+        hist = {f"SHP{22000000000 + n}": serie(preco if isinstance(preco, list) else [preco] * 30) for n, preco in tipicos.items()}
+        (self.raiz / "historico.json").write_text(json.dumps(hist))
+
+    def test_observar_nao_muda_o_que_e_publicado(self):
+        self._historico({0: 100, 1: [100] * 5 + [62] * 25})
+        robo.main()
+        ofertas = {o["id"]: o for o in self.ler("ofertas.json")["ofertas"]}
+        self.assertEqual(len(ofertas), 12)
+        self.assertEqual(ofertas["SHP22000000000"]["curadoria"]["nivel"], "excepcional")  # 59,90 contra típico de 100
+        self.assertEqual(ofertas["SHP22000000001"]["curadoria"]["nivel"], "comum")        # 59,90 contra típico de 62 (o "de" de 99,83 já existiu)
+        self.assertEqual(ofertas["SHP22000000002"]["curadoria"]["nivel"], "sem_historico")
+        status = self.ler("status.json")
+        self.assertEqual(status["curadoria"]["modo"], "observar")
+        self.assertEqual(status["aprendiz"]["estado"], "aguardando dados")
+
+    def test_aplicar_publica_so_o_que_o_modelo_aprova_sem_travar_no_freio(self):
+        robo.main()  # 12 ofertas no modo observar
+        self._historico({0: 100, 1: [100] * 5 + [62] * 25})
+        cfg = json.loads((Path(robo.__file__).resolve().parent.parent / "config.json").read_text())
+        cfg["curadoria"]["modo"] = "aplicar"
+        with mock.patch.object(robo, "ARQ_CONFIG", self.raiz / "config.json"):
+            (self.raiz / "config.json").write_text(json.dumps(cfg))
+            self.assertEqual(robo.main(), 0)  # trocar de modo não aciona "queda brusca"
+        ofertas = self.ler("ofertas.json")
+        self.assertEqual([o["id"] for o in ofertas["ofertas"]], ["SHP22000000000"])
+        self.assertEqual(ofertas["curadoria"], "aplicar")
 
 
 if __name__ == "__main__":

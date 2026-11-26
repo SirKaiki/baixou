@@ -53,6 +53,20 @@ O robô publica sozinho, no seu canal, as ofertas que acabaram de entrar no site
    - Variables: `TELEGRAM_CANAL_URL` = `https://t.me/seucanal` (faz o botão aparecer no site).
 5. Canal do WhatsApp: crie pelo app e coloque o link em `WHATSAPP_CANAL_URL` (Variables). O WhatsApp não permite publicação automática, então lá os posts são manuais.
 
+## Curadoria por dados (o que torna o Baixou confiável)
+
+O site não publica qualquer "promoção": o que vale é o preço de agora comparado com o **histórico real do próprio produto**, não o "de R$ X" do anúncio.
+
+- **Memória de preços:** o robô guarda o preço de todos os produtos que encontra (com ou sem desconto) por até 90 dias, um ponto por dia depois de 48 h.
+- **Modelo estatístico** (`robo/modelo.py`): para cada produto calcula o preço típico (mediana), a variação típica (MAD) e em que posição o preço de agora está no histórico. Um produto estável que cai 13% pode ser raro; um que vive oscilando, não. Classifica em **excepcional**, **boa**, **comum** ou **sem histórico** (menos de 7 dias).
+- **Aprendiz** (`robo/aprendiz.py`): regressão logística que aprende com as visitas e idas à loja do contador anônimo quais ofertas o público acha que valem a pena. Treina sozinho (no máximo 1 vez por dia) quando tiver 300 exemplos e se avalia em exemplos que não viu. Começa em **modo sombra**: só mostra notas no painel.
+
+Tudo aparece no painel (`painel.html`): quantas ofertas passariam em cada régua, com exemplos reais, e o estado do aprendiz.
+
+Para ligar, em `config.json`:
+- `"curadoria": {"modo": "aplicar"}` → só publica os níveis de `"publicar"` (padrão: excepcional e boa). Os números de cada nível ficam em `"niveis"`.
+- `"aprendiz": {"modo": "ajudar"}` → a nota passa a ajudar a **ordenar** as ofertas, e só se a nota do teste for pelo menos `auc_minima`. Ele nunca publica nem barra nada sozinho.
+
 ## Ajustar as regras
 
 Edite o `config.json` direto no GitHub (ícone de lápis):

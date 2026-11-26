@@ -147,5 +147,34 @@
     "paginas_por_busca": 1,
     "itens_por_pagina": 50,
     "rechecar_no_maximo": 80
+  },
+  "curadoria": {
+    "modo": "observar",
+    "janela_dias": 90,
+    "dias_minimos": 7,
+    "escala_minima": 0.015,
+    "niveis": {
+      "excepcional": {
+        "queda_min": 15,
+        "z_min": 3.0,
+        "percentil_max": 0.02
+      },
+      "boa": {
+        "queda_min": 8,
+        "z_min": 2.0,
+        "percentil_max": 0.1
+      }
+    },
+    "publicar": [
+      "excepcional",
+      "boa"
+    ]
+  },
+  "aprendiz": {
+    "modo": "sombra",
+    "min_exemplos": 300,
+    "min_por_classe": 30,
+    "visitas_minimas": 20,
+    "auc_minima": 0.65
   }
 }

@@ -99,12 +99,27 @@ def checar_link(link: str, exige_afiliado: bool, loja: str = "Mercado Livre") ->
 # ---------- histórico de preços ----------
 
 def registrar_preco(historico: dict, item_id: str, preco: float, agora: datetime, dias: int) -> None:
-    """Guarda um ponto por mudança de preço (ou a cada 6 h), e descarta o que passou da janela."""
+    """Guarda um ponto por mudança de preço (ou a cada 6 h) nas últimas 48 h; antes disso, um ponto por dia
+    (o menor preço do dia), para a memória de preços caber em meses sem pesar. Descarta o que passou da janela."""
     pontos = historico.setdefault(item_id, [])
     limite = agora - timedelta(days=dias)
     pontos[:] = [p for p in pontos if datetime.fromisoformat(p[0]) >= limite]
     if not pontos or pontos[-1][1] != preco or datetime.fromisoformat(pontos[-1][0]) <= agora - timedelta(hours=6):
         pontos.append([agora.isoformat(timespec="minutes"), preco])
+    corte = agora - timedelta(hours=48)
+    velhos = [p for p in pontos if datetime.fromisoformat(p[0]) < corte]
+    if len(velhos) > len({p[0][:10] for p in velhos}):
+        por_dia: dict[str, float] = {}
+        for quando, valor in velhos:
+            por_dia[quando[:10]] = min(valor, por_dia.get(quando[:10], valor))
+        pontos[:] = [[f"{d}T12:00+00:00", por_dia[d]] for d in sorted(por_dia)] + pontos[len(velhos):]
+
+
+def podar_historico(historico: dict, agora: datetime, dias: int) -> None:
+    """Esquece produtos que não aparecem há mais tempo que a janela."""
+    limite = agora - timedelta(days=dias)
+    for item_id in [i for i, pts in historico.items() if not pts or datetime.fromisoformat(pts[-1][0]) < limite]:
+        del historico[item_id]
 
 
 def _janela(pontos: list) -> tuple[list[float], float]:
@@ -168,8 +183,11 @@ def avaliar(item: dict, regras: dict, comissao: float, historico_item: list, exi
     return "aprovada", ""
 
 
-def menor_preco_periodo(pontos: list, preco: float) -> bool:
-    """True quando o preço atual é o menor visto na janela (com pelo menos 3 dias de histórico)."""
+def menor_preco_periodo(pontos: list, preco: float, dias_periodo: int = 30) -> bool:
+    """True quando o preço atual é o menor visto nos últimos 30 dias (com pelo menos 3 dias de histórico)."""
+    if pontos:
+        inicio = (datetime.fromisoformat(pontos[-1][0]) - timedelta(days=dias_periodo)).isoformat()
+        pontos = [p for p in pontos if p[0] >= inicio]
     precos, dias = _janela(pontos)
     return len(precos) >= 3 and dias >= 3 and preco <= min(precos)
 

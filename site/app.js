@@ -650,7 +650,14 @@ function veredito(p, serie) {
   const el = $('verdict'); if (!el) return;
   const vals = serie.map(s => s[1]), menor = Math.min(...vals), maior = Math.max(...vals), desde = dm(serie[0][0]);
   let cls, tit, txt;
-  if (serie.length < 3) { cls = 'novo'; tit = 'Preço recém-chegado ao nosso radar'; txt = `Acompanhamos desde ${desde}. O desconto de ${p.desconto}% foi conferido pelo robô.`; }
+  const cur = p.curadoria;
+  if (cur && cur.nivel && cur.nivel !== 'sem_historico') {  // veredito do modelo estatístico (histórico de até 90 dias)
+    [cls, tit] = {excepcional: ['top', 'Preço excepcional para este produto'], boa: ['bom', 'Boa oferta, comprovada pelo histórico'],
+                  comum: ['meh', 'Preço dentro do normal deste produto']}[cur.nivel] || ['novo', 'Preço conferido pelo robô'];
+    txt = esc(cur.motivo || '') + (cur.nivel === 'comum' ? ' Salve nos favoritos que avisamos se baixar.' : '');
+    el.className = 'verdict ' + cls; el.innerHTML = `<b>${tit}</b><span>${txt}</span>`; el.hidden = false; return;
+  }
+  if (serie.length < 3 || menor === maior) { cls = 'novo'; tit = 'Preço recém-chegado ao nosso radar'; txt = `Acompanhamos desde ${desde}. O desconto de ${p.desconto}% foi conferido pelo robô.`; }
   else if (p.preco <= menor + .009) { cls = 'top'; tit = 'Preço excelente: o menor que já registramos'; txt = `Desde ${desde}, variou entre ${brl(menor)} e ${brl(maior)}.`; }
   else if (p.preco - menor <= (maior - menor) * .35) { cls = 'bom'; tit = 'Bom preço: perto do menor registrado'; txt = `O menor desde ${desde} foi ${brl(menor)}; hoje está ${brl(p.preco - menor)} acima.`; }
   else { cls = 'meh'; tit = 'Pode melhorar: já esteve mais barato'; const d = serie.find(s => s[1] === menor); txt = `Chegou a ${brl(menor)} em ${dm(d[0])}. Salve nos favoritos que avisamos se baixar.`; }

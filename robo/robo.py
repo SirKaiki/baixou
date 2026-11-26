@@ -23,10 +23,13 @@ import demo  # noqa: E402
 import guardiao as g  # noqa: E402
 from ml import ClienteML, ErroML, normalizar  # noqa: E402
 import shopee as sp  # noqa: E402
+import modelo  # noqa: E402
+import aprendiz  # noqa: E402
 
 RAIZ = Path(__file__).resolve().parent.parent
 ARQ_CONFIG = RAIZ / "config.json"
 ARQ_HIST = RAIZ / "dados" / "historico.json"
+ARQ_APRENDIZ = RAIZ / "dados" / "aprendiz.json"
 ARQ_CATS = RAIZ / "dados" / "categorias.json"
 ARQ_OFERTAS = RAIZ / "site" / "data" / "ofertas.json"
 ARQ_STATUS = RAIZ / "site" / "data" / "status.json"
@@ -202,7 +205,11 @@ def main() -> int:
     modo = "real" if real else "demonstração"
     # Saindo da demonstração para o modo real: as ofertas simuladas não contam como "anteriores"
     # (senão o freio de "queda brusca" seguraria o site na demonstração para sempre).
-    estreia = real and ofertas_ant.get("modo") != "real"
+    cur = modelo.config(cfg.get("curadoria"))
+    cfg_aprendiz = aprendiz.config(cfg.get("aprendiz"))
+    janela_hist = max(regras["historico_dias"], cur["janela_dias"])
+    # Mudou o modo da curadoria (observar ↔ aplicar)? Também recomeça do zero, pelo mesmo motivo.
+    estreia = real and (ofertas_ant.get("modo") != "real" or ofertas_ant.get("curadoria", "observar") != cur["modo"])
     if estreia:
         anteriores = {}
     alertas: list[str] = []
@@ -247,7 +254,7 @@ def main() -> int:
             motivos[motivo] += 1
             if situacao == "quarentena":
                 quarentena.append(item | {"motivo": motivo, "desconto": g.desconto(item["preco"], item["preco_cheio"])})
-        g.registrar_preco(historico, item["id"], item["preco"], agora, regras["historico_dias"])
+        g.registrar_preco(historico, item["id"], item["preco"], agora, janela_hist)
 
     # 3. Duplicatas: fica a versão com maior desconto
     melhores: dict[str, dict] = {}
@@ -259,7 +266,27 @@ def main() -> int:
             melhores[chave] = item
         else:
             motivos["duplicata"] += 1
-    aprovadas = sorted(melhores.values(), key=lambda i: -g.desconto(i["preco"], i["preco_cheio"]))[: regras["max_ofertas"]]
+    aprovadas = sorted(melhores.values(), key=lambda i: -g.desconto(i["preco"], i["preco_cheio"]))
+
+    # 3b. Curadoria por dados: o quanto o preço de agora é raro para cada produto (modelo estatístico)
+    perfis = {i["id"]: modelo.perfil(historico.get(i["id"], []), i["preco"], agora, cur) for i in aprovadas}
+    calibragem = modelo.calibragem([(i, perfis[i["id"]]) for i in aprovadas], cur)
+    if cur["modo"] == "aplicar":
+        ordem_nivel = {n: k for k, n in enumerate(modelo.NIVEIS)}
+        fora = [i for i in aprovadas if perfis[i["id"]]["nivel"] not in cur["publicar"]]
+        for i in fora:
+            motivos[f"curadoria: preço {perfis[i['id']]['nivel'].replace('_', ' ')}"] += 1
+        aprovadas = sorted((i for i in aprovadas if perfis[i["id"]]["nivel"] in cur["publicar"]),
+                           key=lambda i: (ordem_nivel[perfis[i["id"]]["nivel"]], -perfis[i["id"]].get("queda", 0)))
+
+    # 3c. Aprendiz (modo sombra por padrão): dá nota; só ajuda a ordenar se já provou que acerta
+    base_aprendiz = ler(ARQ_APRENDIZ, {})
+    modelo_aprendiz = base_aprendiz.get("modelo") or {"estado": "aguardando dados"}
+    notas = {i["id"]: aprendiz.nota(modelo_aprendiz, aprendiz.caracteristicas(i | {"desconto": g.desconto(i["preco"], i["preco_cheio"])}, perfis[i["id"]]))
+             for i in aprovadas}
+    if aprendiz.pode_ajudar(modelo_aprendiz, cfg_aprendiz):
+        aprovadas = sorted(aprovadas, key=lambda i: -(notas[i["id"]] or 0))
+    aprovadas = aprovadas[: regras["max_ofertas"]]
 
     # 4. Freio de emergência
     chamadas = sum(c.chamadas for c in clientes)
@@ -313,6 +340,8 @@ def main() -> int:
                 "marca": marcas.get(item["id"]) or item.get("marca"),
                 "link": item["link"], "loja": item.get("loja") or cfg["loja"],
                 "menor_30d": g.menor_preco_periodo(historico.get(item["id"], []), item["preco"]),
+                "curadoria": {k: v for k, v in perfis[item["id"]].items() if k in ("nivel", "queda", "mediana", "minimo", "dias", "percentil")}
+                | {"motivo": modelo.explicar(perfis[item["id"]], cur["janela_dias"])},
                 "verificado_em": carimbo,
                 "novo_em": anteriores.get(item["id"], {}).get("novo_em", carimbo),
             })
@@ -322,12 +351,23 @@ def main() -> int:
                 motivo = avaliacao.get(id_ant, ("", "anúncio não encontrado ou encerrado"))[1] or "substituída por oferta melhor"
                 removidas.append({"titulo": ant["titulo"], "motivo": motivo})
         gravar(ARQ_ENCERRADAS, atualizar_encerradas({} if estreia else ler(ARQ_ENCERRADAS, {}), anteriores, ids_novos, avaliacao, historico, agora), compacto=True)
-        gravar(ARQ_OFERTAS, {"gerado_em": carimbo, "modo": modo, "ofertas": publicadas}, compacto=True)
+        gravar(ARQ_OFERTAS, {"gerado_em": carimbo, "modo": modo, "curadoria": cur["modo"], "ofertas": publicadas}, compacto=True)
         gravar(ARQ_PRECOS, {o["id"]: g.precos_diarios(historico.get(o["id"], [])) for o in publicadas}, compacto=True)
         export = ler_contador(alertas)
+        populares = []
         if export is not None:
-            gravar(ARQ_RELACIONADOS, montar_relacionados(export, ids_novos), compacto=True)
+            relacionados = montar_relacionados(export, ids_novos)
+            populares = relacionados["populares"]
+            gravar(ARQ_RELACIONADOS, relacionados, compacto=True)
+        if real:  # o aprendiz só aprende com ofertas reais
+            aprendiz.registrar(base_aprendiz, publicadas, perfis, populares, agora.date().isoformat(), cfg_aprendiz)
+            if modelo_aprendiz.get("treinado_em") != agora.date().isoformat():  # no máximo um treino por dia
+                novo = aprendiz.treinar(aprendiz.rotulados(base_aprendiz, cfg_aprendiz), agora.date().isoformat(), cfg_aprendiz)
+                modelo_aprendiz = novo if novo["estado"] == "treinado" else {**novo, "treinado_em": agora.date().isoformat()}
+            base_aprendiz["modelo"] = modelo_aprendiz
+            gravar(ARQ_APRENDIZ, base_aprendiz, compacto=True)
 
+    g.podar_historico(historico, agora, janela_hist)
     gravar(ARQ_HIST, historico, compacto=True)
 
     publicadas_n = len(aprovadas) if not freio else len(anteriores)
@@ -349,6 +389,15 @@ def main() -> int:
         "api": {"chamadas": chamadas, "erros": erros} if clientes else None,
         "lojas": [n for n, ativa in (("Mercado Livre", ml_ativo), ("Shopee", shopee_ativa)) if ativa],
         "produtos_no_historico": len(historico),
+        "curadoria": calibragem,
+        "aprendiz": {"modo": cfg_aprendiz["modo"], "estado": modelo_aprendiz.get("estado"),
+                     "exemplos": len(base_aprendiz.get("exemplos", {})),
+                     "rotulados": len(aprendiz.rotulados(base_aprendiz, cfg_aprendiz)), "precisa": cfg_aprendiz["min_exemplos"],
+                     "auc": modelo_aprendiz.get("auc"), "auc_minima": cfg_aprendiz["auc_minima"],
+                     "ajudando": aprendiz.pode_ajudar(modelo_aprendiz, cfg_aprendiz),
+                     "importancia": modelo_aprendiz.get("importancia", []),
+                     "notas": sorted(({"titulo": i["titulo"][:80], "nota": notas[i["id"]]} for i in aprovadas if notas.get(i["id"]) is not None),
+                                     key=lambda x: -x["nota"])[:10]},
         "execucoes": execucoes,
     })
 
