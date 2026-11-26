@@ -5,8 +5,11 @@ nos *Secrets* do GitHub ou decidir algo). **Nunca cole chaves no chat nem no có
 
 ## Lojas (produtos reais)
 
+> 26/11/2026: pedidos enviados — formulário do Mercado Livre (análise em até 10 dias) e pedido de acesso à Open API da Shopee.
+> Quando chegar a aprovação: cadastrar as chaves nos Secrets do GitHub e avisar para acompanhar a primeira rodada.
+
 - [ ] **Shopee — completar o cadastro de afiliado** (Informações de Pagamento e Fiscais), necessário também para receber comissões.
-- [ ] **Shopee — pedir acesso à Open API**: em affiliate.shopee.com.br/open_api → "Central de Ajuda" → formulário
+- [x] **Shopee — pedir acesso à Open API** (enviado em 26/11/2026): em affiliate.shopee.com.br/open_api → "Central de Ajuda" → formulário
       (já sou afiliado: Sim · problema de login: Não, outras dúvidas · ID de afiliado em /account_setting ·
       tema "dúvidas com cadastro e conta" · cenário "Quero ativar a API").
 - [ ] **Shopee — cadastrar as chaves no GitHub**: Secrets `SHOPEE_APP_ID` e `SHOPEE_APP_SECRET` (a "Senha" da página Open API).
