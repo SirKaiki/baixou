@@ -13,7 +13,9 @@ nos *Secrets* do GitHub ou decidir algo). **Nunca cole chaves no chat nem no có
 - [ ] **Mercado Livre — liberar a permissão para criar aplicações** (26/11/2026): em developers.mercadolivre.com.br/devcenter
       o botão "Criar nova aplicação" está desativado com a mensagem "No tenés permiso para crear aplicaciones. Contactá al
       equipo de OpenPlatform". Passos: conferir se há dados pendentes de validação em Minha conta → Meu perfil; se não houver,
-      pedir a liberação ao atendimento do Mercado Livre (o suporte de integradores exige já ter uma aplicação).
+      enviar o formulário oficial de pedido de criação de aplicação (https://forms.gle/2Q39SStHLJNQLjuK9, citado na página
+      "Crie uma aplicação" da documentação): uso pessoal, função "View metrics and reports", aplicação só de leitura,
+      redirect e demo https://sirkaiki.github.io/baixou/. A análise leva até 10 dias; se aprovada, a aplicação aparece no DevCenter.
 - [ ] **Mercado Livre — criar o app de desenvolvedor** com escopo "Somente leitura" e as permissões funcionais
       **"Métricas do negócio"** (mais vendidos) e **"Publicação e sincronização"** (itens e catálogo); cadastrar
       `ML_CLIENT_ID`, `ML_CLIENT_SECRET` (Secrets) e `ML_MATT_WORD`, `ML_MATT_TOOL` (Variables). O diagnóstico
