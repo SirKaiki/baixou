@@ -5,3 +5,9 @@ updates:
     directory: "/"
     schedule:
       interval: "weekly"
+
+  # O wrangler (usado só para publicar o contador) fica com versão travada; o Dependabot propõe as atualizações.
+  - package-ecosystem: "npm"
+    directory: "/worker"
+    schedule:
+      interval: "weekly"

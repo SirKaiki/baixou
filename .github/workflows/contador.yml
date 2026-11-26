@@ -1,6 +1,10 @@
 name: Contador anônimo
 
 # Publica o contador de visitas na Cloudflare. Só roda quando as chaves da Cloudflare existem.
+#
+# Segurança: o trabalho que roda programas de terceiros (wrangler, com versão travada no
+# package-lock.json) NÃO pode escrever no repositório. Quem grava o endereço do contador é um
+# segundo trabalho, que não roda nada de terceiros e confere o endereço antes de salvar.
 on:
   workflow_dispatch:
   push:
@@ -8,20 +12,24 @@ on:
     paths: ["worker/**", ".github/workflows/contador.yml"]
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: robo
   cancel-in-progress: false
 
 jobs:
-  contador:
+  publicar:
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    outputs:
+      ok: ${{ steps.chaves.outputs.ok }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: "22"
 
@@ -36,16 +44,53 @@ jobs:
         run: |
           if [ -n "$TOKEN" ] && [ -n "$CONTA" ]; then echo "ok=1" >> "$GITHUB_OUTPUT"; else echo "Chaves da Cloudflare ainda não configuradas: nada a publicar."; fi
 
+      - name: Instalar o wrangler (versão travada)
+        if: steps.chaves.outputs.ok == '1'
+        working-directory: worker
+        run: npm ci --ignore-scripts --no-audit --no-fund
+
       - name: Publicar o contador
         if: steps.chaves.outputs.ok == '1'
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          WRANGLER_SEND_METRICS: "false"
         run: ./worker/implantar.sh
 
-      - name: Salvar o endereço do contador
+      - name: Guardar o endereço para o próximo trabalho
         if: steps.chaves.outputs.ok == '1'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: contador
+          path: site/data/contador.json
+          retention-days: 1
+
+  salvar:
+    needs: publicar
+    if: needs.publicar.outputs.ok == '1'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write   # só este trabalho grava, e ele não roda programas de terceiros
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: contador
+          path: /tmp/contador
+
+      - name: Conferir e salvar o endereço do contador
         run: |
+          python3 - <<'PY'
+          import json, re, sys
+          d = json.load(open("/tmp/contador/contador.json"))
+          url = d.get("url", "") if isinstance(d, dict) else ""
+          if set(d) != {"url"} or not re.fullmatch(r"https://baixou-contador\.[a-z0-9-]{1,63}\.workers\.dev", url):
+              sys.exit("endereço do contador inesperado; nada foi salvo")
+          json.dump({"url": url}, open("site/data/contador.json", "w"))
+          open("site/data/contador.json", "a").write("\n")
+          PY
           git config user.name "baixou-robo"
           git config user.email "baixou-robo@users.noreply.github.com"
           git add site/data/contador.json

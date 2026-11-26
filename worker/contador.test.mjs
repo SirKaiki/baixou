@@ -68,3 +68,22 @@ test('rota desconhecida responde 404', async () => {
   const r = await contador.fetch(new Request('https://x.dev/qualquer'), env());
   assert.equal(r.status, 404);
 });
+
+test('clique só conta se a mesma visita abriu o produto antes', async () => {
+  const e = env();
+  const n = () => e.DB._db.prepare("SELECT COUNT(*) n FROM eventos WHERE tipo = 'c'").get().n;
+  await enviar(e, {s: 'golpista00001', e: [{p: 'MLB9', t: 'c'}]});           // clique sem visita: ignorado
+  assert.equal(n(), 0);
+  await enviar(e, {s: 'visitante0001', e: [{p: 'MLB9', t: 'c'}, {p: 'MLB9', t: 'v'}]}); // ordem trocada no mesmo envio: vale
+  assert.equal(n(), 1);
+  await enviar(e, {s: 'visitante0002', e: [{p: 'MLB8', t: 'v'}]});
+  await enviar(e, {s: 'visitante0002', e: [{p: 'MLB8', t: 'c'}]});            // visita antes, clique depois: vale
+  assert.equal(n(), 2);
+});
+
+test('no máximo 5 eventos por envio', async () => {
+  const e = env();
+  const muitos = Array.from({length: 20}, (_, i) => ({p: `MLB${100 + i}`, t: 'v'}));
+  await enviar(e, {s: 'abc123def999', e: muitos});
+  assert.equal(e.DB._db.prepare('SELECT COUNT(*) n FROM eventos').get().n, 5);
+});

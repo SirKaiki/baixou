@@ -3,7 +3,8 @@
 # Precisa dos segredos CLOUDFLARE_API_TOKEN e CLOUDFLARE_ACCOUNT_ID.
 set -euo pipefail
 cd "$(dirname "$0")"
-W="npx --yes wrangler@4"
+# wrangler com versão travada no package-lock.json (instalado por "npm ci" no workflow)
+W="npx --no-install wrangler"
 
 id_banco() { $W d1 list --json 2>/dev/null | python3 -c "import json,sys; print(next((d['uuid'] for d in json.load(sys.stdin) if d['name']=='baixou_eventos'), ''))"; }
 

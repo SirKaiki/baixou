@@ -9,6 +9,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import re
 import sys
 import time
 import urllib.request
@@ -48,16 +49,36 @@ def montar_relacionados(export: dict, publicados: set) -> dict:
             "quem_viu": quem_viu, "populares": populares[:60]}
 
 
+CONTADOR_URL = re.compile(r"https://[a-z0-9-]+(\.[a-z0-9-]+)*\.workers\.dev")
+
+
+class _SemRedirecionar(urllib.request.HTTPRedirectHandler):
+    """Não segue redirecionamentos: a chave do contador só vai para o endereço do próprio contador."""
+    def redirect_request(self, *args, **kwargs):
+        return None
+
+
+def chave_contador() -> str | None:
+    """Chave de leitura do contador. No GitHub vem pronta (CONTADOR_TOKEN), e o robô nem recebe a chave da Cloudflare."""
+    pronta = os.environ.get("CONTADOR_TOKEN")
+    if pronta:
+        return pronta
+    cf = os.environ.get("CLOUDFLARE_API_TOKEN")
+    return hashlib.sha256(f"baixou-contador:{cf}".encode()).hexdigest() if cf else None
+
+
 def ler_contador(alertas: list) -> dict | None:
     """Busca os dados do contador anônimo, se ele já estiver publicado."""
-    url = ler(ARQ_CONTADOR, {}).get("url")
-    chave = os.environ.get("CLOUDFLARE_API_TOKEN")
-    if not url or not chave:
+    url = str(ler(ARQ_CONTADOR, {}).get("url") or "")
+    token = chave_contador()
+    if not url or not token:
         return None
-    token = hashlib.sha256(f"baixou-contador:{chave}".encode()).hexdigest()
+    if not CONTADOR_URL.fullmatch(url):
+        alertas.append("Endereço do contador inválido em site/data/contador.json: ignorado.")
+        return None
     try:
-        req = urllib.request.Request(url.rstrip("/") + "/export", headers={"Authorization": f"Bearer {token}", "User-Agent": "baixou-robo/1.0"})
-        with urllib.request.urlopen(req, timeout=20) as r:
+        req = urllib.request.Request(url + "/export", headers={"Authorization": f"Bearer {token}", "User-Agent": "baixou-robo/1.0"})
+        with urllib.request.build_opener(_SemRedirecionar).open(req, timeout=20) as r:
             return json.loads(r.read().decode())
     except Exception as e:  # o contador nunca derruba o robô
         alertas.append(f"Contador de visitas indisponível ({type(e).__name__}).")

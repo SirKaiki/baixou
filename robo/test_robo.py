@@ -149,6 +149,33 @@ class TestTestesNaoMexemNosDadosReais(unittest.TestCase):
         self.assertEqual(gravados - isolados, set(), "um teste gravaria nos dados reais do site")
 
 
+class TestContadorNoRobo(unittest.TestCase):
+    def _ler(self, url, env):
+        import tempfile
+        with tempfile.TemporaryDirectory() as d, mock.patch.object(robo, "ARQ_CONTADOR", Path(d) / "c.json"), \
+                mock.patch.dict(os.environ, env, clear=True), mock.patch("urllib.request.OpenerDirector.open") as abrir:
+            (Path(d) / "c.json").write_text(json.dumps({"url": url}))
+            alertas = []
+            robo.ler_contador(alertas)
+            return abrir, alertas
+
+    def test_endereco_estranho_nao_recebe_a_chave(self):
+        for ruim in ("http://baixou.x.workers.dev", "https://golpe.com", "https://x.workers.dev.golpe.com",
+                     "file:///etc/passwd", "https://x.workers.dev/../", "https://a@x.workers.dev"):
+            abrir, alertas = self._ler(ruim, {"CONTADOR_TOKEN": "t"})
+            abrir.assert_not_called()
+            self.assertTrue(alertas, ruim)
+
+    def test_endereco_certo_usa_a_chave_pronta(self):
+        abrir, _ = self._ler("https://baixou-contador.cesar.workers.dev", {"CONTADOR_TOKEN": "chave-pronta"})
+        req = abrir.call_args[0][0]
+        self.assertEqual(req.full_url, "https://baixou-contador.cesar.workers.dev/export")
+        self.assertEqual(req.get_header("Authorization"), "Bearer chave-pronta")
+
+    def test_nao_segue_redirecionamento(self):
+        self.assertIsNone(robo._SemRedirecionar().redirect_request(None, None, 302, "", {}, "https://golpe.com"))
+
+
 class TestSemSegredosNoCodigo(unittest.TestCase):
     """O erro clássico de código feito por IA: colar a chave no código para "fazer funcionar". Aqui isso reprova o robô."""
 

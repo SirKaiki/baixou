@@ -56,10 +56,17 @@ async function registrar(req, env, cors) {
   const sessao = String(dados?.s || '');
   if (!SESSAO.test(sessao)) return new Response('sessão inválida', {status: 400, headers: cors});
   const agora = Date.now();
-  const comandos = (Array.isArray(dados.e) ? dados.e.slice(0, 20) : [])
+  // No máximo 5 eventos por envio (o site manda 1). Visitas antes dos cliques, porque um clique
+  // só conta se a mesma visita abriu o produto antes: isso encarece inventar "foram à loja".
+  const eventos = (Array.isArray(dados.e) ? dados.e.slice(0, 5) : [])
     .filter(ev => ev && PRODUTO.test(String(ev.p)) && (ev.t === 'v' || ev.t === 'c'))
-    .map(ev => env.DB.prepare('INSERT OR IGNORE INTO eventos (sessao, produto, tipo, ts) VALUES (?1, ?2, ?3, ?4)')
-      .bind(sessao, String(ev.p), ev.t, agora));
+    .sort((a, b) => (a.t === 'v' ? 0 : 1) - (b.t === 'v' ? 0 : 1));
+  const comandos = eventos.map(ev => ev.t === 'v'
+    ? env.DB.prepare('INSERT OR IGNORE INTO eventos (sessao, produto, tipo, ts) VALUES (?1, ?2, \'v\', ?3)')
+        .bind(sessao, String(ev.p), agora)
+    : env.DB.prepare(`INSERT OR IGNORE INTO eventos (sessao, produto, tipo, ts)
+        SELECT ?1, ?2, 'c', ?3 WHERE EXISTS (SELECT 1 FROM eventos WHERE sessao = ?1 AND produto = ?2 AND tipo = 'v')`)
+        .bind(sessao, String(ev.p), agora));
   if (comandos.length) await env.DB.batch(comandos);
   return new Response(null, {status: 204, headers: cors});
 }
