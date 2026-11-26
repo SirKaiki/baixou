@@ -1,5 +1,5 @@
 {
- "gerado_em": "2026-11-26T11:32+00:00",
+ "gerado_em": "2026-11-26T13:14+00:00",
  "modo": "demonstração",
  "duracao_s": 0.0,
  "afiliado_configurado": true,
@@ -33,6 +33,12 @@
  "lojas": [],
  "produtos_no_historico": 31,
  "execucoes": [
+  {
+   "em": "2026-11-26T13:14+00:00",
+   "publicadas": 26,
+   "quarentena": 1,
+   "alertas": 0
+  },
   {
    "em": "2026-11-26T11:32+00:00",
    "publicadas": 26,
@@ -203,12 +209,6 @@
   },
   {
    "em": "2026-11-25T12:03+00:00",
-   "publicadas": 26,
-   "quarentena": 1,
-   "alertas": 0
-  },
-  {
-   "em": "2026-11-25T11:58+00:00",
    "publicadas": 26,
    "quarentena": 1,
    "alertas": 0
