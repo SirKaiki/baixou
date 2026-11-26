@@ -10,7 +10,11 @@ nos *Secrets* do GitHub ou decidir algo). **Nunca cole chaves no chat nem no có
       (já sou afiliado: Sim · problema de login: Não, outras dúvidas · ID de afiliado em /account_setting ·
       tema "dúvidas com cadastro e conta" · cenário "Quero ativar a API").
 - [ ] **Shopee — cadastrar as chaves no GitHub**: Secrets `SHOPEE_APP_ID` e `SHOPEE_APP_SECRET` (a "Senha" da página Open API).
-- [ ] **Mercado Livre — testar o que a API ainda permite** (a busca `/sites/MLB/search` está fechada para apps de terceiros desde 2025).
+- [ ] **Mercado Livre — criar o app de desenvolvedor** com escopo "Somente leitura" e as permissões funcionais
+      **"Métricas do negócio"** (mais vendidos) e **"Publicação e sincronização"** (itens e catálogo); cadastrar
+      `ML_CLIENT_ID`, `ML_CLIENT_SECRET` (Secrets) e `ML_MATT_WORD`, `ML_MATT_TOOL` (Variables). O diagnóstico
+      (`dados/diagnostico_ml.json`) mostra o que a conta consegue consultar. A busca geral (`/sites/MLB/search`)
+      não aparece mais na documentação; o caminho é mais vendidos (`/highlights`) + catálogo (`/products/ID`).
 
 ## Contador anônimo e aprendiz
 

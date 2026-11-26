@@ -44,7 +44,14 @@ class ClienteML:
                 with urllib.request.urlopen(req, timeout=20) as resp:
                     return json.loads(resp.read().decode())
             except urllib.error.HTTPError as e:
-                ultimo = f"HTTP {e.code} em {caminho.split('?')[0]}"
+                # O corpo do erro diz o motivo (ex.: PA_UNAUTHORIZED_RESULT_FROM_POLICIES = falta permissão funcional).
+                motivo = ""
+                try:
+                    erro = json.loads(e.read().decode()[:2000])
+                    motivo = str(erro.get("code") or erro.get("error") or "")[:60] if isinstance(erro, dict) else ""
+                except Exception:  # corpo vazio ou não-JSON
+                    pass
+                ultimo = f"HTTP {e.code}{' ' + motivo if motivo else ''} em {caminho.split('?')[0]}"
                 if e.code in (429, 500, 502, 503, 504):
                     time.sleep(2 * (tentativa + 1))
                     continue
@@ -91,12 +98,13 @@ class ClienteML:
         return itens
 
     def itens(self, ids: list[str]) -> list[dict]:
-        """Busca até 20 anúncios por chamada; ignora os que vierem com erro."""
+        """Busca até 20 anúncios por chamada; ignora os que vierem com erro.
+        Usa /items/bulk (o antigo /items?ids= foi descontinuado; o campo "code" virou "status_code")."""
         saida = []
         for i in range(0, len(ids), 20):
             lote = ",".join(ids[i:i + 20])
-            r = self._requisicao("GET", f"/items?ids={lote}")
-            saida += [x["body"] for x in r if x.get("code") == 200 and isinstance(x.get("body"), dict)]
+            r = self._requisicao("GET", f"/items/bulk?ids={lote}")
+            saida += [x["body"] for x in r if isinstance(x, dict) and (x.get("status_code") or x.get("code")) == 200 and isinstance(x.get("body"), dict)]
         return saida
 
     def nome_categoria(self, categoria_id: str) -> str | None:

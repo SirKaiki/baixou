@@ -678,8 +678,8 @@ class TestDiagnosticoML(unittest.TestCase):
                 return {"results": [{"item_id": "MLB333"}]}
             if caminho.startswith("/products/MLB111"):
                 return {"buy_box_winner": {"item_id": "MLB333", "price": 999}}
-            if caminho.startswith("/items?ids="):
-                return [{"code": 200, "body": {"price": 999, "original_price": 1299}}]
+            if caminho.startswith("/items/bulk?ids="):
+                return [{"id": "MLB333", "status_code": 200, "body": {"price": 999, "original_price": 1299}}]
             if caminho.startswith("/items/"):
                 return {"price": 999, "original_price": 1299, "prices": []}
             raise ErroML("HTTP 404 em x")
@@ -689,8 +689,32 @@ class TestDiagnosticoML(unittest.TestCase):
         self.assertFalse(r["busca por categoria (/sites/MLB/search)"]["ok"])
         self.assertEqual(r["busca por categoria (/sites/MLB/search)"]["erro"], "HTTP 403")
         self.assertEqual(r["mais vendidos da categoria (/highlights)"], {"teste": "mais vendidos da categoria (/highlights)", "ok": True, "quantidade": 2, "tipos": ["ITEM", "PRODUCT"]})
-        self.assertTrue(r["vários itens (/items?ids=)"]["tem_preco_original"])
+        self.assertTrue(r["vários itens (/items/bulk)"]["tem_preco_original"])
         self.assertNotIn("TOKEN-SECRETO", json.dumps(list(r.values())))
+
+
+class TestClienteMLAtualizado(unittest.TestCase):
+    def test_itens_usa_bulk_e_status_code(self):
+        from ml import ClienteML
+        chamados = []
+
+        def falso(self, metodo, caminho, *a, **k):
+            chamados.append(caminho)
+            return [{"id": "MLB1", "status_code": 200, "body": {"id": "MLB1"}}, {"id": "MLB2", "status_code": 404, "body": {}}]
+        with mock.patch.object(ClienteML, "_requisicao", falso):
+            self.assertEqual(ClienteML("a", "b").itens(["MLB1", "MLB2"]), [{"id": "MLB1"}])
+        self.assertTrue(chamados[0].startswith("/items/bulk?ids="))
+
+    def test_erro_403_mostra_o_motivo_da_api(self):
+        import io
+        import urllib.error
+        from ml import ClienteML, ErroML
+        corpo = b'{"code": "PA_UNAUTHORIZED_RESULT_FROM_POLICIES", "status": 403}'
+        erro = urllib.error.HTTPError("https://api.mercadolibre.com/highlights", 403, "Forbidden", {}, io.BytesIO(corpo))
+        with mock.patch("urllib.request.urlopen", side_effect=erro):
+            with self.assertRaises(ErroML) as ctx:
+                ClienteML("a", "b")._requisicao("GET", "/highlights/MLB/category/MLB1055", tentativas=1)
+        self.assertEqual(str(ctx.exception), "HTTP 403 PA_UNAUTHORIZED_RESULT_FROM_POLICIES em /highlights/MLB/category/MLB1055")
 
 
 if __name__ == "__main__":

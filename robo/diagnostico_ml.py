@@ -19,6 +19,7 @@ from ml import ClienteML, ErroML  # noqa: E402
 RAIZ = Path(__file__).resolve().parent.parent
 ARQ = RAIZ / "dados" / "diagnostico_ml.json"
 CATEGORIA = "MLB1055"  # Celulares e Smartphones
+CATEGORIA_FOLHA_DOC = "MLB432825"  # a categoria usada no exemplo da documentação dos mais vendidos
 
 
 def _teste(cliente: ClienteML, nome: str, caminho: str, resumo) -> tuple[dict, object]:
@@ -47,6 +48,12 @@ def rodar(cliente: ClienteML) -> list[dict]:
     destaques = add("mais vendidos da categoria (/highlights)", f"/highlights/MLB/category/{CATEGORIA}",
                     lambda r: {"quantidade": len(r.get("content") or []),
                                "tipos": sorted({c.get("type") for c in r.get("content") or [] if isinstance(c, dict)})})
+    if not destaques:  # os mais vendidos só existem em categorias "folha" (sem subcategorias)
+        destaques = add("mais vendidos da categoria do exemplo oficial (/highlights)", f"/highlights/MLB/category/{CATEGORIA_FOLHA_DOC}",
+                        lambda r: {"quantidade": len(r.get("content") or []),
+                                   "tipos": sorted({c.get("type") for c in r.get("content") or [] if isinstance(c, dict)})})
+    add("árvore de categorias (/categories/ID)", f"/categories/{CATEGORIA}",
+        lambda r: {"subcategorias": len(r.get("children_categories") or [])})
     add("tendências de busca (/trends)", f"/trends/MLB/{CATEGORIA}", lambda r: {"quantidade": len(r or [])})
     catalogo = add("busca no catálogo (/products/search)", "/products/search?status=active&site_id=MLB&q=smartphone&limit=5", lista("results"))
     add("categorias do site (/sites/MLB/categories)", "/sites/MLB/categories", lambda r: {"quantidade": len(r or [])})
@@ -55,15 +62,20 @@ def rodar(cliente: ClienteML) -> list[dict]:
     produto = next((c.get("id") for c in conteudo if c.get("type") == "PRODUCT"), None) \
         or next((p.get("id") for p in (catalogo or {}).get("results") or []), None)
     item = next((c.get("id") for c in conteudo if c.get("type") == "ITEM"), None)
+    up = next((c.get("id") for c in conteudo if c.get("type") == "USER_PRODUCT"), None)
+    if up:
+        add("produto de vendedor (/user-products/ID)", f"/user-products/{up}",
+            lambda r: {"campos": sorted(k for k in r if k in ("id", "name", "family_id", "user_id", "site_id", "price", "buy_box_winner"))})
     if produto:
         p = add("produto de catálogo (/products/ID)", f"/products/{produto}",
-                lambda r: {"tem_buy_box": bool(r.get("buy_box_winner")), "tem_preco": bool((r.get("buy_box_winner") or {}).get("price"))})
+                lambda r: {"tem_buy_box": bool(r.get("buy_box_winner")), "tem_preco": bool((r.get("buy_box_winner") or {}).get("price")),
+                           "tem_preco_original": bool((r.get("buy_box_winner") or {}).get("original_price"))})
         ofertas = add("ofertas do produto (/products/ID/items)", f"/products/{produto}/items", lista("results"))
         item = item or ((p or {}).get("buy_box_winner") or {}).get("item_id") \
             or next((o.get("item_id") for o in (ofertas or {}).get("results") or []), None)
     if item:
-        add("vários itens (/items?ids=)", f"/items?ids={item}",
-            lambda r: {"quantidade": len(r or []), "codigo": (r or [{}])[0].get("code"),
+        add("vários itens (/items/bulk)", f"/items/bulk?ids={item}",
+            lambda r: {"quantidade": len(r or []), "codigo": (r or [{}])[0].get("status_code") or (r or [{}])[0].get("code"),
                        "tem_preco": bool(((r or [{}])[0].get("body") or {}).get("price")),
                        "tem_preco_original": bool(((r or [{}])[0].get("body") or {}).get("original_price"))})
         add("um item (/items/ID)", f"/items/{item}", lambda r: {"tem_preco": bool(r.get("price")), "tem_preco_original": bool(r.get("original_price"))})
