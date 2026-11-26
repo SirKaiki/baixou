@@ -222,7 +222,7 @@ function campanhas() {
   const menor = P.filter(p => p.menor_30d).sort(porDesc);
   if (menor.length >= 3) cs.menor = {cls:'s-green', kick:'Comparado com o histórico', titulo:'Menor preço <em>em 30 dias</em>', sub:`${menor.length} produtos no preço mais baixo do mês. Hora de comprar.`, href:'?ver=menor', itens:menor};
   const novas = [...P].sort(porNovo);
-  if (novas.length >= 3) cs.novas = {cls:'s-blue', kick:'Atualizado agora', titulo:'Acabou <em>de baixar</em>', sub:'As promoções que entraram no site nas últimas horas, conferidas pelo robô.', href:'?ver=novas', itens:novas};
+  if (novas.length >= 3) cs.novas = {cls:'s-blue', kick: DEMO ? 'Exemplos' : 'Atualizado agora', titulo:'Acabou <em>de baixar</em>', sub:'As promoções que entraram no site nas últimas horas, conferidas pelo robô.', href:'?ver=novas', itens:novas};
   const rank = CATS.filter(c => c.n >= 3).map(c => ({...c, max: Math.max(...P.filter(p => p.categoria === c.nome).map(p => p.desconto))})).sort((a, b) => b.max - a.max);
   rank.slice(0, 2).forEach((c, i) => { cs['cat' + i] = {cls: i ? 's-black' : 's-red', kick: c.nome, titulo:`Até <em>${c.max}% off</em> em ${esc(c.nome)}`, sub:`${c.n} ofertas selecionadas em ${c.nome.toLowerCase()}.`, href: qs({cat:c.nome}), itens: P.filter(p => p.categoria === c.nome).sort(porDesc)}; });
   const full = P.filter(p => p.full && p.frete_gratis).sort(porDesc);
@@ -603,7 +603,7 @@ function viewProduto(id) {
         <p class="note">Preço verificado ${ago(p.verificado_em)}. Você conclui a compra ${esc(naLoja(lojaDe(p)))}; preço e estoque podem mudar.</p>`}
       </div>
       ${pop && pop.c >= 3 ? `<div class="proof"><b>${pop.c}</b> pessoas foram à loja por esta oferta nas últimas 24 horas</div>` : ''}
-      <ul class="trust"><li>${esc(CONFIANCA[lojaDe(p)] || 'Vendedor bem avaliado na loja')}</li><li>Produto novo, com desconto conferido pelo nosso robô</li><li>Pagamento, entrega e garantia direto com a loja</li></ul>
+      ${DEMO ? '' : `<ul class="trust"><li>${esc(CONFIANCA[lojaDe(p)] || 'Vendedor bem avaliado na loja')}</li><li>Produto novo, com desconto conferido pelo nosso robô</li><li>Pagamento, entrega e garantia direto com a loja</li></ul>`}
       ${canaisHTML()}
     </div>
   </div>
@@ -619,7 +619,7 @@ function viewProduto(id) {
   }));
   // barra de compra fixa quando o botão principal sai da tela
   const bar = $('buybar');
-  bar.innerHTML = `<div class="p"><b>${brl(p.preco)}</b><small>-${p.desconto}% · ${p.frete_gratis ? 'frete grátis · ' : ''}link de afiliado</small></div><a href="${esc(link)}" target="_blank" rel="nofollow sponsored noopener" data-buy="${esc(p.id)}">Comprar ↗</a>`;
+  bar.innerHTML = `<div class="p"><b>${brl(p.preco)}</b><small>${DEMO ? 'exemplo de demonstração' : `-${p.desconto}% · ${p.frete_gratis ? 'frete grátis · ' : ''}link de afiliado`}</small></div><a href="${esc(link)}" target="_blank" rel="nofollow sponsored noopener" data-buy="${esc(p.id)}">${DEMO ? 'Ver na loja' : 'Comprar'} ↗</a>`;
   const btn = $('buy');
   obsBuy = () => { const on = btn.getBoundingClientRect().bottom < 0; bar.classList.toggle('on', on); bar.setAttribute('aria-hidden', String(!on)); document.body.classList.toggle('has-buybar', on); };
   addEventListener('scroll', obsBuy, {passive:true});
@@ -643,21 +643,26 @@ function viewEncerrada(o) {
     $('avise').setAttribute('aria-pressed', String(liga)); $('avise').textContent = liga ? 'Vamos avisar se voltar ✓' : 'Me avise se voltar'; toast(liga ? 'Avisamos aqui no site se a oferta voltar' : 'Aviso removido'); };
   fallbackImgs($('view')); setasBorda($('view'));
 }
+/* Veredito do preço: destaca o que é bom e nunca afasta o cliente com selo negativo.
+   Preço comum não ganha selo (o gráfico continua aqui para quem quiser conferir). Quando a curadoria estiver em
+   "aplicar", preço comum nem entra no site. Diferenças pequenas (até 5% do menor preço) contam como "perto do menor". */
 function veredito(p, serie) {
   const el = $('verdict'); if (!el) return;
-  const vals = serie.map(s => s[1]), menor = Math.min(...vals), maior = Math.max(...vals), desde = dm(serie[0][0]);
-  let cls, tit, txt;
+  el.hidden = true;
+  const vals = serie.map(s => s[1]), menor = Math.min(...vals), desde = dm(serie[0][0]);
+  const dias = new Set(serie.map(s => s[0])).size;
+  let cls = '', tit = '', txt = '';
   const cur = p.curadoria;
-  if (cur && cur.nivel && cur.nivel !== 'sem_historico') {  // veredito do modelo estatístico (histórico de até 90 dias)
-    [cls, tit] = {excepcional: ['top', 'Preço excepcional para este produto'], boa: ['bom', 'Boa oferta, comprovada pelo histórico'],
-                  comum: ['meh', 'Preço dentro do normal deste produto']}[cur.nivel] || ['novo', 'Preço conferido pelo robô'];
-    txt = esc(cur.motivo || '') + (cur.nivel === 'comum' ? ' Salve nos favoritos que avisamos se baixar.' : '');
-    el.className = 'verdict ' + cls; el.innerHTML = `<b>${tit}</b><span>${txt}</span>`; el.hidden = false; return;
+  if (cur && cur.nivel && cur.nivel !== 'sem_historico') {  // modelo estatístico (histórico de até 90 dias)
+    if (cur.nivel === 'excepcional') { cls = 'top'; tit = 'Preço excepcional para este produto'; }
+    else if (cur.nivel === 'boa') { cls = 'bom'; tit = 'Boa oferta, comprovada pelo histórico'; }
+    if (tit) txt = esc(cur.motivo || '');
+  } else if (dias >= 3 && p.preco <= menor + .009) {
+    cls = 'top'; tit = 'O menor preço que já registramos'; txt = `Acompanhamos este produto desde ${desde}.`;
+  } else if (dias >= 3 && p.preco <= menor * 1.05) {
+    cls = 'bom'; tit = 'Perto do menor preço registrado'; txt = `O menor desde ${desde} foi ${brl(menor)}.`;
   }
-  if (serie.length < 3 || menor === maior) { cls = 'novo'; tit = 'Preço recém-chegado ao nosso radar'; txt = `Acompanhamos desde ${desde}. O desconto de ${p.desconto}% foi conferido pelo robô.`; }
-  else if (p.preco <= menor + .009) { cls = 'top'; tit = 'Preço excelente: o menor que já registramos'; txt = `Desde ${desde}, variou entre ${brl(menor)} e ${brl(maior)}.`; }
-  else if (p.preco - menor <= (maior - menor) * .35) { cls = 'bom'; tit = 'Bom preço: perto do menor registrado'; txt = `O menor desde ${desde} foi ${brl(menor)}; hoje está ${brl(p.preco - menor)} acima.`; }
-  else { cls = 'meh'; tit = 'Pode melhorar: já esteve mais barato'; const d = serie.find(s => s[1] === menor); txt = `Chegou a ${brl(menor)} em ${dm(d[0])}. Salve nos favoritos que avisamos se baixar.`; }
+  if (!tit) return;  // sem selo: nada negativo, nada inventado
   if (DEMO) tit = 'Exemplo: ' + tit;
   el.className = 'verdict ' + cls; el.innerHTML = `<b>${tit}</b><span>${txt}</span>`; el.hidden = false;
 }
@@ -796,9 +801,9 @@ function montarPromo() {
   const nMenor = P.filter(p => p.menor_30d).length, nFrete = P.filter(p => p.frete_gratis).length, maxD = P.length ? Math.max(...P.map(p => p.desconto)) : 0;
   const msgs = [
     nMenor ? {h:`<b>Menor preço em 30 dias</b> em ${nMenor} ${nMenor === 1 ? 'produto' : 'produtos'} · ver ofertas`, u:'?ver=menor'} : null,
-    maxD ? {h:`Descontos de <b>até ${maxD}% off</b> conferidos pelo nosso robô`, u:'?ver=descontos'} : null,
+    maxD ? {h: DEMO ? `Exemplo: descontos de <b>até ${maxD}% off</b> (demonstração)` : `Descontos de <b>até ${maxD}% off</b> conferidos pelo nosso robô`, u:'?ver=descontos'} : null,
     nFrete ? {h:`<b>Frete grátis</b> em ${nFrete} ${nFrete === 1 ? 'oferta' : 'ofertas'} agora`, u:'?ver=full'} : null,
-    {h:'Preços conferidos <b>a cada 15 minutos</b>', u:'?ver=novas'},
+    DEMO ? null : {h:'Preços conferidos <b>a cada 15 minutos</b>', u:'?ver=novas'},
   ].filter(Boolean);
   const mostrar = () => { const m = msgs[promoK % msgs.length]; $('ann').innerHTML = m.h; $('promoLink').setAttribute('href', m.u); };
   mostrar();
@@ -942,8 +947,8 @@ Promise.all([
   P.forEach(p => { cont1[p.categoria] = (cont1[p.categoria] || 0) + 1; if (p.marca) cont2[p.marca] = (cont2[p.marca] || 0) + 1; });
   CATS = Object.entries(cont1).map(([nome, n]) => ({nome, n})).sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
   MARCAS = Object.entries(cont2).map(([nome, n]) => ({nome, n})).sort((a, b) => b.n - a.n || a.nome.localeCompare(b.nome, 'pt-BR'));
-  montarMenus(); montarPromo();
   DEMO = d.modo !== 'real';
+  montarMenus(); montarPromo();
   if (DEMO) {
     $('demo').hidden = false;
     const m = document.createElement('meta'); m.name = 'robots'; m.content = 'noindex,follow'; document.head.append(m);  // produtos simulados não vão para o Google
