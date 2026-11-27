@@ -93,7 +93,7 @@ jobs:
       - name: Gerar páginas de compartilhamento e sitemap (só no pacote publicado)
         run: python robo/paginas.py
 
-      - uses: actions/configure-pages@983d7736d9b0ae728b81ab479565c72886d7745b # v5
+      - uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
 
       - name: Forçar o navegador a baixar a versão nova do site
         run: sed -i "s/app\.css\"/app.css?v=${GITHUB_SHA::7}\"/; s/app\.js\"/app.js?v=${GITHUB_SHA::7}\"/; s/gosto\.js\"/gosto.js?v=${GITHUB_SHA::7}\"/" site/index.html && grep -oE '(app|gosto)\.[a-z]+\?v=[0-9a-f]+' site/index.html
