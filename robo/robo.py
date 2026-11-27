@@ -223,6 +223,9 @@ def main() -> int:
         itens = demo.gerar(agora)
         for item in itens:
             item["link"] = item["permalink"]
+            # histórico simulado e coerente (os preços de exemplo mudam a cada hora; guardá-los como se fossem
+            # reais fazia o guardião desconfiar do preço cheio depois de dois dias e o freio segurar o site)
+            historico[item["id"]] = demo.historico(item, agora)
     if ml_ativo:
         try:
             ml_itens, cliente = coletar_real(cfg, anteriores, alertas)

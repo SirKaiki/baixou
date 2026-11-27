@@ -510,6 +510,23 @@ class TestRoboShopee(unittest.TestCase):
         robo.main()
         self.assertEqual(len(self.ler("ofertas.json")["ofertas"]), 12)
 
+    def test_demonstracao_continua_aprovada_dias_depois(self):
+        """Os exemplos têm histórico coerente: o guardião não acusa "preço cheio inflado" com o passar dos dias
+        (antes, depois de dois dias de preços de exemplo guardados, 24 de 26 caíam na quarentena e o freio travava)."""
+        import demo
+        regras = REGRAS
+        for dias in (0, 2, 5, 30):
+            agora = datetime(2026, 11, 27, 4, 28, tzinfo=timezone.utc) + timedelta(days=dias)
+            itens = [i for i in demo.gerar(agora) if not i["id"].startswith("DEMO09")]   # sem as armadilhas
+            aprovadas = 0
+            for item in itens:
+                item["link"] = item["permalink"]
+                hist = demo.historico(item, agora)
+                self.assertTrue(all(p[1] <= item["preco_cheio"] for p in hist))
+                situacao, motivo = g.avaliar(item, regras, 10, hist, exige_afiliado=False, checar_links=False)
+                aprovadas += situacao == "aprovada"
+            self.assertGreaterEqual(aprovadas, len(itens) - 2, f"dia {dias}")
+
     def test_estreia_depois_da_demonstracao_nao_trava_no_freio(self):
         with mock.patch.dict(os.environ, {}, clear=True):
             robo.main()  # demonstração: 20+ ofertas simuladas

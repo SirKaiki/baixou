@@ -7,7 +7,7 @@ from __future__ import annotations
 import random
 import re
 import unicodedata
-from datetime import datetime
+from datetime import datetime, timedelta
 
 # (título, categoria, preço cheio, desconto %, frete grátis, full, parcelas)
 CATALOGO = [
@@ -67,6 +67,28 @@ def gerar(agora: datetime) -> list[dict]:
         rep = "1_red" if problema == "reputacao" else "4_light_green"
         itens.append(_item(900 + m, titulo, cat, cheio, preco, True, False, 3, rep, condicao, rnd))
     return itens
+
+
+def historico(item: dict, agora: datetime) -> list:
+    """Histórico de preços SIMULADO de um produto de exemplo, coerente com uma promoção de verdade: o produto ficou
+    semanas perto do preço cheio e baixou nos últimos dias (alguns tiveram outra promoção umas semanas atrás).
+    Sem isso o guardião, corretamente, desconfiaria do preço cheio: ele nunca teria sido visto no histórico."""
+    rnd = random.Random(item["id"])
+    cheio, preco = item["preco_cheio"], item["preco"]
+    pontos = []
+    queda = rnd.randint(1, 4)          # há quantos dias está em promoção
+    outra = rnd.random() < 0.4         # teve outra promoção antes, um pouco mais barata
+    for d in range(40, queda - 1, -1):
+        dia = (agora - timedelta(days=d)).replace(hour=12, minute=0, second=0, microsecond=0)
+        if outra and 15 <= d <= 18:
+            valor = round(preco * 0.97, 2)
+        else:
+            valor = round(cheio * (1 - rnd.choice([0, 0, 0.01, 0.02, 0.03])), 2)
+        pontos.append([dia.isoformat(timespec="minutes"), valor])
+    for d in range(queda - 1, 0, -1):
+        dia = (agora - timedelta(days=d)).replace(hour=12, minute=0, second=0, microsecond=0)
+        pontos.append([dia.isoformat(timespec="minutes"), preco])
+    return pontos
 
 
 MARCAS = ["Samsung", "Motorola", "Amazfit", "Lenovo", "LG", "Kingston", "JBL", "TCL", "Mondial", "Nespresso",
