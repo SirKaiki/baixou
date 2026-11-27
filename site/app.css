@@ -567,3 +567,34 @@ header .hs-box::after,.mega .hs-box::after,.drawer .hs-box::after{background:lin
 footer .fcanais .canais{border-color:#2c2e35;margin:0}footer .fcanais .canais b{color:#fff}
 footer .fcanais{grid-column:1/-1;order:9}
 footer .fcanais .canais b{display:block;margin:0;font:700 16px var(--disp)}
+
+/* ===== personalização "Para você" (pergunta na página inicial e tela "Seus interesses") ===== */
+.gq{display:grid;gap:14px;padding:22px;border:1px solid var(--line);border-radius:12px;background:var(--soft)}
+.gq h2{font:700 clamp(22px,2.4vw,28px)/1.1 var(--disp);margin:0}
+.gq p,.gsub{color:var(--mute);margin:4px 0 0;font-size:15px}
+.gchips{display:flex;flex-wrap:wrap;gap:8px}
+.gchip{height:40px;padding:0 16px;border-radius:99px;border:1.5px solid var(--line);background:var(--card);cursor:pointer;font-weight:600;font-size:15px}
+.gchip:hover{border-color:var(--ink)}
+.gchip[aria-pressed=true]{background:var(--ml);border-color:var(--ml);color:#16171b}
+.gchip[aria-pressed=true]::before{content:"✓ "}
+.gacoes{display:flex;flex-wrap:wrap;align-items:center;gap:10px 18px}
+.gbtn{border:0;cursor:pointer;padding:0 24px;margin:0}
+.gbtn:disabled{opacity:.45;cursor:not-allowed}
+.glink{background:none;border:0;padding:0;cursor:pointer;color:var(--mute);text-decoration:underline;font-size:15px}
+.gostos{padding-block:32px 56px;max-width:820px;display:grid;gap:12px}
+.gostos .h2{margin:0}
+.gtit{font:700 20px/1.2 var(--disp);margin:18px 0 0}
+.gbar{list-style:none;margin:4px 0 0;padding:0;display:grid;gap:8px}
+.gbar li{display:grid;grid-template-columns:minmax(90px,180px) 1fr 44px;align-items:center;gap:10px;font-size:15px}
+.gbar li>i{height:10px;border-radius:99px;background:var(--soft);border:1px solid var(--line);overflow:hidden}
+.gbar li>i>i{display:block;height:100%;background:var(--ml)}
+.gbar b{text-align:right}
+.gsw{display:flex;align-items:center;gap:10px;font-weight:600;margin-top:10px;cursor:pointer}
+.gsw input{width:20px;height:20px;accent-color:var(--ml)}
+@media(max-width:700px){
+  .gq{padding:18px 16px;gap:12px}
+  .gq .gchips{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;margin-inline:-16px;padding-inline:16px}
+  .gq .gchips::-webkit-scrollbar{display:none}
+  .gchip{height:38px;padding:0 14px;flex:none}
+  .gq .gbtn{flex:1;white-space:nowrap;padding:0 16px}
+}

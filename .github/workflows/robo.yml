@@ -35,6 +35,9 @@ jobs:
       - name: Testes do guardião
         run: python -m unittest discover -s robo
 
+      - name: Testes da personalização do site (Node que já vem no Ubuntu do GitHub)
+        run: node --test testes/*.test.mjs
+
       - name: Chave de leitura do contador (o robô não recebe a chave da Cloudflare)
         env:
           CF: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -93,7 +96,7 @@ jobs:
       - uses: actions/configure-pages@983d7736d9b0ae728b81ab479565c72886d7745b # v5
 
       - name: Forçar o navegador a baixar a versão nova do site
-        run: sed -i "s/app\.css\"/app.css?v=${GITHUB_SHA::7}\"/; s/app\.js\"/app.js?v=${GITHUB_SHA::7}\"/" site/index.html && grep -o 'app\.[a-z]*?v=[0-9a-f]*' site/index.html
+        run: sed -i "s/app\.css\"/app.css?v=${GITHUB_SHA::7}\"/; s/app\.js\"/app.js?v=${GITHUB_SHA::7}\"/; s/gosto\.js\"/gosto.js?v=${GITHUB_SHA::7}\"/" site/index.html && grep -oE '(app|gosto)\.[a-z]+\?v=[0-9a-f]+' site/index.html
 
       - uses: actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa # v3
         with:

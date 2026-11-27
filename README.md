@@ -67,6 +67,15 @@ Para ligar, em `config.json`:
 - `"curadoria": {"modo": "aplicar"}` → só publica os níveis de `"publicar"` (padrão: excepcional e boa). Os números de cada nível ficam em `"niveis"`.
 - `"aprendiz": {"modo": "ajudar"}` → a nota passa a ajudar a **ordenar** as ofertas, e só se a nota do teste for pelo menos `auc_minima`. Ele nunca publica nem barra nada sozinho.
 
+## Ofertas "Para você" (personalização que fica no aparelho)
+
+A página inicial pergunta "Do que você gosta?" e passa a mostrar primeiro as categorias escolhidas. Também aprende com o
+que a pessoa faz **dentro do Baixou** (abrir oferta, salvar nos favoritos, ir à loja, buscar), com esquecimento gradual.
+Tudo fica no `localStorage` do navegador dela: nada é enviado ao site. O Baixou não lê cookies nem pesquisas de outros
+sites (o navegador não deixa, e a LGPD também não). A tela "Seus interesses" (`?ver=gostos`) mostra o que foi percebido,
+desliga o aprendizado e apaga tudo. Regras e pesos em `site/gosto.js`; testes em `testes/gosto.test.mjs`.
+Com mais ofertas, subcategoria, marca e faixa de preço passam a pesar sozinhas (limiares em `LIMIAR`).
+
 ## Regras dos programas de afiliados (o que o site já respeita)
 
 - **Sem logotipo nem identidade visual das lojas:** o site mostra só o nome da loja em texto.

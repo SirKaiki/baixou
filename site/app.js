@@ -115,9 +115,43 @@ const favs = () => new Set(ler('baixou-favs', []));
 function contarFavs() { const n = [...favs()].filter(id => byId.has(id)).length; $('favn').textContent = n; $('favn').hidden = !n; }
 function alternarFav(id) {
   const f = favs(); const on = !f.has(id); on ? f.add(id) : f.delete(id); guardar('baixou-favs', [...f]);
+  if (on && byId.has(id)) aprender(e => Gosto.registrar(e, byId.get(id), 'fav'));
   const fp = ler('baixou-favp', {}); if (on && byId.has(id)) fp[id] = byId.get(id).preco; else delete fp[id]; guardar('baixou-favp', fp);
   document.querySelectorAll(`[data-fav="${CSS.escape(id)}"]`).forEach(b => { b.setAttribute('aria-pressed', String(on)); b.setAttribute('aria-label', on ? 'Remover dos favoritos' : 'Salvar nos favoritos'); });
   contarFavs(); toast(on ? 'Salvo nos favoritos' : 'Removido dos favoritos');
+}
+
+/* ---------- personalização "Para você": fica só neste aparelho (regras em gosto.js) ---------- */
+const temGosto = typeof Gosto !== 'undefined';
+const gosto = () => temGosto ? Gosto.validar(ler('baixou-gosto', null)) : null;
+function aprender(fn) { if (!temGosto) return; const e = gosto(); fn(e); guardar('baixou-gosto', e); }
+function salvarEscolhidas(nomes) { aprender(e => { e.escolhidas = [...new Set(nomes)]; }); guardar('baixou-gosto-pergunta', true); }
+const chipsGosto = (cats, marcadas) => `<div class="gchips">${cats.map(c => `<button type="button" class="gchip" data-gosto="${esc(c.nome)}" aria-pressed="${marcadas.includes(c.nome)}">${esc(c.nome)}</button>`).join('')}</div>`;
+function perguntaGostos() {
+  const cats = [...CATS].sort((a, b) => b.n - a.n).slice(0, 12);
+  return `<section class="sec wrap" aria-labelledby="gq-t"><div class="gq"><div><h2 id="gq-t">Do que você gosta?</h2><p>Escolha algumas categorias e a página inicial mostra essas ofertas primeiro. Fica só neste aparelho.</p></div>
+    ${chipsGosto(cats, [])}<div class="gacoes"><button type="button" class="buy gbtn" data-gosto-ok disabled>Ver ofertas para mim</button><button type="button" class="glink" data-gosto-nao>Agora não</button></div></div></section>`;
+}
+function viewGostos() {
+  document.title = 'Seus interesses | Baixou';
+  const e = gosto();
+  if (!e) { $('view').innerHTML = `<div class="wrap" style="padding-block:40px"><div class="empty"><strong>Personalização indisponível</strong><p>Recarregue a página para tentar de novo.</p></div></div>`; return; }
+  const r = Gosto.resumo(e);
+  $('view').innerHTML = `<div class="wrap gostos"><h1 class="h2">Seus interesses</h1>
+    <p class="gsub">A página inicial mostra primeiro o que combina com você. Tudo isso fica <b>só neste aparelho</b>: nada é enviado ao Baixou nem a ninguém, e o site não tem acesso aos outros sites que você visita nem às suas pesquisas.</p>
+    <h2 class="gtit">Categorias que você escolheu</h2><p class="gsub">Toque para marcar ou desmarcar. Salva na hora.</p>${chipsGosto(CATS, e.escolhidas)}
+    <h2 class="gtit">O que o Baixou percebeu</h2>
+    ${r.length ? `<ul class="gbar">${r.map(x => `<li><span>${esc(x.nome)}</span><i><i style="width:${x.pct}%"></i></i><b>${x.pct}%</b></li>`).join('')}</ul>` : `<p class="gsub">Ainda nada. Conforme você abre ofertas, salva favoritos ou vai à loja, o Baixou aprende o que mais te interessa.</p>`}
+    <label class="gsw"><input type="checkbox" id="gaprender"${e.aprender ? ' checked' : ''}> Aprender com o que eu vejo neste aparelho</label>
+    <div class="gacoes"><button class="btn2" type="button" id="gapagar">Apagar minha personalização</button><a class="glink" href="privacidade.html">Como tratamos seus dados</a></div>
+    <p class="gsub"><small>Seus favoritos e alertas continuam salvos; eles têm o próprio botão em cada oferta.</small></p></div>`;
+  $('gaprender').addEventListener('change', ev => { aprender(g => { g.aprender = ev.target.checked; }); toast(ev.target.checked ? 'Aprendizado ligado' : 'Aprendizado desligado'); });
+  $('gapagar').addEventListener('click', ev => {
+    const b = ev.currentTarget;
+    if (!b.dataset.certo) { b.dataset.certo = '1'; b.textContent = 'Toque de novo para apagar'; return; }
+    try { ['baixou-gosto', 'baixou-gosto-pergunta', 'baixou-vistos'].forEach(k => localStorage.removeItem(k)); } catch (e) {}
+    viewGostos(); toast('Personalização apagada deste aparelho');
+  });
 }
 
 /* ---------- alertas guardados neste navegador (favoritos que baixaram, buscas, ofertas que voltaram) ---------- */
@@ -274,6 +308,9 @@ function viewHome() {
   // Cada vitrine prioriza produtos que ainda não apareceram acima, para a página não se repetir
   const usados = new Set();
   const unicos = (lista, n = 14) => { const novos = lista.filter(p => !usados.has(p.id)), r = (novos.length >= 6 ? novos : [...novos, ...lista.filter(p => usados.has(p.id))]).slice(0, n); r.forEach(p => usados.add(p.id)); return r; };
+  const eg = gosto(), comGosto = !!eg && Gosto.temSinal(eg);
+  const voce = comGosto ? Gosto.paraVoce(eg, P, {n: 14}) : [];
+  if (comGosto && voce.length >= Gosto.LIMIAR.min_vitrine) voce.forEach(p => usados.add(p.id)); else voce.length = 0;
   const novas = unicos([...P].sort(porNovo));
   const vis = vistos();
   const populares = REL.populares.map(x => byId.get(x.id)).filter(Boolean);
@@ -284,7 +321,8 @@ function viewHome() {
   while (faixas.length > 3) faixas.splice(faixas.length === 4 ? 1 : 0, 1);
   const topo = faixas.length ? faixas[faixas.length - 1].m : 0, acima = P.filter(p => p.preco > topo).length;
   if (topo && acima) faixas.push({n: acima, href: qs({min:topo}), r: 'Acima de', v: `R$ ${topo}`});
-  const topCats = [...CATS].sort((a, b) => b.n - a.n).filter(c => c.n >= 5).slice(0, 3);
+  const fortes = [...CATS].sort((a, b) => b.n - a.n).filter(c => c.n >= 5);
+  const topCats = (comGosto ? Gosto.ordenarCategorias(eg, fortes) : fortes).slice(0, 3);
   let h = '';
   h += `<div class="hero"><div class="hero-track" id="ht">${heroC.map(slide).join('')}</div>
     ${heroC.length > 1 ? `<button class="hero-arrow l" type="button" aria-label="Banner anterior">‹</button><button class="hero-arrow r" type="button" aria-label="Próximo banner">›</button><div class="hero-ctl">${heroC.map((c, i) => `<button class="dot" type="button" aria-label="Banner ${i + 1}"><i></i></button>`).join('')}</div>` : ''}</div>`;
@@ -293,6 +331,8 @@ function viewHome() {
     <div class="perk">${PERK.chart}<span><b>Desconto real</b>comparado com o histórico</span></div>
     <div class="perk">${PERK.shield}<span><b>Compra segura</b>direto na loja</span></div>
     <div class="perk">${PERK.truck}<span><b>Frete grátis</b>em ${nFrete} ${nFrete === 1 ? 'oferta' : 'ofertas'}</span></div></div></div>`;
+  if (voce.length) h += rail('r-voce', 'Para você', voce, '?ver=gostos', 'Ajustar', (eg.escolhidas.length ? 'Pelo que você escolheu' : 'Pelo que você viu') + (Gosto.resumo(eg).length && eg.escolhidas.length ? ' e viu' : '') + ' (fica só neste aparelho)');
+  else if (eg && !comGosto && !ler('baixou-gosto-pergunta', false) && CATS.length >= 3) h += perguntaGostos();
   h += rail('r-novas', 'Acabou de baixar', novas, '?ver=novas', 'Ver todas', 'Entraram no site agora há pouco');
   if (populares.length >= 6) h += rail('r-pop', 'Mais procurados hoje', unicos(populares), '', '', 'O que mais gente levou para a loja nas últimas 24 horas', {pop:true});
   if (faixas.length >= 2) h += `<section class="sec wrap" aria-labelledby="preco-t"><div class="sec-head"><h2 id="preco-t">Escolha por preço</h2></div><div class="prices">${faixas.map(f => `<a class="ptile" href="${esc(f.href)}" data-nav><span>${f.r}</span><b>${f.v}</b><small>${f.n} ${f.n === 1 ? 'oferta' : 'ofertas'}</small></a>`).join('')}</div></section>`;
@@ -566,7 +606,7 @@ function viewProduto(id) {
     encerradas().then(lista => { const o = lista.find(x => String(x.id) === id); if (o && new URLSearchParams(location.search).get('p') === id) viewEncerrada(o); });
     return;
   }
-  marcarVisto(p.id); evento('v', p.id);
+  marcarVisto(p.id); evento('v', p.id); aprender(e => Gosto.registrar(e, p, 'ver'));
   document.title = DEMO ? `${p.titulo} (exemplo) | Baixou` : `${p.titulo} por ${brl(p.preco)} | Baixou`;
   const fotos = [...new Set([...(p.fotos || []), p.foto].map(seguro).filter(Boolean))].slice(0, 5);
   const link = seguro(p.link) || '#';
@@ -872,6 +912,7 @@ function rota() {
   const id = ps.get('p') || ps.get('oferta');
   if (ps.get('oferta')) history.replaceState(null, '', qs({p:id}));
   if (id) viewProduto(id);
+  else if (ps.get('ver') === 'gostos') viewGostos();
   else if (['cat', 'q', 'ver', 'marca', 'loja', 'sub', 'max', 'min', 'preco', 'desc', 'frete', 'full', 'menor', 'pagina', 'ordem'].some(k => ps.get(k))) viewLista(ps);
   else viewHome();
   $('q').value = ps.get('q') || '';
@@ -883,7 +924,10 @@ function ir(url) { history.pushState(null, '', url); rota(); scrollTo(0, 0); $('
 addEventListener('popstate', rota);
 document.addEventListener('click', e => {
   const fv = e.target.closest('[data-fav]'); if (fv) { e.preventDefault(); alternarFav(fv.dataset.fav); return; }
-  const by = e.target.closest('[data-buy]'); if (by) evento('c', by.dataset.buy);
+  const by = e.target.closest('[data-buy]'); if (by) { evento('c', by.dataset.buy); const pb = byId.get(by.dataset.buy); if (pb) aprender(g => Gosto.registrar(g, pb, 'loja')); }
+  const gc = e.target.closest('[data-gosto]'); if (gc) { tocarGosto(gc); return; }
+  if (e.target.closest('[data-gosto-ok]')) { salvarEscolhidas([...document.querySelectorAll('.gq [data-gosto][aria-pressed="true"]')].map(b => b.dataset.gosto)); rota(); toast('Pronto! As ofertas para você aparecem primeiro'); return; }
+  if (e.target.closest('[data-gosto-nao]')) { guardar('baixou-gosto-pergunta', true); e.target.closest('section')?.remove(); return; }
   const a = e.target.closest('a[data-nav]');
   if (a && !e.metaKey && !e.ctrlKey && !e.shiftKey && e.button === 0) { e.preventDefault(); ir(a.getAttribute('href')); return; }
   const pv = e.target.closest('[data-prev]'), nx = e.target.closest('[data-next]');
@@ -915,7 +959,13 @@ $('q').addEventListener('keydown', e => {
   else if (e.key === 'Escape') fecharSugg();
 });
 document.addEventListener('click', e => { if (!e.target.closest('.sbox')) fecharSugg(); });
-$('sf').addEventListener('submit', e => { e.preventDefault(); const q = $('q').value.trim(); if (q) ir(qs({q})); $('q').blur(); });
+$('sf').addEventListener('submit', e => { e.preventDefault(); const q = $('q').value.trim(); if (q) { aprender(g => Gosto.registrarBusca(g, P.filter(p => casaBusca(p, q)))); ir(qs({q})); } $('q').blur(); });
+function tocarGosto(b) {
+  const on = b.getAttribute('aria-pressed') !== 'true'; b.setAttribute('aria-pressed', String(on));
+  const ok = document.querySelector('.gq [data-gosto-ok]');
+  if (ok) { ok.disabled = !document.querySelector('.gq [data-gosto][aria-pressed="true"]'); return; }  // pergunta da página inicial: salva no botão
+  const e = gosto(); if (!e) return; salvarEscolhidas(on ? [...e.escolhidas, b.dataset.gosto] : e.escolhidas.filter(c => c !== b.dataset.gosto));  // tela "Seus interesses": salva na hora
+}
 
 /* ---------- compartilhar, avisos, topo ---------- */
 function toast(m) { const t = $('toast'); t.textContent = m; t.classList.add('on'); clearTimeout(toast.h); toast.h = setTimeout(() => t.classList.remove('on'), 2000); }
