@@ -1,216 +1,30 @@
 {
- "gerado_em": "2026-11-27T20:30+00:00",
+ "gerado_em": "2026-11-27T20:34+00:00",
  "modo": "demonstração",
- "duracao_s": 0.1,
+ "duracao_s": 0.0,
  "afiliado_configurado": true,
- "freio": true,
+ "freio": false,
  "contagem": {
   "candidatos": 31,
   "publicadas": 26,
-  "quarentena": 24,
+  "quarentena": 1,
   "reprovadas": 4
  },
  "motivos": {
-  "preço cheio inflado (acima do maior preço visto no período)": 24,
   "palavra bloqueada: similar": 1,
   "produto não é novo": 1,
+  "desconto suspeito (88%), pode ser erro de anúncio": 1,
   "vendedor com reputação baixa": 1,
   "desconto menor que 15%": 1
  },
- "alertas": [
-  "FREIO ACIONADO: o site manteve as ofertas anteriores. Queda brusca de ofertas aprovadas (26 → 3)."
- ],
+ "alertas": [],
  "quarentena": [
-  {
-   "titulo": "Smartphone Samsung Galaxy A35 5G 128GB",
-   "preco": 1701.26,
-   "preco_cheio": 2299.0,
-   "desconto": 26,
-   "motivo": "preço cheio inflado (acima do maior preço visto no período)",
-   "link": "https://lista.mercadolivre.com.br/smartphone-samsung-galaxy-a35-5g-128gb"
-  },
-  {
-   "titulo": "Smartphone Motorola Moto G85 5G 256GB",
-   "preco": 1359.32,
-   "preco_cheio": 1999.0,
-   "desconto": 32,
-   "motivo": "preço cheio inflado (acima do maior preço visto no período)",
-   "link": "https://lista.mercadolivre.com.br/smartphone-motorola-moto-g85-5g-256gb"
-  },
-  {
-   "titulo": "Smartwatch Amazfit Bip 6",
-   "preco": 447.36,
-   "preco_cheio": 699.0,
-   "desconto": 36,
-   "motivo": "preço cheio inflado (acima do maior preço visto no período)",
-   "link": "https://lista.mercadolivre.com.br/smartwatch-amazfit-bip-6"
-  },
-  {
-   "titulo": "Monitor LG 24 IPS Full HD 100Hz",
-   "preco": 647.28,
-   "preco_cheio": 899.0,
-   "desconto": 28,
-   "motivo": "preço cheio inflado (acima do maior preço visto no período)",
-   "link": "https://lista.mercadolivre.com.br/monitor-lg-24-ips-full-hd-100hz"
-  },
-  {
-   "titulo": "SSD Kingston NV2 1TB NVMe",
-   "preco": 389.79,
-   "preco_cheio": 549.0,
-   "desconto": 29,
-   "motivo": "preço cheio inflado (acima do maior preço visto no período)",
-   "link": "https://lista.mercadolivre.com.br/ssd-kingston-nv2-1tb-nvme"
-  },
-  {
-   "titulo": "Fone de ouvido JBL Tune 520BT",
-   "preco": 227.43,
-   "preco_cheio": 399.0,
-   "desconto": 43,
-   "motivo": "preço cheio inflado (acima do maior preço visto no período)",
-   "link": "https://lista.mercadolivre.com.br/fone-de-ouvido-jbl-tune-520bt"
-  },
-  {
-   "titulo": "Caixa de som JBL Go 4",
-   "preco": 247.79,
-   "preco_cheio": 349.0,
-   "desconto": 29,
-   "motivo": "preço cheio inflado (acima do maior preço visto no período)",
-   "link": "https://lista.mercadolivre.com.br/caixa-de-som-jbl-go-4"
-  },
-  {
-   "titulo": "Smart TV TCL 50 4K Google TV",
-   "preco": 2043.27,
-   "preco_cheio": 2799.0,
-   "desconto": 27,
-   "motivo": "preço cheio inflado (acima do maior preço visto no período)",
-   "link": "https://lista.mercadolivre.com.br/smart-tv-tcl-50-4k-google-tv"
-  },
-  {
-   "titulo": "Air Fryer Mondial 4L 1500W",
-   "preco": 278.38,
-   "preco_cheio": 449.0,
-   "desconto": 38,
-   "motivo": "preço cheio inflado (acima do maior preço visto no período)",
-   "link": "https://lista.mercadolivre.com.br/air-fryer-mondial-4l-1500w"
-  },
-  {
-   "titulo": "Cafeteira Nespresso Essenza Mini",
-   "preco": 389.35,
-   "preco_cheio": 599.0,
-   "desconto": 35,
-   "motivo": "preço cheio inflado (acima do maior preço visto no período)",
-   "link": "https://lista.mercadolivre.com.br/cafeteira-nespresso-essenza-mini"
-  },
-  {
-   "titulo": "Jogo de panelas Tramontina 5 peças antiaderente",
-   "preco": 299.4,
-   "preco_cheio": 499.0,
-   "desconto": 40,
-   "motivo": "preço cheio inflado (acima do maior preço visto no período)",
-   "link": "https://lista.mercadolivre.com.br/jogo-de-panelas-tramontina-5-pecas-antiaderente"
-  },
-  {
-   "titulo": "Jogo de cama casal 4 peças 400 fios",
-   "preco": 163.17,
-   "preco_cheio": 259.0,
-   "desconto": 37,
-   "motivo": "preço cheio inflado (acima do maior preço visto no período)",
-   "link": "https://lista.mercadolivre.com.br/jogo-de-cama-casal-4-pecas-400-fios"
-  },
-  {
-   "titulo": "Perfume Natura Kaiak Masculino 100ml",
-   "preco": 125.37,
-   "preco_cheio": 199.0,
-   "desconto": 37,
-   "motivo": "preço cheio inflado (acima do maior preço visto no período)",
-   "link": "https://lista.mercadolivre.com.br/perfume-natura-kaiak-masculino-100ml"
-  },
-  {
-   "titulo": "Secador de cabelo Taiff Black 2000W",
-   "preco": 179.4,
-   "preco_cheio": 299.0,
-   "desconto": 40,
-   "motivo": "preço cheio inflado (acima do maior preço visto no período)",
-   "link": "https://lista.mercadolivre.com.br/secador-de-cabelo-taiff-black-2000w"
-  },
-  {
-   "titulo": "Kit protetor solar La Roche-Posay Anthelios FPS 70",
-   "preco": 134.19,
-   "preco_cheio": 189.0,
-   "desconto": 29,
-   "motivo": "preço cheio inflado (acima do maior preço visto no período)",
-   "link": "https://lista.mercadolivre.com.br/kit-protetor-solar-la-roche-posay-anthelios-fps-70"
-  },
-  {
-   "titulo": "Tênis Olympikus Corre 4 masculino",
-   "preco": 319.36,
-   "preco_cheio": 499.0,
-   "desconto": 36,
-   "motivo": "preço cheio inflado (acima do maior preço visto no período)",
-   "link": "https://lista.mercadolivre.com.br/tenis-olympikus-corre-4-masculino"
-  },
-  {
-   "titulo": "Mochila Adidas Classic 3 listras",
-   "preco": 169.46,
-   "preco_cheio": 229.0,
-   "desconto": 26,
-   "motivo": "preço cheio inflado (acima do maior preço visto no período)",
-   "link": "https://lista.mercadolivre.com.br/mochila-adidas-classic-3-listras"
-  },
-  {
-   "titulo": "Kit halteres ajustáveis 2 a 10kg",
-   "preco": 226.17,
-   "preco_cheio": 359.0,
-   "desconto": 37,
-   "motivo": "preço cheio inflado (acima do maior preço visto no período)",
-   "link": "https://lista.mercadolivre.com.br/kit-halteres-ajustaveis-2-a-10kg"
-  },
-  {
-   "titulo": "Bicicleta ergométrica Dream Fitness",
-   "preco": 1169.22,
-   "preco_cheio": 1499.0,
-   "desconto": 22,
-   "motivo": "preço cheio inflado (acima do maior preço visto no período)",
-   "link": "https://lista.mercadolivre.com.br/bicicleta-ergometrica-dream-fitness"
-  },
-  {
-   "titulo": "Furadeira de impacto Bosch GSB 550 RE",
-   "preco": 259.35,
-   "preco_cheio": 399.0,
-   "desconto": 35,
-   "motivo": "preço cheio inflado (acima do maior preço visto no período)",
-   "link": "https://lista.mercadolivre.com.br/furadeira-de-impacto-bosch-gsb-550-re"
-  },
-  {
-   "titulo": "Jogo de chaves combinadas Tramontina 8 peças",
-   "preco": 130.41,
-   "preco_cheio": 189.0,
-   "desconto": 31,
-   "motivo": "preço cheio inflado (acima do maior preço visto no período)",
-   "link": "https://lista.mercadolivre.com.br/jogo-de-chaves-combinadas-tramontina-8-pecas"
-  },
-  {
-   "titulo": "Lego Classic caixa criativa 790 peças",
-   "preco": 305.32,
-   "preco_cheio": 449.0,
-   "desconto": 32,
-   "motivo": "preço cheio inflado (acima do maior preço visto no período)",
-   "link": "https://lista.mercadolivre.com.br/lego-classic-caixa-criativa-790-pecas"
-  },
-  {
-   "titulo": "Carrinho de bebê Burigotto Travel System",
-   "preco": 974.25,
-   "preco_cheio": 1299.0,
-   "desconto": 25,
-   "motivo": "preço cheio inflado (acima do maior preço visto no período)",
-   "link": "https://lista.mercadolivre.com.br/carrinho-de-bebe-burigotto-travel-system"
-  },
   {
    "titulo": "Tênis esportivo corrida masculino",
    "preco": 107.88,
    "preco_cheio": 899.0,
    "desconto": 88,
-   "motivo": "preço cheio inflado (acima do maior preço visto no período)",
+   "motivo": "desconto suspeito (88%), pode ser erro de anúncio",
    "link": "https://lista.mercadolivre.com.br/tenis-esportivo-corrida-masculino"
   }
  ],
@@ -225,41 +39,170 @@
    "boa"
   ],
   "contagem": {
-   "excepcional": 0,
-   "boa": 0,
-   "comum": 0,
-   "sem_historico": 3
+   "excepcional": 4,
+   "boa": 11,
+   "comum": 11,
+   "sem_historico": 0
   },
   "reguas": [
    {
     "queda_min": 5,
-    "ofertas": 0
+    "ofertas": 15
    },
    {
     "queda_min": 10,
-    "ofertas": 0
+    "ofertas": 15
    },
    {
     "queda_min": 15,
-    "ofertas": 0
+    "ofertas": 15
    },
    {
     "queda_min": 20,
-    "ofertas": 0
+    "ofertas": 14
    },
    {
     "queda_min": 25,
-    "ofertas": 0
+    "ofertas": 10
    },
    {
     "queda_min": 30,
-    "ofertas": 0
+    "ofertas": 6
    }
   ],
   "exemplos": {
-   "excepcional": [],
-   "boa": [],
-   "comum": []
+   "excepcional": [
+    {
+     "id": "DEMO0001",
+     "titulo": "Smartphone Motorola Moto G85 5G 256GB",
+     "preco": 1359.32,
+     "mediana": 1979.01,
+     "queda": 31.3,
+     "percentil": 0.0,
+     "dias": 40
+    },
+    {
+     "id": "DEMO0000",
+     "titulo": "Smartphone Samsung Galaxy A35 5G 128GB",
+     "preco": 1701.26,
+     "mediana": 2276.01,
+     "queda": 25.3,
+     "percentil": 0.013,
+     "dias": 40
+    },
+    {
+     "id": "DEMO0017",
+     "titulo": "Mochila Adidas Classic 3 listras",
+     "preco": 169.46,
+     "mediana": 226.71,
+     "queda": 25.3,
+     "percentil": 0.0,
+     "dias": 40
+    },
+    {
+     "id": "DEMO0003",
+     "titulo": "Notebook Lenovo IdeaPad Slim 3 Ryzen 5 8GB 512GB",
+     "preco": 2887.24,
+     "mediana": 3761.01,
+     "queda": 23.2,
+     "percentil": 0.013,
+     "dias": 40
+    }
+   ],
+   "boa": [
+    {
+     "id": "DEMO0011",
+     "titulo": "Jogo de panelas Tramontina 5 peças antiaderente",
+     "preco": 299.4,
+     "mediana": 494.01,
+     "queda": 39.4,
+     "percentil": 0.037,
+     "dias": 40
+    },
+    {
+     "id": "DEMO0014",
+     "titulo": "Secador de cabelo Taiff Black 2000W",
+     "preco": 179.4,
+     "mediana": 294.51,
+     "queda": 39.1,
+     "percentil": 0.1,
+     "dias": 40
+    },
+    {
+     "id": "DEMO0018",
+     "titulo": "Kit halteres ajustáveis 2 a 10kg",
+     "preco": 226.17,
+     "mediana": 351.82,
+     "queda": 35.7,
+     "percentil": 0.1,
+     "dias": 40
+    },
+    {
+     "id": "DEMO0022",
+     "titulo": "Furadeira de impacto Bosch GSB 550 RE",
+     "preco": 259.35,
+     "mediana": 395.01,
+     "queda": 34.3,
+     "percentil": 0.025,
+     "dias": 40
+    },
+    {
+     "id": "DEMO0024",
+     "titulo": "Lego Classic caixa criativa 790 peças",
+     "preco": 305.32,
+     "mediana": 444.51,
+     "queda": 31.3,
+     "percentil": 0.1,
+     "dias": 40
+    }
+   ],
+   "comum": [
+    {
+     "id": "DEMO0006",
+     "titulo": "Fone de ouvido JBL Tune 520BT",
+     "preco": 227.43,
+     "mediana": 393.01,
+     "queda": 42.1,
+     "percentil": 0.125,
+     "dias": 40
+    },
+    {
+     "id": "DEMO0009",
+     "titulo": "Air Fryer Mondial 4L 1500W",
+     "preco": 278.38,
+     "mediana": 444.51,
+     "queda": 37.4,
+     "percentil": 0.125,
+     "dias": 40
+    },
+    {
+     "id": "DEMO0012",
+     "titulo": "Jogo de cama casal 4 peças 400 fios",
+     "preco": 163.17,
+     "mediana": 253.82,
+     "queda": 35.7,
+     "percentil": 0.125,
+     "dias": 40
+    },
+    {
+     "id": "DEMO0013",
+     "titulo": "Perfume Natura Kaiak Masculino 100ml",
+     "preco": 125.37,
+     "mediana": 195.02,
+     "queda": 35.7,
+     "percentil": 0.138,
+     "dias": 40
+    },
+    {
+     "id": "DEMO0002",
+     "titulo": "Smartwatch Amazfit Bip 6",
+     "preco": 447.36,
+     "mediana": 688.51,
+     "queda": 35.0,
+     "percentil": 0.138,
+     "dias": 40
+    }
+   ]
   }
  },
  "aprendiz": {
@@ -275,6 +218,12 @@
   "notas": []
  },
  "execucoes": [
+  {
+   "em": "2026-11-27T20:34+00:00",
+   "publicadas": 26,
+   "quarentena": 1,
+   "alertas": 0
+  },
   {
    "em": "2026-11-27T20:30+00:00",
    "publicadas": 26,
@@ -445,12 +394,6 @@
   },
   {
    "em": "2026-11-25T16:08+00:00",
-   "publicadas": 26,
-   "quarentena": 1,
-   "alertas": 0
-  },
-  {
-   "em": "2026-11-25T15:55+00:00",
    "publicadas": 26,
    "quarentena": 1,
    "alertas": 0
