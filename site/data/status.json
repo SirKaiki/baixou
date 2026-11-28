@@ -1,5 +1,5 @@
 {
- "gerado_em": "2026-11-28T04:18+00:00",
+ "gerado_em": "2026-11-28T13:11+00:00",
  "modo": "demonstração",
  "duracao_s": 0.0,
  "afiliado_configurado": true,
@@ -59,15 +59,15 @@
    },
    {
     "queda_min": 20,
-    "ofertas": 14
+    "ofertas": 13
    },
    {
     "queda_min": 25,
-    "ofertas": 10
+    "ofertas": 12
    },
    {
     "queda_min": 30,
-    "ofertas": 5
+    "ofertas": 4
    }
   ],
   "exemplos": {
@@ -75,41 +75,50 @@
     {
      "id": "DEMO0001",
      "titulo": "Smartphone Motorola Moto G85 5G 256GB",
-     "preco": 1319.34,
+     "preco": 1359.32,
      "mediana": 1979.01,
-     "queda": 33.3,
+     "queda": 31.3,
      "percentil": 0.0,
      "dias": 40
     },
     {
      "id": "DEMO0000",
      "titulo": "Smartphone Samsung Galaxy A35 5G 128GB",
-     "preco": 1609.3,
+     "preco": 1655.28,
      "mediana": 2276.01,
-     "queda": 29.3,
+     "queda": 27.3,
      "percentil": 0.013,
      "dias": 40
     },
     {
      "id": "DEMO0017",
      "titulo": "Mochila Adidas Classic 3 listras",
-     "preco": 160.3,
+     "preco": 169.46,
      "mediana": 226.71,
-     "queda": 29.3,
+     "queda": 25.3,
      "percentil": 0.0,
      "dias": 40
     },
     {
      "id": "DEMO0003",
      "titulo": "Notebook Lenovo IdeaPad Slim 3 Ryzen 5 8GB 512GB",
-     "preco": 3039.2,
+     "preco": 2887.24,
      "mediana": 3761.01,
-     "queda": 19.2,
+     "queda": 23.2,
      "percentil": 0.013,
      "dias": 40
     }
    ],
    "boa": [
+    {
+     "id": "DEMO0014",
+     "titulo": "Secador de cabelo Taiff Black 2000W",
+     "preco": 179.4,
+     "mediana": 294.51,
+     "queda": 39.1,
+     "percentil": 0.1,
+     "dias": 40
+    },
     {
      "id": "DEMO0018",
      "titulo": "Kit halteres ajustáveis 2 a 10kg",
@@ -122,37 +131,28 @@
     {
      "id": "DEMO0011",
      "titulo": "Jogo de panelas Tramontina 5 peças antiaderente",
-     "preco": 309.38,
+     "preco": 319.36,
      "mediana": 494.01,
-     "queda": 37.4,
+     "queda": 35.4,
      "percentil": 0.037,
      "dias": 40
     },
     {
-     "id": "DEMO0014",
-     "titulo": "Secador de cabelo Taiff Black 2000W",
-     "preco": 185.38,
-     "mediana": 294.51,
-     "queda": 37.1,
+     "id": "DEMO0007",
+     "titulo": "Caixa de som JBL Go 4",
+     "preco": 247.79,
+     "mediana": 345.51,
+     "queda": 28.3,
      "percentil": 0.1,
      "dias": 40
     },
     {
      "id": "DEMO0022",
      "titulo": "Furadeira de impacto Bosch GSB 550 RE",
-     "preco": 259.35,
+     "preco": 283.29,
      "mediana": 395.01,
-     "queda": 34.3,
+     "queda": 28.3,
      "percentil": 0.025,
-     "dias": 40
-    },
-    {
-     "id": "DEMO0024",
-     "titulo": "Lego Classic caixa criativa 790 peças",
-     "preco": 314.3,
-     "mediana": 444.51,
-     "queda": 29.3,
-     "percentil": 0.1,
      "dias": 40
     }
    ],
@@ -167,6 +167,15 @@
      "dias": 40
     },
     {
+     "id": "DEMO0009",
+     "titulo": "Air Fryer Mondial 4L 1500W",
+     "preco": 269.4,
+     "mediana": 444.51,
+     "queda": 39.4,
+     "percentil": 0.125,
+     "dias": 40
+    },
+    {
      "id": "DEMO0016",
      "titulo": "Tênis Olympikus Corre 4 masculino",
      "preco": 299.4,
@@ -176,12 +185,12 @@
      "dias": 40
     },
     {
-     "id": "DEMO0009",
-     "titulo": "Air Fryer Mondial 4L 1500W",
-     "preco": 278.38,
-     "mediana": 444.51,
-     "queda": 37.4,
-     "percentil": 0.125,
+     "id": "DEMO0002",
+     "titulo": "Smartwatch Amazfit Bip 6",
+     "preco": 433.38,
+     "mediana": 688.51,
+     "queda": 37.1,
+     "percentil": 0.138,
      "dias": 40
     },
     {
@@ -191,15 +200,6 @@
      "mediana": 253.82,
      "queda": 35.7,
      "percentil": 0.125,
-     "dias": 40
-    },
-    {
-     "id": "DEMO0013",
-     "titulo": "Perfume Natura Kaiak Masculino 100ml",
-     "preco": 125.37,
-     "mediana": 195.02,
-     "queda": 35.7,
-     "percentil": 0.138,
      "dias": 40
     }
    ]
@@ -218,6 +218,12 @@
   "notas": []
  },
  "execucoes": [
+  {
+   "em": "2026-11-28T13:11+00:00",
+   "publicadas": 26,
+   "quarentena": 1,
+   "alertas": 0
+  },
   {
    "em": "2026-11-28T04:18+00:00",
    "publicadas": 26,
@@ -388,12 +394,6 @@
   },
   {
    "em": "2026-11-25T16:31+00:00",
-   "publicadas": 26,
-   "quarentena": 1,
-   "alertas": 0
-  },
-  {
-   "em": "2026-11-25T16:28+00:00",
    "publicadas": 26,
    "quarentena": 1,
    "alertas": 0
